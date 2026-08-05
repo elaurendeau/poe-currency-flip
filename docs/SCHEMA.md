@@ -1,6 +1,6 @@
 # Database Schema
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (resilience principles this schema follows) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts this schema normalizes) · [TECH_STACK.md](TECH_STACK.md) (Postgres via Spring Data JPA)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (resilience principles this schema follows) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts this schema normalizes) · [TECH_STACK.md](TECH_STACK.md) (Postgres via Spring Data JPA) · [CODE_STYLE.md](CODE_STYLE.md) (Java code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
 This is the internal domain model referenced in [ARCHITECTURE.md § Anti-Corruption Layer](ARCHITECTURE.md#1-anti-corruption-layer) — the only shape the rest of the application ever sees. External API responses are normalized into these tables at the adapter boundary; nothing outside the adapters touches raw GGG/wiki shapes.
 

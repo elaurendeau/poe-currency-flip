@@ -1,6 +1,6 @@
 # Architecture & Resilience
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema) · [CODE_STYLE.md](CODE_STYLE.md) (Java code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
 This document defines *how* the system is built so it stays resilient to changes in upstream data sources GGG and PoE Wiki don't guarantee to keep stable. **Any AI coding agent implementing or modifying data-ingestion code should read this document — and [DATA_SOURCES.md](DATA_SOURCES.md) — before writing code.**
 
