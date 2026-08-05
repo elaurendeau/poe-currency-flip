@@ -65,7 +65,12 @@ This entire algorithm lives in one place (the league-resolution adapter/service)
 - The UI always shows data staleness (timestamp of last successful refresh) so a failed or partial refresh is visible rather than silently trusted.
 - Partial ingestion (e.g., failure on hour N of a multi-hour catch-up walk) commits nothing past the last fully-validated hour — no partial/corrupt state is persisted.
 
+## Credential Handling
+
+No external data source currently in use requires authentication (see [DATA_SOURCES.md](DATA_SOURCES.md)). This is a standing principle for if that changes:
+
+**Never hold or use a single shared API key/credential on behalf of all users.** If a future feature needs an authenticated external API, each user supplies and stores their own credential, and the backend uses only the requesting user's credential for that user's own requests — never a credential owned by the app itself applied across all users. This keeps one user's usage from exhausting a shared quota or getting a shared credential rate-limited or revoked for everyone.
+
 ## Open Questions
 
 1. Is there a reasonable cap on how many hours a single manual refresh will walk before it just serves what's currently stored and reports "partially caught up"? (Relevant if the app hasn't been refreshed in a long time — e.g., days.)
-2. Where does the ingestion checkpoint live, and how is it kept consistent with the normalized market data it produced? (Depends on storage choice — see [TECH_STACK.md](TECH_STACK.md).)
