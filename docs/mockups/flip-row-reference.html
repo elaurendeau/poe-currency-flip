@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Flip finder mockup</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+<style>
+  body { background:#0c0e10; margin:0; padding:24px; font-family: 'Segoe UI', sans-serif; }
+  .panel { background:#14171b; border-radius:12px; padding:16px 18px; max-width:680px; margin:0 auto; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .brand { display:flex; align-items:center; gap:8px; color:#e6e9ec; font-weight:500; font-size:14px; }
+  .league { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; }
+  .header-row { display:grid; grid-template-columns:80px 1fr 80px 60px 70px 70px; gap:10px; padding:0 4px 8px; font-size:11px; color:#6b7480; border-bottom:0.5px solid #262c33; }
+  .row { display:grid; grid-template-columns:80px 1fr 80px 60px 70px 70px; gap:10px; align-items:center; padding:10px 4px; border-bottom:1px solid #1e2329; }
+  .cur { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px; color:#c7cdd3; text-align:center; }
+  .cur-top { display:flex; align-items:center; gap:4px; }
+  .cur img { width:22px; height:22px; object-fit:contain; }
+  .cur i { font-size:20px; }
+  .via-icons { display:flex; align-items:center; gap:4px; flex-wrap:wrap; color:#d8dde2; font-size:12px; }
+  .via-icons img { width:20px; height:20px; object-fit:contain; }
+  .via-icons i { font-size:18px; }
+  .qty { color:#f2f4f6; font-family:Consolas,monospace; font-weight:600; font-size:12px; }
+  .arrow { color:#525a63; font-size:12px; }
+  .margin { text-align:right; font-family:Consolas,monospace; font-size:13px; }
+  .profit { display:flex; align-items:center; justify-content:flex-end; gap:3px; font-family:Consolas,monospace; font-size:13px; }
+  .profit img { width:16px; height:16px; object-fit:contain; }
+  .vol { text-align:right; color:#8a92a0; font-family:Consolas,monospace; font-size:12px; }
+  .up { color:#5fd07a; }
+  .mid { color:#e8a33d; }
+  .sub { color:#6b7480; font-size:11px; margin-top:4px; font-family:Consolas,monospace; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="topbar">
+    <div class="brand">Flip finder</div>
+    <div class="league">Allflame &#9662;</div>
+  </div>
+  <div class="header-row"><span>Start</span><span>Via</span><span>Sell</span><span style="text-align:right">Margin</span><span style="text-align:right">Profit</span><span style="text-align:right">Volume</span></div>
+
+  <div class="row">
+    <div class="cur">
+      <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div>
+      <div class="via-icons">
+        <span class="qty">86</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlVG9NYWdpYyIsInNjYWxlIjoxfV0/ded9e8ee63/CurrencyUpgradeToMagic.png" alt="">Transmutation
+        <span class="arrow">&#8594;</span>
+        <span class="qty">344</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lJZGVudGlmaWNhdGlvbiIsInNjYWxlIjoxfV0/c2d03ed3fd/CurrencyIdentification.png" alt="">Wisdom
+        <span class="arrow">&#8594;</span>
+        <span class="qty">114</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lQb3J0YWwiLCJzY2FsZSI6MX1d/d92d3478a0/CurrencyPortal.png" alt="">Portal
+      </div>
+      <div class="sub">vendor + recipe chain</div>
+    </div>
+    <div class="cur">
+      <div class="cur-top"><span class="qty">&asymp;2</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div class="margin up">+97%</div>
+    <div class="profit up">+1<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+    <div class="vol">86</div>
+  </div>
+
+  <div class="row">
+    <div class="cur">
+      <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div>
+      <div class="via-icons">
+        <span class="qty">185</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lJZGVudGlmaWNhdGlvbiIsInNjYWxlIjoxfV0/c2d03ed3fd/CurrencyIdentification.png" alt="">Wisdom Scroll
+      </div>
+      <div class="sub">instant 185:1c &middot; competitive 366:1c</div>
+    </div>
+    <div class="cur">
+      <div class="cur-top"><span class="qty">&asymp;1.98</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div class="margin up">+98%</div>
+    <div class="profit up">+0.98<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+    <div class="vol">1.2k</div>
+  </div>
+
+  <div class="row">
+    <div class="cur">
+      <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" alt=""></div>
+      Divine
+    </div>
+    <div>
+      <div class="via-icons">
+        <span class="qty">45</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvRGl2aW5hdGlvbi9EZWNrIiwic2NhbGUiOjF9XQ/8e83aea79a/Deck.png" alt="">Stacked Deck
+      </div>
+      <div class="sub">direct rate 210c</div>
+    </div>
+    <div class="cur">
+      <div class="cur-top"><span class="qty">224</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div class="margin up">+7%</div>
+    <div class="profit up">+14<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+    <div class="vol">54</div>
+  </div>
+
+  <div class="row" style="border-bottom:none">
+    <div class="cur">
+      <div class="cur-top"><span class="qty">9</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div>
+      <div class="via-icons">
+        <span class="qty">5</span><i class="ti ti-cards" style="color:#c98ded" aria-hidden="true"></i>The Vanity
+        <span class="arrow">&#8594;</span>
+        <span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lVcGdyYWRlTWFnaWNUb1JhcmUiLCJzY2FsZSI6MX1d/0ded706f57/CurrencyUpgradeMagicToRare.png" alt="">Regal Orb
+      </div>
+      <div class="sub">&asymp;1.8c per card</div>
+    </div>
+    <div class="cur">
+      <div class="cur-top"><span class="qty">&asymp;12.7</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+      Chaos
+    </div>
+    <div class="margin mid">+41%</div>
+    <div class="profit mid">+3.7<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
+    <div class="vol">12</div>
+  </div>
+</div>
+</body>
+</html>

@@ -27,6 +27,38 @@ The Currency Exchange API ([DATA_SOURCES.md](DATA_SOURCES.md)) sends no `Access-
 
 Alternative considered and rejected for now: self-hosting on Oracle Cloud's "Always Free" ARM VM (genuinely free forever, no cold starts, but requires the owner to personally handle OS updates, uptime, backups, and TLS — real ongoing ops burden not worth it for this project's traffic level).
 
+## UI Style
+
+**Direction:** dark trading-terminal aesthetic — dark neutral background, gold/amber accent for margins and key numbers, monospace for numeric columns (rates, volumes), dense row-based layout optimized for scanning many flip opportunities quickly. Closer to poe.ninja or a trading dashboard than a typical light SaaS product.
+
+**Icons, two distinct kinds per row:**
+- **Item icons** — the actual currency/card art for each item in the flip (e.g. Portal Scroll, Scroll of Wisdom), sourced per [DATA_SOURCES.md § Item Icons](DATA_SOURCES.md#item-icons).
+- **Flip-type icon** — a small leading icon on the left of each row identifying which mechanic produced that opportunity, so a mixed results list stays scannable at a glance without reading each row's text. Distinct icon per [PRD.md](PRD.md) feature: 7.1 vendor recipe, 7.2 exchange spread, 7.3 divination card, 7.5 triangular arbitrage.
+
+**Currency ordering convention:** every flip row displays currencies left-to-right starting from the currency the player already holds, ending with what they receive — never the reverse. For a round-trip flip (Feature A/C, where you end up with more of the currency you started with), lead with that starting currency rather than the intermediate item. For a multi-hop flip (Feature E), order strictly follows the trade sequence (e.g. Divine → Stacked Deck → Chaos, not Stacked Deck → Divine → Chaos).
+
+**Reference implementation:** [docs/mockups/flip-row-reference.html](mockups/flip-row-reference.html) is a working (non-framework) HTML/CSS mockup showing the settled row design for all four flip-finding features. Open it directly in a browser — it hotlinks real icons from GGG's trade API ([DATA_SOURCES.md § Item Icons](DATA_SOURCES.md#item-icons)) so the actual visual result is inspectable, not just described. When implementing the results table/row component, match this reference rather than reinterpreting the prose below.
+
+**Row structure — six columns**, in this fixed order:
+
+1. **Start** — icon + quantity of the currency the player begins with, name below (e.g. "1 [chaos icon] Chaos").
+2. **Via** — the intermediate step(s): one or more `quantity + icon + name` groups chained with arrows, representing every hop in the flip (e.g. `86 [icon] Transmutation → 344 [icon] Wisdom → 114 [icon] Portal`). A muted subtitle line below gives mechanic-specific detail that doesn't fit as an icon (e.g. "vendor + recipe chain", "instant 185:1c · competitive 366:1c", "direct rate 210c" for comparison in Feature E, "≈1.8c per card" for Feature C).
+3. **Sell** — icon + quantity of the currency received at the end, same format as Start.
+4. **Margin** — percentage return, monospace, color-coded (green for strong margins, amber for smaller ones — same thresholds as Profit).
+5. **Profit** — absolute return in Chaos, shown as `+N` next to a small Chaos icon (not a bare "c" suffix), same color coding as Margin.
+6. **Volume** — how much of the opportunity is available at the given rate, muted gray, monospace.
+
+**Colors:**
+- Quantities (the numbers next to every icon): white/near-white (`#f2f4f6`), bold — distinct from item names but not tied to the amber accent, which is reserved for Margin/Profit.
+- Item and currency names: light gray (`#d8dde2`).
+- Subtitle detail line: muted gray (`#6b7480`), monospace, smaller.
+- Margin/Profit: green (`#5fd07a`) above a "strong" threshold, amber (`#e8a33d`) otherwise — exact threshold TBD when real data ranges are known.
+- Arrows between hops: muted (`#525a63`), never the accent color.
+
+**Icons, two distinct kinds per row:**
+- **Item icons** — real currency/card art sourced per [DATA_SOURCES.md § Item Icons](DATA_SOURCES.md#item-icons), used in Start/Via/Sell.
+- **Generic type icon** — used only where no real per-item art exists (currently: divination cards, since GGG's API exposes no card icon field — see [DATA_SOURCES.md](DATA_SOURCES.md)). Rendered visually distinct (a card-suit glyph in purple) so it's never mistaken for real item art.
+
 ## Credential Policy
 
 No API in current use requires authentication (see [DATA_SOURCES.md](DATA_SOURCES.md) — Currency Exchange and Leagues are both public, no-auth). This section is a standing principle for if that ever changes:

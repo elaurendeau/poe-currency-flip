@@ -38,6 +38,21 @@ Verified facts:
 - Other rule ids observed: `Hardcore` (hardcore ruleset), `HardMode` (Ruthless ruleset). These do **not** by themselves indicate no-trade status.
 - Non-SSF leagues confirmed present in the current lineup: `Standard`, `Hardcore`, `Ruthless`, `Hardcore Ruthless`, plus current-league equivalents `Allflame`, `Hardcore Allflame`, `Ruthless Allflame`, `HC Ruthless Allflame`. These should still be cross-checked against actual Currency Exchange activity per the league resolution algorithm in [ARCHITECTURE.md](ARCHITECTURE.md#league-resolution), since rule-based filtering alone is not guaranteed to catch every no-Exchange case.
 
+## Item Icons
+
+**Endpoint:** `GET https://www.pathofexile.com/api/trade/data/static`
+**Auth:** None required.
+**Last verified:** 2026-08-05, by direct testing.
+
+Verified facts:
+
+- **Public, no authentication.** Part of the same official trade API family as the Currency Exchange and Leagues endpoints above — this is what powers icon display on GGG's own trade site, not a fan-hosted copy.
+- Returns grouped entries (`Currency`, `Fragments`, `Cards`, `Maps`, and 15+ other categories), each with `id`, `text` (display name), and `image` (a path on `pathofexile.com`, e.g. `/gen/image/.../CurrencyPortal.png`).
+- **Coverage confirmed** for items used in [PRD.md](PRD.md) examples: `Scroll of Wisdom` → `CurrencyIdentification.png`, `Portal Scroll` → `CurrencyPortal.png`. A `Cards` group exists for divination card icons.
+- **No CORS header** on the JSON endpoint — same as Currency Exchange, so the backend fetches this mapping (not the frontend directly). The resulting image URLs can be used in `<img>` tags from the frontend without any CORS concern, since CORS doesn't apply to image rendering.
+- **Licensing note:** unlike the PoE Wiki (see below — wiki file pages explicitly warn "using this file outside of this wiki may be copyright infringement"), this source carries no such warning, since it's GGG's own first-party asset delivery for their own public trade API. That said, there is no explicit "third parties may embed these images" statement either — this is the de facto standard approach used by third-party PoE trade tools, not a documented legal guarantee. Revisit if GGG ever publishes explicit fan-asset usage terms.
+- **Rejected alternative:** the PoE Wiki's icon files (`poewiki.net`, `Category:Item_icons`) are confirmed off-limits — each file page carries an explicit notice that the copyright is GGG's, wiki use is permitted, and "using this file outside of this wiki may be copyright infringement." The wiki is also behind an anti-bot challenge (Anubis) that blocks plain HTTP requests (confirmed: a non-browser fetch received a bot-challenge page, not content) — relevant to the vendor recipe and divination card sourcing below, which also depend on this wiki.
+
 ## Vendor Sell Rates & Recipes
 
 **Source:** [PoE Wiki — Currency](https://www.poewiki.net/wiki/Currency) and item-specific pages (e.g. [Scroll of Wisdom](https://www.poewiki.net/wiki/Scroll_of_Wisdom)).
@@ -48,6 +63,7 @@ Notes:
 
 - No API; this is static, low-volatility game data (vendor recipes change rarely, only on game updates).
 - Needs a one-time capture into our own reference data (see [ARCHITECTURE.md § Centralized Reference Data](ARCHITECTURE.md#4-centralized-reference-data)), refreshed manually if GGG changes a recipe.
+- **Access note:** the wiki sits behind an anti-bot challenge (Anubis) that blocks plain HTTP requests — confirmed by direct testing (2026-08-05): a non-browser fetch received a bot-challenge page instead of content, while a real browser passed through fine. A backend scraper will need to either drive a real/headless browser to get past this, or this data is captured manually (read once in a browser, transcribed into our reference data) rather than automated — reasonable either way since this data changes rarely.
 
 ## Divination Card Turn-In Rewards
 
@@ -59,6 +75,14 @@ Notes:
 
 - No API; static game data.
 - Requires a one-time classification pass: fixed/predictable currency reward (in scope per [PRD.md § 7.3](PRD.md#73-feature-c--divination-card-flip-finder)) vs. gamble/random-item reward (excluded).
+
+## Gold Cost (not available)
+
+**Last verified:** 2026-08-05, by direct testing and search.
+
+- **Not present in the Currency Exchange API.** Every field returned by `GET /api/currency-exchange` was enumerated directly: `league`, `market_id`, `market_pair`, `volume_traded`, `lowest_stock`, `highest_stock`, `lowest_ratio`, `highest_ratio`. No gold-related field exists.
+- **No official formula published by GGG.** Community-sourced examples exist (e.g. ~225 gold per Chaos Orb, ~5 gold per Orb of Transmutation, up to 25,000 for a Mirror of Kalandra), described as scaling with trade size and item value/rarity, but with no authoritative source and no guarantee of stability across balance patches.
+- **Decision:** gold cost is out of scope for the product (see [PRD.md § 9](PRD.md#9-future-considerations)) until either GGG exposes it via an API or a trustworthy, stable source is found. Do not hardcode community-observed gold values as if they were verified data.
 
 ## Trade Search API (for context — not used)
 

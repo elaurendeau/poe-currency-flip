@@ -40,7 +40,7 @@ PoE players who enjoy the trading/economy side of the game and want a fast way t
 | **Currency Exchange** | In-game order-book market for trading currency directly. |
 | **Instant rate** | The rate you get filling into existing orders immediately (like pressing Alt in-game to see the top-of-book vs the quoted default). |
 | **Competitive rate** | A better rate available by placing your own limit order and waiting for it to fill — slower, but higher yield. |
-| **Gold** | Resource consumed to place/fill orders on the Currency Exchange; earned by selling items to vendors. |
+| **Gold** | Resource consumed to place/fill orders on the Currency Exchange; earned by selling items to vendors. Not modeled in v1 — see [DATA_SOURCES.md § Gold Cost](DATA_SOURCES.md#gold-cost-not-available). |
 | **Vendor recipe** | Fixed-ratio conversion available by selling specific items to an NPC vendor (e.g., Scrolls of Wisdom → Portal Scrolls). |
 | **Divination card** | Collectible card; turning in a full stack (set) yields a fixed reward. Only cards with a **fixed, non-random currency reward** are in scope — no gamble cards (e.g., cards that reward random uniques, or chance-based outcomes). |
 | **Margin** | Profit % or absolute profit for a given flip after accounting for all conversion steps. |
@@ -56,8 +56,8 @@ Buy 86 Orbs of Transmutation for 1 Chaos Orb on the Exchange → sell to vendor 
 
 **Requirements:**
 - List all currency → vendor-item conversion paths using vendor sell rates and known vendor recipes (sourced from the [PoE Wiki Currency page](https://www.poewiki.net/wiki/Currency) and item-specific pages, e.g. [Scroll of Wisdom](https://www.poewiki.net/wiki/Scroll_of_Wisdom)).
-- For each path, compute: buy cost (Exchange), intermediate vendor output, final recipe output, resale value (Exchange), net margin, and gold cost.
-- Rank/sort by margin %, absolute profit, volume available at the buy rate, and gold cost.
+- For each path, compute: buy cost (Exchange), intermediate vendor output, final recipe output, resale value (Exchange), and net margin.
+- Rank/sort by margin %, absolute profit, and volume available at the buy rate.
 - Show the full step-by-step recipe (what to buy, what to vendor, what recipe to apply, what to sell) so the user can execute it manually.
 
 ### 7.2 Feature B — Exchange Spread/Margin Finder
@@ -69,7 +69,7 @@ For each currency pair on the Exchange, compare the instant-fill rate against th
 **Requirements:**
 - Pull both instant and competitive/order-book rates per currency pair.
 - Compute margin between the two.
-- Sortable by margin, volume (depth available at the competitive rate), and gold cost.
+- Sortable by margin and volume (depth available at the competitive rate).
 - Since competitive-rate fills are slower and not guaranteed, flag this tradeoff clearly in the UI (e.g., a "fill speed" caveat or badge) rather than presenting it as equivalent to an instant flip.
 
 > **Data availability note:** the public Currency Exchange API does not expose a live order book (see [DATA_SOURCES.md](DATA_SOURCES.md)) — only an hourly range of rates that actually filled (`lowest_ratio`/`highest_ratio`). This feature will be built against that hourly range as a proxy for the instant-vs-competitive spread, refreshed on demand rather than live.
@@ -80,8 +80,8 @@ Finds divination cards that can be bought (as a full stack) via the Currency Exc
 
 **Requirements:**
 - Only include cards whose turn-in reward is a **fixed currency amount** — explicitly exclude gamble-style cards (random unique/item rewards, chance-outcome cards like The Void, item-conversion cards, etc.).
-- Compute: cost to buy a full stack via the Exchange, reward received, resale value of that reward via the Exchange, net margin, and gold cost.
-- Sortable by margin, absolute profit, volume/availability of the card stack on the Exchange, and gold cost.
+- Compute: cost to buy a full stack via the Exchange, reward received, resale value of that reward via the Exchange, and net margin.
+- Sortable by margin, absolute profit, and volume/availability of the card stack on the Exchange.
 
 ### 7.4 Feature D — League Selector
 
@@ -94,6 +94,18 @@ A dropdown in the site settings (top right of the page) that scopes all three vi
 
 **How this is derived:** see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution) for the exact algorithm, and [DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list) for the verified API facts backing it.
 
+### 7.5 Feature E — Cross-Currency Triangular Arbitrage
+
+Finds a third item that has active Currency Exchange markets against two different currencies, where buying that item with currency A and immediately reselling it for currency B yields more of B than trading A directly for B on the Exchange.
+
+**Example:** Buy a Stacked Deck using Divine Orbs, then sell that same Stacked Deck for Chaos Orbs — if the implied Divine→Chaos rate through the Stacked Deck beats the direct Divine→Chaos Exchange rate, the difference is pure profit, entirely within the Exchange (no vendor, no card turn-in required).
+
+**Requirements:**
+- Uses only Currency Exchange data already covered in [DATA_SOURCES.md](DATA_SOURCES.md) — no new external data source is needed. This is a graph-traversal analysis over the same market pairs used elsewhere: for any item tradeable against multiple currencies, compute the implied cross-rate and compare it to the direct rate for that currency pair (if one exists).
+- Compute: cost to acquire the intermediary item in currency A, proceeds from reselling it in currency B, net margin versus the direct A→B rate.
+- Sortable by margin, absolute profit, and volume (bounded by whichever leg of the trade — the buy or the resell — has less depth).
+- Show both legs explicitly (buy item X with A, sell item X for B) so the user can execute it manually, consistent with Features A–C.
+
 ## 8. Success Criteria
 
 - The three views each return correct, sortable results that match manual in-game verification for a sample of flips.
@@ -102,11 +114,8 @@ A dropdown in the site settings (top right of the page) that scopes all three vi
 
 ## 9. Future Considerations
 
+- Gold cost: no reliable data source exists today (no API field, no official formula — see [DATA_SOURCES.md](DATA_SOURCES.md)). Revisit if GGG ever exposes this, or if a trustworthy formula/source emerges.
 - Alerts/watchlists: notify when a specific flip crosses a profitability threshold.
 - Historical margin tracking / trend charts.
 - League-start-specific views (early-league inefficiencies tend to be larger).
 - PoE2 support, if/when its economy stabilizes and exposes similar mechanics.
-
-## 10. Open Questions
-
-1. Gold: is it worth modeling as a hard constraint (user has limited gold) or just informational for sorting?
