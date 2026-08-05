@@ -94,9 +94,9 @@ A dropdown in the site settings (top right of the page) that scopes all three vi
 
 **How this is derived:** see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution) for the exact algorithm, and [DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list) for the verified API facts backing it.
 
-### 7.5 Feature E — Cross-Currency Triangular Arbitrage
+### 7.5 Feature E — Bulk Buy
 
-Finds a third item that has active Currency Exchange markets against two different currencies, where buying that item with currency A and immediately reselling it for currency B yields more of B than trading A directly for B on the Exchange.
+Finds a third item that has active Currency Exchange markets against two different currencies, where buying that item with currency A and immediately reselling it for currency B yields more of B than trading A directly for B on the Exchange. (This is a triangular arbitrage in trading terms — see [TECH_STACK.md](TECH_STACK.md) — but "Bulk Buy" is the name used in the UI and throughout this doc set, since that's the more intuitive framing for a PoE player.)
 
 **Example:** Buy a Stacked Deck using Divine Orbs, then sell that same Stacked Deck for Chaos Orbs — if the implied Divine→Chaos rate through the Stacked Deck beats the direct Divine→Chaos Exchange rate, the difference is pure profit, entirely within the Exchange (no vendor, no card turn-in required).
 
@@ -122,6 +122,36 @@ Settings-area controls to force a re-fetch of individual data sources, independe
 **Requirements:**
 - Two real, independent reload actions: **league list** and **item icons** — both sourced from live, no-auth GGG APIs ([DATA_SOURCES.md](DATA_SOURCES.md)), so reloading them is just re-running that adapter. Each reload is scoped to its own source, consistent with the anti-corruption-layer principle of one adapter per external source ([ARCHITECTURE.md](ARCHITECTURE.md)).
 - **No reload action for vendor recipes or divination card data.** Both are manually captured from the PoE Wiki, not scraped live — the wiki's anti-bot protection blocks automated fetches (see [DATA_SOURCES.md](DATA_SOURCES.md)). There is no live source to re-fetch from; the only way to update this data is a new Flyway migration or manual re-entry ([TECH_STACK.md](TECH_STACK.md), [SCHEMA.md](SCHEMA.md)). A reload button for these would call nothing real — don't build one.
+
+### 7.8 Feature H — Technique Filters
+
+Checkboxes above the results table, one per flip-finding mechanism, letting the user show or hide each independently.
+
+**Requirements:**
+- One checkbox per technique: Vendor Recipe (7.1), Exchange Spread (7.2), Divination Card (7.3), Triangular Arbitrage (7.5).
+- All checked by default — the default view shows everything; filtering is opt-out, not opt-in.
+- A purely client-side display filter over the already-fetched result set. It does not change what the backend computes — data volumes here are small enough (per [DATA_SOURCES.md](DATA_SOURCES.md)) that computing all four techniques on every refresh and filtering the display is simpler than a backend filter parameter, and keeps this feature entirely in the frontend layer.
+
+### 7.9 Feature I — Column Sorting & Threshold Filters
+
+Sortable Margin, Profit, and Volume columns, plus a minimum-threshold filter per column.
+
+**Requirements:**
+- Clicking the Margin, Profit, or Volume column header sorts the table by that column, toggling ascending/descending on repeated clicks, with a visible indicator of the current sort column and direction.
+- Each of those three columns also gets a minimum-threshold numeric filter (e.g. "volume ≥ 50") so the user can narrow out low-value or illiquid opportunities.
+- Combines with Feature H — sorting, filtering, and technique checkboxes all apply to the same client-side result set together.
+
+### 7.10 Feature J — Favorites
+
+Right-click a row to pin it as a favorite. Favorited flips always render above the rest of the table, visually distinct.
+
+**Requirements:**
+- Right-click a row → mark/unmark as favorite (no separate "manage favorites" screen needed for v1).
+- **Favoriting identifies the trade route, not the computed instance.** Since flip opportunities are recomputed fresh on every refresh and never persisted ([SCHEMA.md § Deliberately not a table](SCHEMA.md#deliberately-not-a-table-flip-opportunities)), a favorite is keyed by which currencies/items are involved and via which mechanism (e.g. "Transmutation → Chaos via vendor recipe", "Divine → Stacked Deck → Chaos") — never by the margin/profit/volume values shown at the moment it was favorited, since those change every refresh.
+- **Stored client-side (browser storage), not server-side.** This app has no user-account system ([TECH_STACK.md](TECH_STACK.md) Credential Policy) — favorites are a personal, per-browser preference, not synced across devices or sessions elsewhere.
+- Favorited rows render as their own group above the regular table, sorted/filtered by the same Feature I rules as the main table.
+- If a favorited route doesn't appear in the current computed results (e.g. no longer profitable, or filtered out by Feature H/I), it simply doesn't show — no placeholder or stale-favorite indicator needed for v1.
+- Visual treatment: distinct row background plus a star icon, per [TECH_STACK.md](TECH_STACK.md).
 
 ## 8. Success Criteria
 
