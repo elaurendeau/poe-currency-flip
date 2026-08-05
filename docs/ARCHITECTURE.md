@@ -1,6 +1,6 @@
 # Architecture & Resilience
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema)
 
 This document defines *how* the system is built so it stays resilient to changes in upstream data sources GGG and PoE Wiki don't guarantee to keep stable. **Any AI coding agent implementing or modifying data-ingestion code should read this document — and [DATA_SOURCES.md](DATA_SOURCES.md) — before writing code.**
 
@@ -43,9 +43,9 @@ External IDs (e.g., GGG's `Metadata/Items/Currency/CurrencyPortal`) are mapped t
 The Currency Exchange API (see [DATA_SOURCES.md](DATA_SOURCES.md)) is a sequential change-stream, not a query-by-current-state API: each call returns one hour of market activity plus a pointer to the next hour, and arbitrary jumps are not possible.
 
 Ingestion model:
-1. Persist a checkpoint — the last successfully processed `next_change_id` — per realm.
-2. On a manual "refresh" action, walk forward from the stored checkpoint, one hour at a time, until reaching the current hour, normalizing and merging each hour's markets into current state via the adapter.
-3. Advance the stored checkpoint only after a batch of hours has been validated and normalized successfully.
+1. Persist a checkpoint — the last successfully processed `next_change_id`. Scoped to PC only — no other platform/realm is in scope (see [PRD.md](PRD.md) Non-Goals).
+2. On a manual "refresh" action, walk forward from the stored checkpoint, one hour at a time, until reaching the current hour, normalizing each hour's markets via the adapter.
+3. No history is retained. New data is written under a fresh generation tag while the previous generation keeps serving reads; once the walk completes successfully, a single atomic pointer flip makes the new generation live and the old one is deleted. See [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data) for the concrete tables and why this is a generation-tag swap rather than a delete-then-insert inside one long transaction.
 4. Refresh does bounded work proportional to elapsed time since the last refresh, not to total time since Currency Exchange launched — no standing background poller is required (see [PRD.md](PRD.md), Feature B/manual refresh model).
 
 ### League Resolution

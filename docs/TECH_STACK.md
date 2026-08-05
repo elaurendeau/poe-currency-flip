@@ -1,6 +1,6 @@
 # Tech Stack
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (how we isolate ourselves from external sources) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (how we isolate ourselves from external sources) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [SCHEMA.md](SCHEMA.md) (database schema)
 
 ## Decision: backend is required, not optional
 
@@ -15,6 +15,7 @@ The Currency Exchange API ([DATA_SOURCES.md](DATA_SOURCES.md)) sends no `Access-
 | Backend | Java 21 + Spring Boot 3 | Owns ingestion/adapters/validation/computation — the highest-value-to-debug-yourself code, and the owner (a senior Java dev) can read and fix it directly without relying on AI to diagnose an unfamiliar language. |
 | Frontend | React + TypeScript | Standard choice for a sortable/filterable data-table site; most mainstream target for AI-assisted code generation and debugging. |
 | Database | PostgreSQL (via Spring Data JPA) | Stores the Currency Exchange ingestion checkpoint and normalized market state between runs, plus vendor recipe / divination card reference data. |
+| Schema migrations | Flyway | Versioned SQL migration files are the only source of truth for the schema — Hibernate's auto-ddl is disabled. Every schema change is a new numbered file, applied in order, tracked in Flyway's own history table; a data migration (backfilling/transforming existing rows) is just SQL in that same file. See [SCHEMA.md](SCHEMA.md) and [db/migration/V1__init_schema.sql](../db/migration/V1__init_schema.sql). |
 | Communication | REST API (JSON) | Frontend calls the backend; no need for GraphQL or websockets since this is refresh-on-demand, not a live feed. |
 
 ## Hosting (all free tiers)
@@ -36,6 +37,8 @@ Alternative considered and rejected for now: self-hosting on Oracle Cloud's "Alw
 - **Flip-type icon** — a small leading icon on the left of each row identifying which mechanic produced that opportunity, so a mixed results list stays scannable at a glance without reading each row's text. Distinct icon per [PRD.md](PRD.md) feature: 7.1 vendor recipe, 7.2 exchange spread, 7.3 divination card, 7.5 triangular arbitrage.
 
 **Currency ordering convention:** every flip row displays currencies left-to-right starting from the currency the player already holds, ending with what they receive — never the reverse. For a round-trip flip (Feature A/C, where you end up with more of the currency you started with), lead with that starting currency rather than the intermediate item. For a multi-hop flip (Feature E), order strictly follows the trade sequence (e.g. Divine → Stacked Deck → Chaos, not Stacked Deck → Divine → Chaos).
+
+**Data freshness banner** (implements [PRD.md § 7.6 Feature F](PRD.md#76-feature-f--data-freshness-banner)): a persistent, always-visible bar at the top of the page, separate from the league selector. Displays the exact moment the active data generation was refreshed — full date, hour, minute, and millisecond, e.g. `2026-08-05 14:32:07.418` — not a relative "X minutes ago" string. Sourced directly from `active_generation_refreshed_at` ([SCHEMA.md](SCHEMA.md)).
 
 **Reference implementation:** [docs/mockups/flip-row-reference.html](mockups/flip-row-reference.html) is a working (non-framework) HTML/CSS mockup showing the settled row design for all four flip-finding features. Open it directly in a browser — it hotlinks real icons from GGG's trade API ([DATA_SOURCES.md § Item Icons](DATA_SOURCES.md#item-icons)) so the actual visual result is inspectable, not just described. When implementing the results table/row component, match this reference rather than reinterpreting the prose below.
 

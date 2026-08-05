@@ -5,11 +5,17 @@
 <title>Flip finder mockup</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
 <style>
-  body { background:#0c0e10; margin:0; padding:24px; font-family: 'Segoe UI', sans-serif; }
+  body { background:#0c0e10; margin:0; font-family: 'Segoe UI', sans-serif; }
+  .content { padding:24px; }
   .panel { background:#14171b; border-radius:12px; padding:16px 18px; max-width:680px; margin:0 auto; }
-  .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-  .brand { display:flex; align-items:center; gap:8px; color:#e6e9ec; font-weight:500; font-size:14px; }
-  .league { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; }
+  .topbar { width:100%; box-sizing:border-box; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; background:#14171b; border-bottom:0.5px solid #262c33; padding:10px 20px; }
+  .topbar-left { display:flex; align-items:center; gap:8px; color:#e6e9ec; font-weight:500; font-size:14px; }
+  .topbar-center { justify-self:center; font-size:12px; color:#8a92a0; }
+  .topbar-center .stamp { color:#d8dde2; font-family:Consolas,monospace; font-weight:600; }
+  .topbar-right { display:flex; align-items:center; gap:10px; justify-self:end; }
+  .league { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; cursor:pointer; }
+  .refresh-btn { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; cursor:pointer; }
+  .refresh-btn:hover, .league:hover { border-color:#3a4149; }
   .header-row { display:grid; grid-template-columns:80px 1fr 80px 60px 70px 70px; gap:10px; padding:0 4px 8px; font-size:11px; color:#6b7480; border-bottom:0.5px solid #262c33; }
   .row { display:grid; grid-template-columns:80px 1fr 80px 60px 70px 70px; gap:10px; align-items:center; padding:10px 4px; border-bottom:1px solid #1e2329; }
   .cur { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11px; color:#c7cdd3; text-align:center; }
@@ -31,11 +37,16 @@
 </style>
 </head>
 <body>
-<div class="panel">
-  <div class="topbar">
-    <div class="brand">Flip finder</div>
+<div class="topbar">
+  <div class="topbar-left">Flip finder</div>
+  <div class="topbar-center"><span class="stamp">2026-08-05 14:32:07.418</span></div>
+  <div class="topbar-right">
+    <div class="refresh-btn"><i class="ti ti-refresh" style="font-size:14px" aria-hidden="true"></i>Refresh</div>
     <div class="league">Allflame &#9662;</div>
   </div>
+</div>
+<div class="content">
+<div class="panel">
   <div class="header-row"><span>Start</span><span>Via</span><span>Sell</span><span style="text-align:right">Margin</span><span style="text-align:right">Profit</span><span style="text-align:right">Volume</span></div>
 
   <div class="row">
@@ -123,6 +134,7 @@
     <div class="profit mid">+3.7<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
     <div class="vol">12</div>
   </div>
+</div>
 </div>
 </body>
 </html>

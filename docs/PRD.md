@@ -3,7 +3,7 @@
 **Owner:** tapoox
 **Last updated:** 2026-08-05
 
-**Related docs:** [ARCHITECTURE.md](ARCHITECTURE.md) (resilience & system design) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions)
+**Related docs:** [ARCHITECTURE.md](ARCHITECTURE.md) (resilience & system design) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema)
 
 ## 1. Overview
 
@@ -106,10 +106,27 @@ Finds a third item that has active Currency Exchange markets against two differe
 - Sortable by margin, absolute profit, and volume (bounded by whichever leg of the trade — the buy or the resell — has less depth).
 - Show both legs explicitly (buy item X with A, sell item X for B) so the user can execute it manually, consistent with Features A–C.
 
+### 7.6 Feature F — Data Freshness Banner
+
+A persistent banner at the top of the page showing the exact moment the currently-displayed data was last refreshed.
+
+**Requirements:**
+- Always visible, not something the user has to look for — this is what makes the "manual refresh" model ([ARCHITECTURE.md](ARCHITECTURE.md)) trustworthy: staleness is never silently hidden.
+- Shows an absolute timestamp, not a vague relative time like "a few minutes ago" — full date, hour, minute, and millisecond.
+- Sourced from `active_generation_refreshed_at` in [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data) — the moment the currently-active generation was made live, not the underlying data's own hourly granularity. Those are two different things: the banner tells the user exactly when the app last successfully pulled data, not how fresh the Currency Exchange's own hourly aggregates are.
+
+### 7.7 Feature G — Manual Data Source Refresh
+
+Settings-area controls to force a re-fetch of individual data sources, independent of the main Currency Exchange refresh.
+
+**Requirements:**
+- Two real, independent reload actions: **league list** and **item icons** — both sourced from live, no-auth GGG APIs ([DATA_SOURCES.md](DATA_SOURCES.md)), so reloading them is just re-running that adapter. Each reload is scoped to its own source, consistent with the anti-corruption-layer principle of one adapter per external source ([ARCHITECTURE.md](ARCHITECTURE.md)).
+- **No reload action for vendor recipes or divination card data.** Both are manually captured from the PoE Wiki, not scraped live — the wiki's anti-bot protection blocks automated fetches (see [DATA_SOURCES.md](DATA_SOURCES.md)). There is no live source to re-fetch from; the only way to update this data is a new Flyway migration or manual re-entry ([TECH_STACK.md](TECH_STACK.md), [SCHEMA.md](SCHEMA.md)). A reload button for these would call nothing real — don't build one.
+
 ## 8. Success Criteria
 
 - The three views each return correct, sortable results that match manual in-game verification for a sample of flips.
-- Data staleness is visible to the user (e.g., "prices as of X minutes ago").
+- Data staleness is always visible via the Feature F banner — an exact timestamp, not a vague relative time.
 - The tool gets used before/during play sessions to find real flips.
 
 ## 9. Future Considerations
