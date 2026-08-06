@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { FlipOpportunity } from '../entities/FlipOpportunity';
 import { FlipOpportunityTable } from './FlipOpportunityTable';
 
@@ -14,27 +14,44 @@ const opportunity: FlipOpportunity = {
   detail: 'instant 185:1 · competitive 366:1',
 };
 
+const second: FlipOpportunity = { ...opportunity, via: [{ ...opportunity.via[0], name: 'Portal Scroll' }] };
+
+function baseProps() {
+  return {
+    favorites: [] as FlipOpportunity[],
+    others: [] as FlipOpportunity[],
+    isLoading: false,
+    error: null,
+    sortColumn: 'margin' as const,
+    sortDirection: 'desc' as const,
+    onSort: vi.fn(),
+    thresholds: {},
+    onThresholdChange: vi.fn(),
+    onToggleFavorite: vi.fn(),
+  };
+}
+
 describe('FlipOpportunityTable', () => {
   it('shows a loading state', () => {
-    render(<FlipOpportunityTable opportunities={[]} isLoading error={null} />);
+    render(<FlipOpportunityTable {...baseProps()} isLoading />);
 
     expect(screen.getByText(/loading flip opportunities/i)).toBeInTheDocument();
   });
 
   it('shows an error state', () => {
-    render(<FlipOpportunityTable opportunities={[]} isLoading={false} error={new Error('boom')} />);
+    render(<FlipOpportunityTable {...baseProps()} error={new Error('boom')} />);
 
     expect(screen.getByText(/failed to load flip opportunities/i)).toBeInTheDocument();
   });
 
-  it('shows an empty state when there are no opportunities', () => {
-    render(<FlipOpportunityTable opportunities={[]} isLoading={false} error={null} />);
+  it('shows an empty state when there are no opportunities in either group', () => {
+    render(<FlipOpportunityTable {...baseProps()} />);
 
     expect(screen.getByText(/no flip opportunities yet/i)).toBeInTheDocument();
   });
 
   it('renders one row per opportunity with formatted values', () => {
-    render(<FlipOpportunityTable opportunities={[opportunity]} isLoading={false} error={null} />);
+    render(<FlipOpportunityTable {...baseProps()} others={[opportunity]} />);
 
     expect(screen.getAllByText('Chaos Orb')).toHaveLength(2); // start and sell
     expect(screen.getByText('Scroll of Wisdom')).toBeInTheDocument();
@@ -47,10 +64,80 @@ describe('FlipOpportunityTable', () => {
   });
 
   it('renders multiple rows for multiple opportunities', () => {
-    const second: FlipOpportunity = { ...opportunity, via: [{ ...opportunity.via[0], name: 'Portal Scroll' }] };
-    render(<FlipOpportunityTable opportunities={[opportunity, second]} isLoading={false} error={null} />);
+    render(<FlipOpportunityTable {...baseProps()} others={[opportunity, second]} />);
 
     expect(screen.getByText('Scroll of Wisdom')).toBeInTheDocument();
     expect(screen.getByText('Portal Scroll')).toBeInTheDocument();
+  });
+
+  it('renders favorites above others with a visible divider between the groups', () => {
+    render(<FlipOpportunityTable {...baseProps()} favorites={[opportunity]} others={[second]} />);
+
+    const rows = screen.getAllByTestId(/^flip-row-/);
+    expect(rows).toHaveLength(2);
+    expect(screen.getByTestId('favorites-divider')).toBeInTheDocument();
+  });
+
+  it('does not render a divider when there are no favorites', () => {
+    render(<FlipOpportunityTable {...baseProps()} others={[opportunity]} />);
+
+    expect(screen.queryByTestId('favorites-divider')).not.toBeInTheDocument();
+  });
+
+  it('marks the active sort column and calls onSort when a column header is clicked', () => {
+    const onSort = vi.fn();
+    render(<FlipOpportunityTable {...baseProps()} onSort={onSort} sortColumn="volume" sortDirection="asc" />);
+
+    expect(screen.getByText('Volume').closest('.col-label')).toHaveClass('active');
+
+    fireEvent.click(screen.getByText('Profit'));
+
+    expect(onSort).toHaveBeenCalledWith('profit');
+  });
+
+  it('calls onThresholdChange with a parsed number when a threshold input changes', () => {
+    const onThresholdChange = vi.fn();
+    render(<FlipOpportunityTable {...baseProps()} onThresholdChange={onThresholdChange} />);
+
+    fireEvent.change(screen.getByPlaceholderText('min'), { target: { value: '50' } });
+
+    expect(onThresholdChange).toHaveBeenCalledWith('volume', 50);
+  });
+
+  it('calls onThresholdChange with null when a threshold input is cleared', () => {
+    const onThresholdChange = vi.fn();
+    render(
+      <FlipOpportunityTable {...baseProps()} onThresholdChange={onThresholdChange} thresholds={{ volume: 50 }} />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('min'), { target: { value: '' } });
+
+    expect(onThresholdChange).toHaveBeenCalledWith('volume', null);
+  });
+
+  it('right-clicking a non-favorited row opens a context menu offering to favorite it', () => {
+    render(<FlipOpportunityTable {...baseProps()} others={[opportunity]} />);
+
+    fireEvent.contextMenu(screen.getByTestId('flip-row-0'));
+
+    expect(screen.getByText('Favorite')).toBeInTheDocument();
+  });
+
+  it('right-clicking a favorited row opens a context menu offering to unfavorite it', () => {
+    render(<FlipOpportunityTable {...baseProps()} favorites={[opportunity]} />);
+
+    fireEvent.contextMenu(screen.getByTestId('flip-row-0'));
+
+    expect(screen.getByText('Unfavorite')).toBeInTheDocument();
+  });
+
+  it('calls onToggleFavorite with the opportunity when the context menu item is clicked', () => {
+    const onToggleFavorite = vi.fn();
+    render(<FlipOpportunityTable {...baseProps()} others={[opportunity]} onToggleFavorite={onToggleFavorite} />);
+
+    fireEvent.contextMenu(screen.getByTestId('flip-row-0'));
+    fireEvent.click(screen.getByText('Favorite'));
+
+    expect(onToggleFavorite).toHaveBeenCalledWith(opportunity);
   });
 });

@@ -1,11 +1,16 @@
 import { DataFreshnessStamp } from './components/DataFreshnessStamp';
 import { FlipOpportunityTable } from './components/FlipOpportunityTable';
+import { FlipTechniqueFilterBar } from './components/FlipTechniqueFilterBar';
 import { IngestionRefreshButton } from './components/IngestionRefreshButton';
 import { LeagueRefreshButton } from './components/LeagueRefreshButton';
 import { LeagueSelector } from './components/LeagueSelector';
+import { useFavoriteRoutes } from './hooks/useFavoriteRoutes';
 import { useFlipOpportunities } from './hooks/useFlipOpportunities';
 import { useIngestionFreshness } from './hooks/useIngestionFreshness';
 import { useLeagueSelection } from './hooks/useLeagueSelection';
+import { useSortAndThresholds } from './hooks/useSortAndThresholds';
+import { useTechniqueFilters } from './hooks/useTechniqueFilters';
+import { buildDisplayGroups, getRouteKey } from './presenters/flipOpportunityTablePresenter';
 
 function App() {
   const { leagues, selectedLeague, selectLeague, isLoading, isRefreshing, error, refresh } =
@@ -23,6 +28,17 @@ function App() {
     isLoading: isOpportunitiesLoading,
     error: opportunitiesError,
   } = useFlipOpportunities(selectedLeague?.id ?? null);
+  const { enabledTechniques, toggleTechnique } = useTechniqueFilters();
+  const { sortColumn, sortDirection, toggleSort, thresholds, setThreshold } = useSortAndThresholds();
+  const { favoriteRouteKeys, toggleFavorite } = useFavoriteRoutes();
+
+  const { favorites, others } = buildDisplayGroups(opportunities, {
+    enabledTechniques,
+    thresholds,
+    sortColumn,
+    sortDirection,
+    favoriteRouteKeys,
+  });
 
   return (
     <div className="app">
@@ -50,10 +66,18 @@ function App() {
       <main className="app-main">
         {selectedLeague ? (
           <div className="panel">
+            <FlipTechniqueFilterBar enabledTechniques={enabledTechniques} onToggle={toggleTechnique} />
             <FlipOpportunityTable
-              opportunities={opportunities}
+              favorites={favorites}
+              others={others}
               isLoading={isOpportunitiesLoading}
               error={opportunitiesError}
+              sortColumn={sortColumn}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+              thresholds={thresholds}
+              onThresholdChange={setThreshold}
+              onToggleFavorite={(opportunity) => toggleFavorite(getRouteKey(opportunity))}
             />
           </div>
         ) : (

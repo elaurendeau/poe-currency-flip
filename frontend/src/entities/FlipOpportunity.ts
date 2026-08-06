@@ -1,5 +1,7 @@
 export type Technique = 'VENDOR_RECIPE' | 'EXCHANGE_SPREAD' | 'DIVINATION_CARD' | 'BULK_BUY';
 
+export const ALL_TECHNIQUES: Technique[] = ['VENDOR_RECIPE', 'EXCHANGE_SPREAD', 'DIVINATION_CARD', 'BULK_BUY'];
+
 export interface CurrencyAmount {
   currencyId: string;
   name: string;

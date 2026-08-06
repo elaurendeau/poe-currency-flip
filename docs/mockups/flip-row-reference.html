@@ -25,9 +25,11 @@
 
   .grid { display:grid; grid-template-columns:80px 1fr 80px 70px 80px 70px; gap:10px; align-items:center; }
   .header-row { padding:0 4px 8px; font-size:11px; color:#6b7480; border-bottom:0.5px solid #262c33; }
-  .row { padding:10px 4px; border-bottom:1px solid #1e2329; }
+  .row { position:relative; padding:10px 4px; border-bottom:1px solid #1e2329; }
   .row.fav { background:rgba(232,163,61,0.07); }
   .row.fav + .row.fav { border-top:1px solid rgba(232,163,61,0.15); margin-top:-1px; }
+  .fav-star { position:absolute; left:-14px; top:50%; transform:translateY(-50%); color:#e8a33d; font-size:12px; }
+  .favorites-divider { height:1px; margin:4px 0 6px; background:linear-gradient(90deg, rgba(232,163,61,0.5), rgba(232,163,61,0)); }
 
   .col-head { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
   .col-label { display:flex; align-items:center; gap:3px; cursor:pointer; }
@@ -99,6 +101,7 @@
   </div>
 
   <div class="grid row fav">
+    <i class="fav-star ti ti-star" aria-hidden="true"></i>
     <div class="cur">
       <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
       Chaos
@@ -119,6 +122,7 @@
   </div>
 
   <div class="grid row fav">
+    <i class="fav-star ti ti-star" aria-hidden="true"></i>
     <div class="cur">
       <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png" alt=""></div>
       Divine
@@ -137,6 +141,8 @@
     <div class="profit up">+14<img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>
     <div class="vol">54</div>
   </div>
+
+  <div class="favorites-divider"></div>
 
   <div class="grid row">
     <div class="cur">
@@ -200,7 +206,7 @@
       e.stopPropagation();
       targetRow = row;
       const isFav = row.classList.contains('fav');
-      menu.innerHTML = '<div class="ctx-item"><i class="ti ti-star-filled" aria-hidden="true"></i>' +
+      menu.innerHTML = '<div class="ctx-item"><i class="ti ti-star" aria-hidden="true"></i>' +
         (isFav ? 'Unfavorite' : 'Favorite') + '</div>';
       menu.style.left = e.pageX + 'px';
       menu.style.top = e.pageY + 'px';
