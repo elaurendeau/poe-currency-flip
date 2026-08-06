@@ -1,6 +1,6 @@
 import type { IngestionFreshness, IngestionRefreshResult } from '../entities/IngestionFreshness';
 
-interface DataFreshnessBannerProps {
+interface DataFreshnessStampProps {
   freshness: IngestionFreshness | null;
   isLoading: boolean;
   error: Error | null;
@@ -9,7 +9,7 @@ interface DataFreshnessBannerProps {
 
 // docs/PRD.md § 7.6: an absolute timestamp, not a vague relative time --
 // full date, hour, minute, and second (millisecond precision is available
-// from the server but not meaningful to a human reading the banner).
+// from the server but not meaningful to a human reading this).
 export function formatFreshnessTimestamp(iso: string): string {
   const date = new Date(iso);
   return date.toLocaleString(undefined, {
@@ -22,41 +22,38 @@ export function formatFreshnessTimestamp(iso: string): string {
   });
 }
 
-export function DataFreshnessBanner({
+// Centered in the header, per docs/mockups/flip-row-reference.html's
+// .topbar-center -- a plain timestamp, not a full-width banner strip.
+export function DataFreshnessStamp({
   freshness,
   isLoading,
   error,
   lastRefreshResult,
-}: DataFreshnessBannerProps) {
+}: DataFreshnessStampProps) {
   if (error) {
-    return (
-      <div className="freshness-banner freshness-banner--error">Failed to load market data freshness</div>
-    );
+    return <div className="header-center header-center--error">Failed to load market data freshness</div>;
   }
 
   if (isLoading) {
-    return <div className="freshness-banner freshness-banner--loading">Loading market data freshness…</div>;
+    return <div className="header-center">Loading market data freshness…</div>;
   }
 
   const partialCatchUpNotice =
     lastRefreshResult && !lastRefreshResult.fullyCaughtUp ? (
-      <span className="freshness-banner__partial">
+      <span className="header-center__partial">
         {' '}
-        — only partially caught up ({lastRefreshResult.hoursProcessed}h processed); click refresh again to
-        continue.
+        — partial ({lastRefreshResult.hoursProcessed}h), refresh again to continue
       </span>
     ) : null;
 
   return (
-    <div className="freshness-banner">
+    <div className="header-center">
       {freshness?.activeGenerationRefreshedAt ? (
-        <>
-          Market data last refreshed: {formatFreshnessTimestamp(freshness.activeGenerationRefreshedAt)}
-          {partialCatchUpNotice}
-        </>
+        <span className="stamp">{formatFreshnessTimestamp(freshness.activeGenerationRefreshedAt)}</span>
       ) : (
-        <>Market data has never been refreshed{partialCatchUpNotice}</>
+        <span>Never refreshed</span>
       )}
+      {partialCatchUpNotice}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { IngestionFreshness, IngestionRefreshResult } from '../entities/IngestionFreshness';
-import { DataFreshnessBanner, formatFreshnessTimestamp } from './DataFreshnessBanner';
+import { DataFreshnessStamp, formatFreshnessTimestamp } from './DataFreshnessStamp';
 
 const refreshed: IngestionFreshness = {
   lastProcessedChangeId: 1785996000,
@@ -30,16 +30,16 @@ describe('formatFreshnessTimestamp', () => {
   });
 });
 
-describe('DataFreshnessBanner', () => {
+describe('DataFreshnessStamp', () => {
   it('shows a loading state', () => {
-    render(<DataFreshnessBanner freshness={null} isLoading error={null} lastRefreshResult={null} />);
+    render(<DataFreshnessStamp freshness={null} isLoading error={null} lastRefreshResult={null} />);
 
     expect(screen.getByText(/loading market data freshness/i)).toBeInTheDocument();
   });
 
   it('shows an error state', () => {
     render(
-      <DataFreshnessBanner
+      <DataFreshnessStamp
         freshness={null}
         isLoading={false}
         error={new Error('boom')}
@@ -50,9 +50,9 @@ describe('DataFreshnessBanner', () => {
     expect(screen.getByText(/failed to load market data freshness/i)).toBeInTheDocument();
   });
 
-  it('shows "never refreshed" when no generation has ever committed', () => {
+  it('shows "Never refreshed" when no generation has ever committed', () => {
     render(
-      <DataFreshnessBanner
+      <DataFreshnessStamp
         freshness={neverRefreshed}
         isLoading={false}
         error={null}
@@ -60,21 +60,20 @@ describe('DataFreshnessBanner', () => {
       />,
     );
 
-    expect(screen.getByText(/never been refreshed/i)).toBeInTheDocument();
+    expect(screen.getByText('Never refreshed')).toBeInTheDocument();
   });
 
-  it('shows the absolute last-refreshed timestamp', () => {
+  it('shows the absolute last-refreshed timestamp as a plain centered stamp', () => {
     render(
-      <DataFreshnessBanner freshness={refreshed} isLoading={false} error={null} lastRefreshResult={null} />,
+      <DataFreshnessStamp freshness={refreshed} isLoading={false} error={null} lastRefreshResult={null} />,
     );
 
-    expect(screen.getByText(/market data last refreshed:/i)).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });
 
   it('surfaces a partial-catch-up notice per docs/PRD.md § 7.6 -- never silently implies full catch-up', () => {
     render(
-      <DataFreshnessBanner
+      <DataFreshnessStamp
         freshness={refreshed}
         isLoading={false}
         error={null}
@@ -82,13 +81,13 @@ describe('DataFreshnessBanner', () => {
       />,
     );
 
-    expect(screen.getByText(/only partially caught up/i)).toBeInTheDocument();
-    expect(screen.getByText(/click refresh again to continue/i)).toBeInTheDocument();
+    expect(screen.getByText(/partial/i)).toBeInTheDocument();
+    expect(screen.getByText(/refresh again to continue/i)).toBeInTheDocument();
   });
 
   it('shows no partial-catch-up notice when the last refresh fully caught up', () => {
     render(
-      <DataFreshnessBanner
+      <DataFreshnessStamp
         freshness={refreshed}
         isLoading={false}
         error={null}
@@ -96,6 +95,6 @@ describe('DataFreshnessBanner', () => {
       />,
     );
 
-    expect(screen.queryByText(/partially caught up/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/partial/i)).not.toBeInTheDocument();
   });
 });

@@ -42,9 +42,10 @@ body {
 }
 
 .app-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 12px 24px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-panel);
@@ -81,10 +82,36 @@ body {
   color: var(--accent);
 }
 
+.header-center {
+  justify-self: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.header-center .stamp {
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.header-center--error {
+  color: var(--accent);
+}
+
+.header-center__partial {
+  color: var(--accent);
+}
+
 .league-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-self: end;
+}
+
+.data-label {
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 .league-refresh-button {
@@ -160,24 +187,4 @@ body {
 
 .ingestion-refresh-button__icon--spinning {
   animation: league-refresh-spin 0.8s linear infinite;
-}
-
-.freshness-banner {
-  padding: 8px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-panel);
-  color: var(--text-dim);
-  font-size: 13px;
-}
-
-.freshness-banner--loading {
-  color: var(--text-dim);
-}
-
-.freshness-banner--error {
-  color: var(--accent);
-}
-
-.freshness-banner__partial {
-  color: var(--accent);
 }

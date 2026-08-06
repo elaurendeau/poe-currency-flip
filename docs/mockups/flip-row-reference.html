@@ -14,8 +14,9 @@
   .topbar-center .stamp { color:#d8dde2; font-family:Consolas,monospace; font-weight:600; }
   .topbar-right { display:flex; align-items:center; gap:10px; justify-self:end; }
   .league { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; cursor:pointer; }
-  .refresh-btn { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; cursor:pointer; }
+  .refresh-btn { display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:#20252b; color:#c7cdd3; border-radius:6px; border:0.5px solid #2c333b; cursor:pointer; }
   .refresh-btn:hover, .league:hover { border-color:#3a4149; }
+  .data-label { color:#8a92a0; font-size:12px; }
 
   .filter-bar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:0 4px 12px; border-bottom:0.5px solid #262c33; margin-bottom:10px; }
   .filter-check { display:flex; align-items:center; gap:6px; font-size:12px; color:#c7cdd3; cursor:pointer; }
@@ -63,8 +64,10 @@
   <div class="topbar-left">Flip finder</div>
   <div class="topbar-center"><span class="stamp">2026-08-05 14:32:07.418</span></div>
   <div class="topbar-right">
-    <div class="refresh-btn"><i class="ti ti-refresh" style="font-size:14px" aria-hidden="true"></i>Refresh</div>
+    <span class="data-label">Data</span>
+    <div class="refresh-btn" title="Refresh market data"><i class="ti ti-refresh" style="font-size:14px" aria-hidden="true"></i></div>
     <div class="league">Allflame &#9662;</div>
+    <div class="refresh-btn" title="Refresh leagues"><i class="ti ti-refresh" style="font-size:14px" aria-hidden="true"></i></div>
   </div>
 </div>
 <div class="content">
