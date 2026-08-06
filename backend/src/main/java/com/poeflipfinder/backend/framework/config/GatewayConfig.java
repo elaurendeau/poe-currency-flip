@@ -12,13 +12,28 @@ import com.poeflipfinder.backend.framework.persistence.JpaSnapshotRepositoryGate
 import com.poeflipfinder.backend.framework.persistence.LeagueJpaRepository;
 import com.poeflipfinder.backend.gateway.ItemIconGateway;
 import java.time.Clock;
+import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClient;
 
 /** Wires Gateway implementations as singleton beans; they hold no per-request state. */
 @Configuration
 public class GatewayConfig {
+
+    // www.pathofexile.com (unlike api.pathofexile.com and web.poecdn.com) sits
+    // behind bot protection that 403s requests without a descriptive User-Agent
+    // -- confirmed live: GggItemIconGateway's default Java client User-Agent
+    // was rejected calling from Render's IP range, though it worked from a
+    // residential IP during local testing. Applied to every GGG RestClient
+    // via this customizer rather than per-gateway, since it's a standing
+    // requirement for talking to any pathofexile.com/poecdn.com endpoint.
+    @Bean
+    public RestClientCustomizer gggUserAgentCustomizer() {
+        return builder -> builder.defaultHeader(
+                HttpHeaders.USER_AGENT, "poe-currency-flip/0.1 (+https://github.com/elaurendeau/poe-currency-flip)");
+    }
 
     @Bean
     public GggLeagueGateway gggLeagueGateway(RestClient.Builder restClientBuilder) {
