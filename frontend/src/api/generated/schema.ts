@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/flip-opportunities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compute flip opportunities for a league (docs/PRD.md § 7.2 -- V1 is Exchange Spread only; the schema is shared/generic so Features A/C/E can add rows of other techniques later without a breaking change). Unsorted -- client-side sort/filter is a separate, not-yet-built frontend feature (docs/PRD.md § 7.9). */
+        get: operations["getFlipOpportunities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -83,6 +100,32 @@ export interface components {
              * @description Null if ingestion has never completed a successful run.
              */
             activeGenerationRefreshedAt?: string | null;
+        };
+        CurrencyAmount: {
+            /** @description The currency's external id, e.g. "Metadata/Items/Currency/CurrencyRerollRare" */
+            currencyId: string;
+            name: string;
+            iconUrl?: string | null;
+            /** Format: double */
+            quantity: number;
+        };
+        FlipOpportunity: {
+            /** @enum {string} */
+            technique: "VENDOR_RECIPE" | "EXCHANGE_SPREAD" | "DIVINATION_CARD" | "BULK_BUY";
+            start: components["schemas"]["CurrencyAmount"][];
+            via: components["schemas"]["CurrencyAmount"][];
+            sell: components["schemas"]["CurrencyAmount"][];
+            /** Format: double */
+            marginPercent: number;
+            /**
+             * Format: double
+             * @description In terms of the start currency -- not necessarily Chaos-equivalent.
+             */
+            profit: number;
+            /** Format: double */
+            volume: number;
+            /** @description Free-text caveat/explanation, e.g. the instant-vs-competitive rates for Exchange Spread. */
+            detail: string;
         };
     };
     responses: never;
@@ -149,6 +192,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IngestionFreshness"];
+                };
+            };
+        };
+    };
+    getFlipOpportunities: {
+        parameters: {
+            query: {
+                /** @description League external id (e.g. "Allflame"), as returned by GET /leagues */
+                league: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Computed flip opportunities for the requested league */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlipOpportunity"][];
                 };
             };
         };

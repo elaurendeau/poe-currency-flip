@@ -8,6 +8,7 @@ import com.poeflipfinder.backend.framework.persistence.ExchangeIngestionStateJpa
 import com.poeflipfinder.backend.framework.persistence.ExchangeMarketSnapshotJpaRepository;
 import com.poeflipfinder.backend.framework.persistence.JpaCurrencyReferenceGateway;
 import com.poeflipfinder.backend.framework.persistence.JpaLeagueReferenceGateway;
+import com.poeflipfinder.backend.framework.persistence.JpaSnapshotQueryGateway;
 import com.poeflipfinder.backend.framework.persistence.JpaSnapshotRepositoryGateway;
 import com.poeflipfinder.backend.framework.persistence.LeagueJpaRepository;
 import com.poeflipfinder.backend.gateway.ItemIconGateway;
@@ -67,6 +68,16 @@ public class GatewayConfig {
             ExchangeMarketSnapshotJpaRepository snapshotJpaRepository,
             Clock clock) {
         return new JpaSnapshotRepositoryGateway(ingestionStateJpaRepository, snapshotJpaRepository, clock);
+    }
+
+    @Bean
+    public JpaSnapshotQueryGateway jpaSnapshotQueryGateway(
+            LeagueJpaRepository leagueJpaRepository,
+            CurrencyJpaRepository currencyJpaRepository,
+            ExchangeMarketSnapshotJpaRepository snapshotJpaRepository,
+            ExchangeIngestionStateJpaRepository ingestionStateJpaRepository) {
+        return new JpaSnapshotQueryGateway(
+                leagueJpaRepository, currencyJpaRepository, snapshotJpaRepository, ingestionStateJpaRepository);
     }
 
     // Testability seam for the ingestion interactor's first-run lookback

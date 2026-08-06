@@ -1,7 +1,9 @@
 import { DataFreshnessStamp } from './components/DataFreshnessStamp';
+import { FlipOpportunityTable } from './components/FlipOpportunityTable';
 import { IngestionRefreshButton } from './components/IngestionRefreshButton';
 import { LeagueRefreshButton } from './components/LeagueRefreshButton';
 import { LeagueSelector } from './components/LeagueSelector';
+import { useFlipOpportunities } from './hooks/useFlipOpportunities';
 import { useIngestionFreshness } from './hooks/useIngestionFreshness';
 import { useLeagueSelection } from './hooks/useLeagueSelection';
 
@@ -16,6 +18,11 @@ function App() {
     lastRefreshResult,
     refresh: refreshIngestion,
   } = useIngestionFreshness();
+  const {
+    opportunities,
+    isLoading: isOpportunitiesLoading,
+    error: opportunitiesError,
+  } = useFlipOpportunities(selectedLeague?.id ?? null);
 
   return (
     <div className="app">
@@ -42,7 +49,13 @@ function App() {
       </header>
       <main className="app-main">
         {selectedLeague ? (
-          <p>Showing flips for {selectedLeague.name}.</p>
+          <div className="panel">
+            <FlipOpportunityTable
+              opportunities={opportunities}
+              isLoading={isOpportunitiesLoading}
+              error={opportunitiesError}
+            />
+          </div>
         ) : (
           <p>Select a league to get started.</p>
         )}

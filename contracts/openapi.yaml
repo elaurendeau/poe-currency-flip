@@ -57,6 +57,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/IngestionFreshness"
 
+  /flip-opportunities:
+    get:
+      operationId: getFlipOpportunities
+      summary: >
+        Compute flip opportunities for a league (docs/PRD.md § 7.2 -- V1 is
+        Exchange Spread only; the schema is shared/generic so Features A/C/E
+        can add rows of other techniques later without a breaking change).
+        Unsorted -- client-side sort/filter is a separate, not-yet-built
+        frontend feature (docs/PRD.md § 7.9).
+      tags: [FlipOpportunities]
+      parameters:
+        - name: league
+          in: query
+          required: true
+          schema:
+            type: string
+          description: League external id (e.g. "Allflame"), as returned by GET /leagues
+      responses:
+        "200":
+          description: Computed flip opportunities for the requested league
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FlipOpportunity"
+
 components:
   schemas:
     League:
@@ -103,3 +130,50 @@ components:
           format: date-time
           nullable: true
           description: Null if ingestion has never completed a successful run.
+    CurrencyAmount:
+      type: object
+      required: [currencyId, name, quantity]
+      properties:
+        currencyId:
+          type: string
+          description: The currency's external id, e.g. "Metadata/Items/Currency/CurrencyRerollRare"
+        name:
+          type: string
+        iconUrl:
+          type: string
+          nullable: true
+        quantity:
+          type: number
+          format: double
+    FlipOpportunity:
+      type: object
+      required: [technique, start, via, sell, marginPercent, profit, volume, detail]
+      properties:
+        technique:
+          type: string
+          enum: [VENDOR_RECIPE, EXCHANGE_SPREAD, DIVINATION_CARD, BULK_BUY]
+        start:
+          type: array
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        via:
+          type: array
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        sell:
+          type: array
+          items:
+            $ref: "#/components/schemas/CurrencyAmount"
+        marginPercent:
+          type: number
+          format: double
+        profit:
+          type: number
+          format: double
+          description: In terms of the start currency -- not necessarily Chaos-equivalent.
+        volume:
+          type: number
+          format: double
+        detail:
+          type: string
+          description: Free-text caveat/explanation, e.g. the instant-vs-competitive rates for Exchange Spread.

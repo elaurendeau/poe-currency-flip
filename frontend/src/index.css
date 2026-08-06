@@ -63,6 +63,133 @@ body {
   padding: 24px;
 }
 
+/* Below: copied from docs/mockups/flip-row-reference.html verbatim per
+   CLAUDE.md's "Frontend layout discipline" -- that file is the authoritative
+   visual reference, not a rough guide to reinterpret. */
+
+.panel {
+  background: #14171b;
+  border-radius: 12px;
+  padding: 16px 18px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px 70px 80px 70px;
+  gap: 10px;
+  align-items: center;
+}
+
+.header-row {
+  padding: 0 4px 8px;
+  font-size: 11px;
+  color: #6b7480;
+  border-bottom: 0.5px solid #262c33;
+}
+
+.row {
+  padding: 10px 4px;
+  border-bottom: 1px solid #1e2329;
+}
+
+.cur {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #c7cdd3;
+  text-align: center;
+}
+
+.cur-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cur img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.via-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  color: #d8dde2;
+  font-size: 12px;
+}
+
+.via-icons img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.qty {
+  color: #f2f4f6;
+  font-family: Consolas, monospace;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.margin {
+  text-align: right;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.profit {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.profit img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.vol {
+  text-align: right;
+  color: #8a92a0;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+}
+
+.up {
+  color: #5fd07a;
+}
+
+.mid {
+  color: #e8a33d;
+}
+
+.sub {
+  color: #6b7480;
+  font-size: 11px;
+  margin-top: 4px;
+  font-family: Consolas, monospace;
+}
+
+.flip-table-message {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.flip-table-message--error {
+  color: var(--accent);
+}
+
 .league-selector {
   font: inherit;
   color: var(--text-h);
