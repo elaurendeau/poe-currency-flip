@@ -17,5 +17,9 @@ RUN ./mvnw -q -DskipTests package
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+# application.yml points Flyway at filesystem:../db/migration, resolved
+# relative to WORKDIR -- mirror that same relative layout here so the
+# same config works locally (cwd=backend/) and in the container (cwd=/app).
+COPY db/migration /db/migration
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
