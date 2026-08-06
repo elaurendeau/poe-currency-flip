@@ -1,0 +1,82 @@
+:root {
+  --bg: #14161a;
+  --bg-panel: #1b1e24;
+  --border: #2b2f37;
+  --text: #d8dde2;
+  --text-dim: #6b7480;
+  --text-h: #f2f4f6;
+  --accent: #e8a33d;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  font: 16px/145% var(--sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.app-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.app-main {
+  flex: 1;
+  padding: 24px;
+}
+
+.league-selector {
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.league-selector--loading,
+.league-selector--error {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.league-selector--error {
+  color: var(--accent);
+}

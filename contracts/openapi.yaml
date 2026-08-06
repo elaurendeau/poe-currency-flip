@@ -1,0 +1,43 @@
+openapi: 3.0.3
+info:
+  title: PoE Currency Exchange Flip Finder API
+  version: 0.1.0
+  description: >
+    The single source of truth for the frontend/backend contract. Both apps
+    generate code from this file -- see docs/ARCHITECTURE.md § API Contract.
+    Edit this file first when adding or changing an endpoint; regenerate
+    both sides afterward.
+
+servers:
+  - url: /api
+
+paths:
+  /leagues:
+    get:
+      operationId: getLeagues
+      summary: List leagues available for the Feature D league selector
+      tags: [Leagues]
+      responses:
+        "200":
+          description: Leagues with Currency Exchange activity, SSF leagues excluded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/League"
+
+components:
+  schemas:
+    League:
+      type: object
+      required: [id, name, isDefault]
+      properties:
+        id:
+          type: string
+          description: GGG's league id, e.g. "Allflame"
+        name:
+          type: string
+        isDefault:
+          type: boolean
+          description: True for the current mainline challenge league (docs/PRD.md § 7.4)

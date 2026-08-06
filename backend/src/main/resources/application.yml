@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: backend
+  datasource:
+    url: ${DATABASE_URL}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: filesystem:../db/migration
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+
+app:
+  frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}

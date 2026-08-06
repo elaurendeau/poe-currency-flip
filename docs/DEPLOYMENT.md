@@ -14,6 +14,29 @@ docs/            This doc set
 
 One repo, both apps — simplest for a solo project; nothing here needs the overhead of separate repos or a build orchestration tool.
 
+## Local Development
+
+**Prerequisites:** Docker Desktop (with its bundled Docker Compose) and Node.js 20+. The backend itself doesn't need a local JDK/Maven install for this workflow — it builds and runs entirely inside the container.
+
+[docker-compose.yml](../docker-compose.yml) runs Postgres + the backend locally so you don't need a Neon account or an H2 workaround just to click around the app:
+
+```bash
+docker compose up --build
+```
+
+This builds `backend/Dockerfile`, runs the backend against a local Postgres (Flyway migrations apply automatically on startup, same as production), and exposes the backend on `http://localhost:8080/api`.
+
+The frontend is not part of the compose file — run it natively for fast HMR:
+
+```bash
+cd frontend
+npm run dev
+```
+
+It talks to `http://localhost:8080/api` via the committed `frontend/.env`, so no extra config is needed once `docker compose up` is running. Open `http://localhost:5173` to use the app.
+
+To stop: `docker compose down` (and Ctrl-C the `npm run dev` process).
+
 ## Packaging
 
 **Backend → Docker.** Rather than relying on Render (or any platform) to auto-detect and build a Java project correctly, the backend ships as a container image built from [backend/Dockerfile](../backend/Dockerfile). This is the single biggest resilience win in this section: a Dockerized app runs identically on Render, Fly.io, Cloud Run, or a laptop — if Render's terms or pricing ever change (a real risk we already flagged in [TECH_STACK.md](TECH_STACK.md)), moving hosts is a config change, not a rewrite. The Dockerfile is a two-stage build (Maven build stage, slim JRE run stage) so the shipped image doesn't carry the whole JDK/build toolchain.
@@ -45,8 +68,8 @@ This only needs to happen once per environment. All three platforms are free-tie
 ### 2. Render (backend)
 1. Sign up at render.com, connect your GitHub account, grant it access to this repo.
 2. Create a new **Web Service**, select this repo.
-3. Set **Root Directory** to `backend` and **Environment** to `Docker` (it'll pick up `backend/Dockerfile` automatically).
-4. Under **Environment Variables**, add `DATABASE_URL` set to the Neon connection string from step 1 (adjust to Spring Boot's expected JDBC format, e.g. prefixing with `jdbc:`).
+3. Set **Environment** to `Docker`. Leave **Root Directory** unset (repo root) and set **Dockerfile Path** to `backend/Dockerfile` under Advanced settings — the Docker build context must be the repo root, not `backend/`, because `pom.xml`'s openapi-generator step reads `../contracts/openapi.yaml`, which sits outside `backend/` (see [docker-compose.yml](../docker-compose.yml) for the same context/dockerfile split used locally).
+4. Under **Environment Variables**, add `DATABASE_URL` set to the Neon connection string from step 1 (adjust to Spring Boot's expected JDBC format, e.g. prefixing with `jdbc:`). Also add `FRONTEND_ORIGIN` set to the Vercel deployment's URL from step 3 below (CORS is locked to this one origin — see [backend/src/main/java/.../WebConfig.java](../backend/src/main/java/com/poeflipfinder/backend/framework/config/WebConfig.java)).
 5. **Turn auto-deploy off.** In the service's Settings, disable "Auto-Deploy" (so a raw git push does *not* trigger a deploy on its own — only the gated GitHub Actions job will).
 6. Under Settings, find the **Deploy Hook** URL and copy it.
 7. Deploy once manually to confirm it works. On first boot, Flyway will run [V1__init_schema.sql](../db/migration/V1__init_schema.sql) against the fresh Neon database automatically.

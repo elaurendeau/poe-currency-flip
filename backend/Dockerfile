@@ -1,15 +1,16 @@
-# Reference Dockerfile for the Spring Boot backend, assuming the standard
-# Spring Initializr Maven layout (pom.xml, mvnw, src/) once the project is
-# scaffolded. See docs/DEPLOYMENT.md for the packaging/deployment rationale.
+# Build context must be the repo root (not backend/), since pom.xml's
+# openapi-generator config reads ../contracts/openapi.yaml -- the contract
+# lives outside this directory. See docker-compose.yml for the invocation.
 
 # --- Build stage ---
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+COPY backend/mvnw .
+COPY backend/.mvn .mvn
+COPY backend/pom.xml .
 RUN ./mvnw -q -DskipTests dependency:go-offline
-COPY src ./src
+COPY contracts /contracts
+COPY backend/src ./src
 RUN ./mvnw -q -DskipTests package
 
 # --- Run stage ---
