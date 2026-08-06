@@ -35,7 +35,15 @@ public class GggItemIconGateway implements ItemIconGateway {
     private Map<String, RawEntry> cardEntriesByCanonicalName;
 
     public GggItemIconGateway(RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder.baseUrl("https://www.pathofexile.com").build();
+        // Fetched from the CDN mirror, not www.pathofexile.com directly --
+        // confirmed live 2026-08-06 that the main site blocks requests from
+        // Render's IP range (HTTP 403) regardless of User-Agent, while this
+        // CDN-hosted mirror serves the identical JSON and is already proven
+        // reachable from Render (same host GggExchangeSourceGateway uses).
+        // Resulting icon image URLs still resolve against
+        // www.pathofexile.com (see toAbsoluteIconUrl) since those are loaded
+        // by the end user's browser, not fetched by this backend.
+        this.restClient = restClientBuilder.baseUrl("https://web.poecdn.com").build();
         this.objectMapper = new ObjectMapper();
     }
 
