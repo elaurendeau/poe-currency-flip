@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: ["dev", "master"]
+    branches: ["dev", "main"]
   pull_request:
-    branches: ["dev", "master"]
+    branches: ["dev", "main"]
 
 jobs:
   test-backend:
@@ -37,20 +37,20 @@ jobs:
       - run: npm run build
       - run: npm test --if-present
 
-  # Deploy jobs only run on a push to master, and only if the matching test
+  # Deploy jobs only run on a push to main, and only if the matching test
   # job passed. Render/Vercel's own git-triggered auto-deploy is turned OFF
   # in their dashboards (see docs/DEPLOYMENT.md) so this is the *only* path
   # to a deploy -- a failing test can never reach production.
   deploy-backend:
     needs: test-backend
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
 
   deploy-frontend:
     needs: test-frontend
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
