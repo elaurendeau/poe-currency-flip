@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/exchange-ingestion/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Manually trigger one bounded catch-up walk of Currency Exchange ingestion (docs/ARCHITECTURE.md § Currency Exchange Ingestion). Capped per call -- if the app has been stale a while, one call may only make partial progress; call again to continue. */
+        post: operations["refreshExchangeIngestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exchange-ingestion/freshness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read-only ingestion checkpoint/staleness state (Feature F) */
+        get: operations["getExchangeIngestionFreshness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -31,6 +65,24 @@ export interface components {
             name: string;
             /** @description True for the current mainline challenge league (docs/PRD.md § 7.4) */
             isDefault: boolean;
+        };
+        IngestionRefreshResult: {
+            hoursProcessed: number;
+            /** @description False means the per-call hour cap was reached before reaching the current hour; call again to continue. */
+            fullyCaughtUp: boolean;
+            /** Format: int64 */
+            lastProcessedChangeId?: number | null;
+            /** @description Distinct currency pairs skipped this call because a currency in the pair couldn't be resolved even via Item Icons -- deduplicated across the hours walked, not a raw per-hour occurrence count (the same unresolvable pair recurs in most hours it's active). */
+            skippedUnresolvableMarketEntryCount: number;
+        };
+        IngestionFreshness: {
+            /** Format: int64 */
+            lastProcessedChangeId?: number | null;
+            /**
+             * Format: date-time
+             * @description Null if ingestion has never completed a successful run.
+             */
+            activeGenerationRefreshedAt?: string | null;
         };
     };
     responses: never;
@@ -57,6 +109,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["League"][];
+                };
+            };
+        };
+    };
+    refreshExchangeIngestion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One bounded call completed (fully caught up, or partial -- call again to continue) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestionRefreshResult"];
+                };
+            };
+        };
+    };
+    getExchangeIngestionFreshness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current ingestion state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestionFreshness"];
                 };
             };
         };

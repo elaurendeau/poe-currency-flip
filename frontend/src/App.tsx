@@ -1,16 +1,28 @@
+import { DataFreshnessBanner } from './components/DataFreshnessBanner';
+import { IngestionRefreshButton } from './components/IngestionRefreshButton';
 import { LeagueRefreshButton } from './components/LeagueRefreshButton';
 import { LeagueSelector } from './components/LeagueSelector';
+import { useIngestionFreshness } from './hooks/useIngestionFreshness';
 import { useLeagueSelection } from './hooks/useLeagueSelection';
 
 function App() {
   const { leagues, selectedLeague, selectLeague, isLoading, isRefreshing, error, refresh } =
     useLeagueSelection();
+  const {
+    freshness,
+    isLoading: isFreshnessLoading,
+    isRefreshing: isIngestionRefreshing,
+    error: freshnessError,
+    lastRefreshResult,
+    refresh: refreshIngestion,
+  } = useIngestionFreshness();
 
   return (
     <div className="app">
       <header className="app-header">
         <h1 className="app-title">PoE Flip Finder</h1>
         <div className="league-controls">
+          <IngestionRefreshButton onRefresh={refreshIngestion} isRefreshing={isIngestionRefreshing} />
           <LeagueSelector
             leagues={leagues}
             selectedLeague={selectedLeague}
@@ -21,6 +33,12 @@ function App() {
           <LeagueRefreshButton onRefresh={refresh} isRefreshing={isRefreshing || isLoading} />
         </div>
       </header>
+      <DataFreshnessBanner
+        freshness={freshness}
+        isLoading={isFreshnessLoading}
+        error={freshnessError}
+        lastRefreshResult={lastRefreshResult}
+      />
       <main className="app-main">
         {selectedLeague ? (
           <p>Showing flips for {selectedLeague.name}.</p>
