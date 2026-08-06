@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.web.client.RestClient;
 
 /**
  * Contract test per docs/ARCHITECTURE.md § 3: a saved real Item Icons
@@ -18,7 +17,23 @@ import org.springframework.web.client.RestClient;
  */
 class GggItemIconGatewayTest {
 
-    private final GggItemIconGateway gateway = new GggItemIconGateway(RestClient.builder());
+    private final GggItemIconGateway gateway = new GggItemIconGateway();
+
+    @Test
+    void lookupItem_loadsTheRealBundledCatalogResource_withoutAnyLiveHttpCall() {
+        // Regression test: this gateway used to fetch live over HTTP; every
+        // other test here calls normalize(fixture()) directly and never
+        // exercises the actual resource-loading path added when both
+        // www.pathofexile.com and its CDN mirror started returning 403 from
+        // production (docs/DATA_SOURCES.md § Item Icons). Deliberately does
+        // NOT call normalize() first, so this only passes if
+        // reference-data/item-icons-catalog.json is present on the
+        // classpath and actually parses.
+        Optional<Currency> result = gateway.lookupItem("Metadata/Items/Currency/CurrencyPortal");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().displayName()).isEqualTo("Portal Scroll");
+    }
 
     @Test
     void lookupItem_resolvesACurrency_viaTheImageFilenameBasename_notTheIdField() {

@@ -22,13 +22,13 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class GatewayConfig {
 
-    // www.pathofexile.com (unlike api.pathofexile.com and web.poecdn.com) sits
-    // behind bot protection that 403s requests without a descriptive User-Agent
-    // -- confirmed live: GggItemIconGateway's default Java client User-Agent
-    // was rejected calling from Render's IP range, though it worked from a
-    // residential IP during local testing. Applied to every GGG RestClient
-    // via this customizer rather than per-gateway, since it's a standing
-    // requirement for talking to any pathofexile.com/poecdn.com endpoint.
+    // Standard API-citizenship practice for the remaining live GGG calls
+    // (League List, Currency Exchange) -- identifies the app so GGG can
+    // reach out if it ever causes trouble. NOT a fix for any specific
+    // block: confirmed live 2026-08-06 that GggItemIconGateway's 403 was
+    // unrelated to User-Agent content (any non-empty value works) -- see
+    // GggItemIconGateway's docstring for why that gateway no longer makes
+    // a live call at all.
     @Bean
     public RestClientCustomizer gggUserAgentCustomizer() {
         return builder -> builder.defaultHeader(
@@ -46,8 +46,8 @@ public class GatewayConfig {
     }
 
     @Bean
-    public GggItemIconGateway gggItemIconGateway(RestClient.Builder restClientBuilder) {
-        return new GggItemIconGateway(restClientBuilder);
+    public GggItemIconGateway gggItemIconGateway() {
+        return new GggItemIconGateway();
     }
 
     @Bean
