@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -B test)",
+      "Bash(mvn -B compile)",
+      "Bash(mvn -B generate-sources)",
+      "Bash(mvn -B package)",
+      "Bash(mvn -B verify)"
+    ]
+  }
+}
