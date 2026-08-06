@@ -91,6 +91,7 @@ A dropdown in the site settings (top right of the page) that scopes all three vi
 - The league list must be fully dynamic — no hardcoded league names or IDs anywhere in the code. When GGG launches a new challenge league, it must appear in the dropdown automatically, without a code change or deploy.
 - The list must only include leagues that actually have Currency Exchange activity. Leagues that don't support trading (Solo Self-Found variants) must never appear, since flip-finding is meaningless there.
 - Default selection is the current mainline challenge league (not Standard).
+- A manual refresh control (icon button next to the dropdown) re-fetches the league list on demand, without a full page reload. There is no caching layer for this list — a full page reload already re-fetches it live from GGG on every load, so the button exists purely for convenience within an already-open tab (e.g. a new challenge league just launched). If the currently selected league still exists in the refreshed list, the selection is preserved; only a selection that disappeared falls back to the default. This is distinct from Feature G's manual refresh, which re-runs Currency Exchange ingestion, not the league list.
 
 **How this is derived:** see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution) for the exact algorithm, and [DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list) for the verified API facts backing it.
 
