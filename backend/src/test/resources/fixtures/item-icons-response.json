@@ -1,0 +1,35 @@
+{
+  "result": [
+    {
+      "id": "Currency",
+      "label": "Currency",
+      "entries": [
+        {
+          "id": "divine",
+          "text": "Divine Orb",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lNb2RWYWx1ZXMiLCJzY2FsZSI6MX1d/ec48896769/CurrencyModValues.png"
+        },
+        {
+          "id": "wisdom",
+          "text": "Scroll of Wisdom",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lJZGVudGlmaWNhdGlvbiIsInNjYWxlIjoxfV0/c2d03ed3fd/CurrencyIdentification.png"
+        },
+        {
+          "id": "portal",
+          "text": "Portal Scroll",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lQb3J0YWwiLCJzY2FsZSI6MX1d/d92d3478a0/CurrencyPortal.png"
+        }
+      ]
+    },
+    {
+      "id": "Cards",
+      "label": "Cards",
+      "entries": [
+        {
+          "id": "the-apothecary",
+          "text": "The Apothecary"
+        }
+      ]
+    }
+  ]
+}

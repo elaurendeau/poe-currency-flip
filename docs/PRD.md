@@ -109,12 +109,13 @@ Finds a third item that has active Currency Exchange markets against two differe
 
 ### 7.6 Feature F — Data Freshness Banner
 
-A persistent banner at the top of the page showing the exact moment the currently-displayed data was last refreshed.
+A persistent banner at the top of the page showing the exact moment the currently-displayed data was last refreshed, alongside the main Currency Exchange refresh control itself (the trigger for the ingestion described in [ARCHITECTURE.md § Currency Exchange Ingestion](ARCHITECTURE.md#currency-exchange-ingestion-change-stream--checkpoint-model) — distinct from Feature G's league-list/item-icon reloads).
 
 **Requirements:**
 - Always visible, not something the user has to look for — this is what makes the "manual refresh" model ([ARCHITECTURE.md](ARCHITECTURE.md)) trustworthy: staleness is never silently hidden.
 - Shows an absolute timestamp, not a vague relative time like "a few minutes ago" — full date, hour, minute, and millisecond.
 - Sourced from `active_generation_refreshed_at` in [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data) — the moment the currently-active generation was made live, not the underlying data's own hourly granularity. Those are two different things: the banner tells the user exactly when the app last successfully pulled data, not how fresh the Currency Exchange's own hourly aggregates are.
+- **The refresh action is capped per click, not guaranteed to fully catch up in one press.** If the app has been idle a long time (or this is the very first refresh ever), one click may only make partial progress — the banner's timestamp still advances to reflect whatever was successfully committed, and the user just clicks refresh again to continue catching up. This must be visible, not silent: the UI should indicate when a refresh completed only partially (e.g. "click refresh again to finish catching up") rather than implying the single click fully updated everything.
 
 ### 7.7 Feature G — Manual Data Source Refresh
 

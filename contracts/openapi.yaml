@@ -27,6 +27,36 @@ paths:
                 items:
                   $ref: "#/components/schemas/League"
 
+  /exchange-ingestion/refresh:
+    post:
+      operationId: refreshExchangeIngestion
+      summary: >
+        Manually trigger one bounded catch-up walk of Currency Exchange
+        ingestion (docs/ARCHITECTURE.md § Currency Exchange Ingestion).
+        Capped per call -- if the app has been stale a while, one call may
+        only make partial progress; call again to continue.
+      tags: [ExchangeIngestion]
+      responses:
+        "200":
+          description: One bounded call completed (fully caught up, or partial -- call again to continue)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionRefreshResult"
+
+  /exchange-ingestion/freshness:
+    get:
+      operationId: getExchangeIngestionFreshness
+      summary: Read-only ingestion checkpoint/staleness state (Feature F)
+      tags: [ExchangeIngestion]
+      responses:
+        "200":
+          description: Current ingestion state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionFreshness"
+
 components:
   schemas:
     League:
@@ -41,3 +71,35 @@ components:
         isDefault:
           type: boolean
           description: True for the current mainline challenge league (docs/PRD.md § 7.4)
+    IngestionRefreshResult:
+      type: object
+      required: [hoursProcessed, fullyCaughtUp, skippedUnresolvableMarketEntryCount]
+      properties:
+        hoursProcessed:
+          type: integer
+        fullyCaughtUp:
+          type: boolean
+          description: False means the per-call hour cap was reached before reaching the current hour; call again to continue.
+        lastProcessedChangeId:
+          type: integer
+          format: int64
+          nullable: true
+        skippedUnresolvableMarketEntryCount:
+          type: integer
+          description: >
+            Distinct currency pairs skipped this call because a currency in
+            the pair couldn't be resolved even via Item Icons -- deduplicated
+            across the hours walked, not a raw per-hour occurrence count
+            (the same unresolvable pair recurs in most hours it's active).
+    IngestionFreshness:
+      type: object
+      properties:
+        lastProcessedChangeId:
+          type: integer
+          format: int64
+          nullable: true
+        activeGenerationRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null if ingestion has never completed a successful run.

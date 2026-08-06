@@ -43,9 +43,10 @@ External IDs (e.g., GGG's `Metadata/Items/Currency/CurrencyPortal`) are mapped t
 The Currency Exchange API (see [DATA_SOURCES.md](DATA_SOURCES.md)) is a sequential change-stream, not a query-by-current-state API: each call returns one hour of market activity plus a pointer to the next hour, and arbitrary jumps are not possible.
 
 Ingestion model:
-1. Persist a checkpoint — the last successfully processed `next_change_id`. Scoped to PC only — no other platform/realm is in scope (see [PRD.md](PRD.md) Non-Goals).
-2. On a manual "refresh" action, walk forward from the stored checkpoint, one hour at a time, until reaching the current hour, normalizing each hour's markets via the adapter.
-3. No history is retained. New data is written under a fresh generation tag while the previous generation keeps serving reads; once the walk completes successfully, a single atomic pointer flip makes the new generation live and the old one is deleted. See [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data) for the concrete tables and why this is a generation-tag swap rather than a delete-then-insert inside one long transaction.
+1. Persist a checkpoint — the last successfully processed `next_change_id`. Scoped to PC only — no other platform/realm is in scope (see [PRD.md](PRD.md) Non-Goals). On the very first-ever run (no stored checkpoint), seed the starting point near "current hour minus a small lookback window" rather than walking from Currency Exchange's actual launch (~mid-2024) — old data has no product value here (see [PRD.md § 4 Non-Goals](PRD.md#4-non-goals): no historical trend charts).
+2. On a manual "refresh" action, walk forward from the stored checkpoint (or the first-run lookback seed), one hour at a time, **capped at a bounded number of hours per call** (see Open Questions, resolved below), normalizing each hour's markets via the adapter. Reaching GGG's current/still-open hour is signaled by an `HTTP 404` whose response body echoes back the same `next_change_id` you requested with an empty `markets` array (verified in [DATA_SOURCES.md](DATA_SOURCES.md)) — this is the normal "you're caught up" stop condition, not a failure.
+3. No history is retained. New data is written under a fresh generation tag while the previous generation keeps serving reads; once the walk completes — either by reaching the tip, or by hitting the per-call hour cap — a single atomic pointer flip makes the new generation live and the old one is deleted. See [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data) for the concrete tables and why this is a generation-tag swap rather than a delete-then-insert inside one long transaction. Hitting the cap is a normal, successful stop (commits what was gathered, reports itself as only partially caught up) — a caller that wants full freshness after a long idle period just calls refresh again to continue from the advanced checkpoint. Only a genuine fetch/schema failure discards the generation instead of committing it.
+   - **A refresh that's already fully caught up — the very first fetch already hits the tip — must not mint or commit a generation at all.** A generation with nothing new in it would still activate and purge the previous (still-good) one on commit, destroying real data for zero gain. Confirmed as a real bug against live data during implementation, not a hypothetical: the fix is that "already caught up" short-circuits before any generation is minted, leaving the active generation and checkpoint completely untouched.
 4. Refresh does bounded work proportional to elapsed time since the last refresh, not to total time since Currency Exchange launched — no standing background poller is required (see [PRD.md](PRD.md), Feature B/manual refresh model).
 
 ### League Resolution
@@ -61,7 +62,7 @@ This entire algorithm lives in one place (the league-resolution adapter/service)
 
 ## Failure Handling
 
-- Ingestion failures (schema validation, network errors, unexpected 404s mid-walk) must surface a clear, specific error state to the user — not a blank/stale UI with no explanation.
+- Ingestion failures (schema validation, network errors, an HTTP 404 that *doesn't* match the expected tip-signal shape described above) must surface a clear, specific error state to the user — not a blank/stale UI with no explanation. The expected tip-signal 404 itself is not a failure — see the Currency Exchange Ingestion model above.
 - The UI always shows data staleness (timestamp of last successful refresh) so a failed or partial refresh is visible rather than silently trusted.
 - Partial ingestion (e.g., failure on hour N of a multi-hour catch-up walk) commits nothing past the last fully-validated hour — no partial/corrupt state is persisted.
 
@@ -73,4 +74,4 @@ No external data source currently in use requires authentication (see [DATA_SOUR
 
 ## Open Questions
 
-1. Is there a reasonable cap on how many hours a single manual refresh will walk before it just serves what's currently stored and reports "partially caught up"? (Relevant if the app hasn't been refreshed in a long time — e.g., days.)
+None currently. (Previously: "is there a reasonable cap on how many hours a single manual refresh will walk" — resolved: yes, capped at `app.ingestion.max-hours-per-call` (default 48), configurable. A refresh that hits the cap still commits what it gathered and reports itself as not fully caught up; the caller just triggers another refresh to continue from the advanced checkpoint. See the Currency Exchange Ingestion model above.)

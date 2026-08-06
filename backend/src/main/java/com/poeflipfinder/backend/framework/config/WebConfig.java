@@ -1,6 +1,8 @@
 package com.poeflipfinder.backend.framework.config;
 
+import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -24,5 +26,15 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(frontendOrigin)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH");
+    }
+
+    // Without this, Jackson serializes JsonNullable<T> fields (used by
+    // OpenAPI-generated models for nullable properties) as the wrapper
+    // object itself -- {"present":true} -- instead of the actual value.
+    // Spring Boot's Jackson auto-configuration does not pick this module up
+    // automatically even though jackson-databind-nullable is on the classpath.
+    @Bean
+    public JsonNullableModule jsonNullableModule() {
+        return new JsonNullableModule();
     }
 }

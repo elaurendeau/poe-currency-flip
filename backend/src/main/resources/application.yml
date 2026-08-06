@@ -17,3 +17,6 @@ server:
 
 app:
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  ingestion:
+    max-hours-per-call: ${INGESTION_MAX_HOURS_PER_CALL:48}
+    first-run-lookback-hours: ${INGESTION_FIRST_RUN_LOOKBACK_HOURS:24}
