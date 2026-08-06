@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -165,6 +166,31 @@ class RunIngestionCatchupInteractorTest {
 
         verify(snapshotRepositoryGateway).discardGeneration(999L);
         verify(snapshotRepositoryGateway, never()).commitGeneration(anyLong(), anyLong());
+        verify(outputBoundary, never()).present(any());
+    }
+
+    @Test
+    void runIngestionCatchup_discardGenerationAlsoFails_originalFailureIsPreservedAsSuppressed() {
+        // Regression test: production once surfaced only
+        // TransactionRequiredException from inside discardGeneration's own
+        // cleanup path (a missing @Transactional on the gateway) with the
+        // real fetch/normalize failure that triggered the discard silently
+        // discarded -- the catch block's `throw e` was never reached
+        // because discardGeneration threw first. The real cause must
+        // survive as a suppressed exception even when cleanup itself fails.
+        when(snapshotRepositoryGateway.readIngestionState()).thenReturn(new IngestionFreshness(1000L, null));
+        when(snapshotRepositoryGateway.startNewGeneration()).thenReturn(999L);
+        when(exchangeSourceGateway.fetchHour(1000L))
+                .thenReturn(new ExchangeChangeStreamPage(List.of(oneEntry()), 2000L, false));
+        RuntimeException fetchFailure = new RuntimeException("network exploded");
+        when(exchangeSourceGateway.fetchHour(2000L)).thenThrow(fetchFailure);
+        RuntimeException discardFailure = new RuntimeException("discard also failed");
+        doThrow(discardFailure).when(snapshotRepositoryGateway).discardGeneration(999L);
+
+        assertThatThrownBy(() -> interactor(new CatchupCapPolicy(48, Duration.ofHours(24))).runIngestionCatchup())
+                .isSameAs(discardFailure)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).contains(fetchFailure));
+
         verify(outputBoundary, never()).present(any());
     }
 

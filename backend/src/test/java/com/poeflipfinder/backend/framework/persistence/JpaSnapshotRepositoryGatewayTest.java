@@ -10,11 +10,17 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Exercises the generation-tag hot-swap against H2 rather than the real
@@ -25,7 +31,31 @@ import org.springframework.test.context.TestPropertySource;
  */
 @DataJpaTest
 @TestPropertySource(properties = {"spring.flyway.enabled=false", "spring.jpa.hibernate.ddl-auto=create-drop"})
+@Import(JpaSnapshotRepositoryGatewayTest.GatewayTestConfig.class)
 class JpaSnapshotRepositoryGatewayTest {
+
+    // Registered as a real Spring bean (as GatewayConfig does in
+    // production) rather than plain `new` -- @Transactional only takes
+    // effect via Spring's AOP proxy around a container-managed bean.
+    // A manually-`new`'d instance silently no-ops the annotation, which is
+    // exactly how the missing @Transactional on discardGeneration slipped
+    // past this test class originally: the ambient test-managed
+    // transaction masked it either way.
+    @TestConfiguration
+    static class GatewayTestConfig {
+        @Bean
+        Clock clock() {
+            return Clock.fixed(Instant.parse("2026-08-06T12:00:00Z"), ZoneOffset.UTC);
+        }
+
+        @Bean
+        JpaSnapshotRepositoryGateway jpaSnapshotRepositoryGateway(
+                ExchangeIngestionStateJpaRepository ingestionStateJpaRepository,
+                ExchangeMarketSnapshotJpaRepository snapshotJpaRepository,
+                Clock clock) {
+            return new JpaSnapshotRepositoryGateway(ingestionStateJpaRepository, snapshotJpaRepository, clock);
+        }
+    }
 
     @Autowired
     private ExchangeIngestionStateJpaRepository ingestionStateJpaRepository;
@@ -39,8 +69,12 @@ class JpaSnapshotRepositoryGatewayTest {
     @Autowired
     private CurrencyJpaRepository currencyJpaRepository;
 
-    private final Clock clock = Clock.fixed(Instant.parse("2026-08-06T12:00:00Z"), ZoneOffset.UTC);
+    @Autowired
     private JpaSnapshotRepositoryGateway gateway;
+
+    @Autowired
+    private Clock clock;
+
     private League league;
     private Currency currencyA;
     private Currency currencyB;
@@ -48,7 +82,6 @@ class JpaSnapshotRepositoryGatewayTest {
     @BeforeEach
     void seedSingletonRowAndReferenceData() {
         ingestionStateJpaRepository.save(new ExchangeIngestionStateJpaEntity((short) 1, 0L, clock.instant()));
-        gateway = new JpaSnapshotRepositoryGateway(ingestionStateJpaRepository, snapshotJpaRepository, clock);
 
         LeagueJpaEntity leagueJpaEntity =
                 leagueJpaRepository.save(new LeagueJpaEntity("Standard", "Standard", false, true));
@@ -63,6 +96,19 @@ class JpaSnapshotRepositoryGatewayTest {
                 currencyAJpaEntity.getId(), currencyAJpaEntity.getExternalId(), "Currency A", null, Currency.ItemType.CURRENCY);
         currencyB = new Currency(
                 currencyBJpaEntity.getId(), currencyBJpaEntity.getExternalId(), "Currency B", null, Currency.ItemType.CURRENCY);
+    }
+
+    @AfterEach
+    void cleanUpAnyNonRolledBackState() {
+        // The NOT_SUPPORTED regression test below runs outside the
+        // ambient test transaction Spring would otherwise roll back --
+        // its inserts commit for real, so they're cleaned up explicitly
+        // rather than leaking into later tests. A no-op for every other
+        // (transactional) test, since their rows are rolled back already.
+        snapshotJpaRepository.deleteAll();
+        ingestionStateJpaRepository.deleteAll();
+        leagueJpaRepository.deleteAll();
+        currencyJpaRepository.deleteAll();
     }
 
     @Test
@@ -102,6 +148,24 @@ class JpaSnapshotRepositoryGatewayTest {
 
         assertThat(snapshotJpaRepository.findAll()).isEmpty();
         assertThat(gateway.readIngestionState().lastProcessedChangeId()).isNull();
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void discardGeneration_worksOutsideAnyAmbientTransaction_regressionForMissingTransactionalAnnotation() {
+        // Regression test: discardGeneration issues a bulk @Modifying
+        // delete query, which JPA requires an active transaction to run.
+        // @DataJpaTest wraps every test method in its own transaction by
+        // default, which silently masked a missing @Transactional on the
+        // gateway method itself -- it worked in tests but threw
+        // jakarta.persistence.TransactionRequiredException in production.
+        // Suspending the test's ambient transaction here reproduces that.
+        long generationId = 500L;
+        gateway.saveSnapshots(List.of(oneSnapshot(generationId)));
+
+        gateway.discardGeneration(generationId);
+
+        assertThat(snapshotJpaRepository.findAll()).isEmpty();
     }
 
     private ExchangeMarketSnapshot oneSnapshot(long generationId) {

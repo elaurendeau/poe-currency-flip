@@ -70,6 +70,7 @@ public class JpaSnapshotRepositoryGateway implements SnapshotRepositoryGateway {
     }
 
     @Override
+    @Transactional
     public void discardGeneration(long generationId) {
         snapshotJpaRepository.deleteByGenerationId(generationId);
     }

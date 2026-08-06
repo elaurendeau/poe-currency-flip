@@ -77,7 +77,12 @@ public class RunIngestionCatchupInteractor implements RunIngestionCatchupInputBo
             snapshotRepositoryGateway.commitGeneration(generationId, result.lastProcessedChangeId());
             outputBoundary.present(toResponseModel(result));
         } catch (RuntimeException e) {
-            snapshotRepositoryGateway.discardGeneration(generationId);
+            try {
+                snapshotRepositoryGateway.discardGeneration(generationId);
+            } catch (RuntimeException discardFailure) {
+                discardFailure.addSuppressed(e);
+                throw discardFailure;
+            }
             throw e;
         }
     }
