@@ -163,6 +163,16 @@ Right-click a row to pin it as a favorite. Favorited flips always render above t
 - If a favorited route doesn't appear in the current computed results (e.g. no longer profitable, or filtered out by Feature H/I), it simply doesn't show — no placeholder or stale-favorite indicator needed for v1.
 - Visual treatment: distinct row background plus a star icon, per [TECH_STACK.md](TECH_STACK.md).
 
+### 7.11 Feature K — Build Info Footer
+
+A small full-width bar at the bottom of the page, mirroring the header bar's style, showing exactly which frontend build is currently loaded: the short git commit hash and the build's timestamp.
+
+**Requirements:**
+- Shows the short (7-character) git commit hash and the build date/time, both sourced at frontend build time — Vite injects them as compile-time constants when `npm run build` runs. No runtime API call, no backend involvement.
+- Exists to answer "is this actually the new code?" directly from the page itself, rather than guessing from Render/Vercel's deploy-hook timing — this project's deploys are asynchronous (a deploy hook firing doesn't mean the rebuild has finished), which has caused real confusion earlier in development (a screenshot taken moments after triggering a deploy showed stale output purely because Render/Vercel hadn't finished rebuilding yet).
+- If git metadata isn't available in the build environment (e.g. no `.git` directory present), the bar shows "unknown" for the hash rather than failing the build.
+- Timestamp format matches Feature F's freshness stamp (§ 7.6): absolute local time, `YYYY-MM-DD HH:MM:SS.mmm` — not a vague relative time.
+
 ## 8. Success Criteria
 
 - The three views each return correct, sortable results that match manual in-game verification for a sample of flips.

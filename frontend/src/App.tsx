@@ -1,3 +1,4 @@
+import { BuildInfoBar } from './components/BuildInfoBar';
 import { DataFreshnessStamp } from './components/DataFreshnessStamp';
 import { FlipOpportunityTable } from './components/FlipOpportunityTable';
 import { FlipTechniqueFilterBar } from './components/FlipTechniqueFilterBar';
@@ -84,6 +85,7 @@ function App() {
           <p>Select a league to get started.</p>
         )}
       </main>
+      <BuildInfoBar />
     </div>
   );
 }

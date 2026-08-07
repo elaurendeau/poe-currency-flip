@@ -63,6 +63,21 @@ body {
   padding: 24px;
 }
 
+.app-footer {
+  display: flex;
+  justify-content: center;
+  padding: 6px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-panel);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.app-footer .build-hash {
+  color: var(--text);
+  font-family: var(--mono);
+}
+
 /* Below: copied from docs/mockups/flip-row-reference.html verbatim per
    CLAUDE.md's "Frontend layout discipline" -- that file is the authoritative
    visual reference, not a rough guide to reinterpret. */
