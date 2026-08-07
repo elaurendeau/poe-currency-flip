@@ -8,7 +8,15 @@ export interface FlipOpportunitiesState {
   error: Error | null;
 }
 
-export function useFlipOpportunities(leagueId: string | null): FlipOpportunitiesState {
+export function useFlipOpportunities(
+  leagueId: string | null,
+  // Refetch whenever the active ingestion generation changes (e.g.
+  // activeGenerationRefreshedAt from useIngestionFreshness), not just when
+  // the league changes -- otherwise clicking "refresh market data" updates
+  // the freshness timestamp while this table keeps showing whatever it
+  // loaded from the previous generation.
+  generationMarker: string | null = null,
+): FlipOpportunitiesState {
   const [opportunities, setOpportunities] = useState<FlipOpportunity[]>([]);
   const [isLoading, setIsLoading] = useState(leagueId !== null);
   const [error, setError] = useState<Error | null>(null);
@@ -46,7 +54,7 @@ export function useFlipOpportunities(leagueId: string | null): FlipOpportunities
       .finally(() => {
         if (isMounted.current) setIsLoading(false);
       });
-  }, [leagueId]);
+  }, [leagueId, generationMarker]);
 
   return { opportunities, isLoading, error };
 }

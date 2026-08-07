@@ -28,7 +28,7 @@ function App() {
     opportunities,
     isLoading: isOpportunitiesLoading,
     error: opportunitiesError,
-  } = useFlipOpportunities(selectedLeague?.id ?? null);
+  } = useFlipOpportunities(selectedLeague?.id ?? null, freshness?.activeGenerationRefreshedAt ?? null);
   const { enabledTechniques, toggleTechnique } = useTechniqueFilters();
   const { sortColumn, sortDirection, toggleSort, thresholds, setThreshold } = useSortAndThresholds();
   const { favoriteRouteKeys, toggleFavorite } = useFavoriteRoutes();

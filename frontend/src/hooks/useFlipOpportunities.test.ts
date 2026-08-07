@@ -69,4 +69,26 @@ describe('useFlipOpportunities', () => {
 
     await waitFor(() => expect(fetchFlipOpportunities).toHaveBeenCalledWith('Hardcore'));
   });
+
+  it('re-fetches when the generation marker changes even though the league id stays the same', async () => {
+    // Real bug this test guards against: clicking "refresh market data"
+    // (Feature G) updates the freshness timestamp but was leaving this
+    // table showing stale data from the previous ingestion generation,
+    // since nothing told it to refetch -- confirmed live in production
+    // (a Bulk Buy row kept showing a rate from an older ingested hour
+    // after a refresh moved the active generation forward).
+    vi.mocked(fetchFlipOpportunities).mockResolvedValue([opportunity]);
+
+    const { rerender } = renderHook(
+      ({ generationMarker }) => useFlipOpportunities('Standard', generationMarker),
+      { initialProps: { generationMarker: '2026-08-07T07:00:00Z' as string | null } },
+    );
+
+    await waitFor(() => expect(fetchFlipOpportunities).toHaveBeenCalledTimes(1));
+
+    rerender({ generationMarker: '2026-08-07T08:00:00Z' });
+
+    await waitFor(() => expect(fetchFlipOpportunities).toHaveBeenCalledTimes(2));
+    expect(fetchFlipOpportunities).toHaveBeenLastCalledWith('Standard');
+  });
 });
