@@ -26,7 +26,7 @@ public class ComputeFlipOpportunitiesPresenter implements ComputeFlipOpportuniti
                 toViewModels(opportunity.via()),
                 toViewModels(opportunity.sell()),
                 opportunity.marginPercent(),
-                opportunity.profitInChaos(),
+                toViewModel(opportunity.profit()),
                 opportunity.volume(),
                 opportunity.detail());
     }
@@ -40,6 +40,7 @@ public class ComputeFlipOpportunitiesPresenter implements ComputeFlipOpportuniti
                 amount.currency().externalId(),
                 amount.currency().displayName(),
                 amount.currency().iconUrl(),
+                amount.currency().itemType().name(),
                 amount.quantity());
     }
 }

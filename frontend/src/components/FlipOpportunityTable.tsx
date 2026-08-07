@@ -178,7 +178,7 @@ function FlipOpportunityRow({
   testId: string;
 }) {
   const margin = formatMargin(opportunity.marginPercent);
-  const profit = formatProfit(opportunity.profit, opportunity.marginPercent);
+  const profit = formatProfit(opportunity.profit.quantity, opportunity.marginPercent);
 
   return (
     <div
@@ -198,7 +198,7 @@ function FlipOpportunityRow({
       <div>
         <div className="via-icons">
           <span className="qty">{formatQuantity(opportunity.via[0].quantity)}</span>
-          {opportunity.via[0].iconUrl && <img src={opportunity.via[0].iconUrl} alt="" />}
+          <CurrencyIcon amount={opportunity.via[0]} />
           {opportunity.via[0].name}
         </div>
         <div className="sub">{opportunity.detail}</div>
@@ -207,7 +207,7 @@ function FlipOpportunityRow({
       <div className={`margin ${margin.colorClass}`}>{margin.text}</div>
       <div className={`profit ${profit.colorClass}`}>
         {profit.text}
-        {opportunity.sell[0].iconUrl && <img src={opportunity.sell[0].iconUrl} alt="" />}
+        <CurrencyIcon amount={opportunity.profit} />
       </div>
       <div className="vol">{formatVolume(opportunity.volume)}</div>
     </div>
@@ -219,10 +219,38 @@ function CurrencyCell({ amount }: { amount: CurrencyAmount }) {
     <div className="cur">
       <div className="cur-top">
         <span className="qty">{formatQuantity(amount.quantity)}</span>
-        {amount.iconUrl && <img src={amount.iconUrl} alt="" />}
+        <CurrencyIcon amount={amount} />
       </div>
       {amount.name}
     </div>
+  );
+}
+
+// Divination cards have no real icon from GGG's Item Icons data (their
+// iconUrl is always null -- see docs/DATA_SOURCES.md), so they always
+// render this generic card-suit glyph instead, per TECH_STACK.md.
+function CurrencyIcon({ amount }: { amount: CurrencyAmount }) {
+  if (amount.itemType === 'DIVINATION_CARD') {
+    return <DivinationCardIcon />;
+  }
+  return amount.iconUrl ? <img src={amount.iconUrl} alt="" /> : null;
+}
+
+function DivinationCardIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#c98ded"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="divination-card-icon"
+    >
+      <rect x="4" y="6" width="12" height="16" rx="2" transform="rotate(-8 10 14)" />
+      <rect x="9" y="4" width="12" height="16" rx="2" transform="rotate(8 15 12)" />
+    </svg>
   );
 }
 

@@ -69,6 +69,8 @@ For each currency pair on the Exchange, compare the instant-fill rate against th
 **Requirements:**
 - Pull both instant and competitive/order-book rates per currency pair.
 - Compute margin between the two.
+- **Every opportunity must start and sell in Chaos Orb or Divine Orb** — the two currencies a player actually accumulates and already holds. A pair between two other currencies (e.g. Scroll of Wisdom vs. Portal Scroll) isn't something a player can act on without already holding that specific altcoin, so it's excluded entirely rather than shown. When a pair has Chaos on one side and Divine on the other, Chaos is the anchor (since profit, below, is always Chaos-denominated and that pair needs no rate conversion).
+- **Profit is always expressed in Chaos Orb**, regardless of which base currency (Chaos or Divine) the opportunity starts/sells in — a "+1" profit always means at least 1 real Chaos Orb, per [TECH_STACK.md](TECH_STACK.md)'s row design (profit shown next to a Chaos icon, not the start currency's icon). A Divine-anchored opportunity's profit is converted to Chaos using the current Chaos/Divine exchange rate; if that rate isn't available for some reason, the opportunity is dropped rather than shown with a misleading unit.
 - Sortable by margin and volume (depth available at the competitive rate).
 - Since competitive-rate fills are slower and not guaranteed, flag this tradeoff clearly in the UI (e.g., a "fill speed" caveat or badge) rather than presenting it as equivalent to an instant flip.
 

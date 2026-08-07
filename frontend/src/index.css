@@ -232,7 +232,8 @@ body {
   gap: 4px;
 }
 
-.cur img {
+.cur img,
+.cur .divination-card-icon {
   width: 22px;
   height: 22px;
   object-fit: contain;
@@ -247,7 +248,8 @@ body {
   font-size: 12px;
 }
 
-.via-icons img {
+.via-icons img,
+.via-icons .divination-card-icon {
   width: 20px;
   height: 20px;
   object-fit: contain;
@@ -275,7 +277,8 @@ body {
   font-size: 13px;
 }
 
-.profit img {
+.profit img,
+.profit .divination-card-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;

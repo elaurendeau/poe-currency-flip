@@ -25,13 +25,15 @@ describe('fetchFlipOpportunities', () => {
         currencyId: 'Metadata/Items/Currency/CurrencyRerollRare',
         name: 'Chaos Orb',
         iconUrl: 'https://www.pathofexile.com/gen/image/.../CurrencyRerollRare.png',
+        itemType: 'CURRENCY',
         quantity: 1,
       },
     ]);
     expect(opportunity.via[0].quantity).toBe(366);
     expect(opportunity.sell[0].quantity).toBeCloseTo(1.9784);
     expect(opportunity.marginPercent).toBeCloseTo(97.84);
-    expect(opportunity.profit).toBeCloseTo(0.9784);
+    expect(opportunity.profit.quantity).toBeCloseTo(0.9784);
+    expect(opportunity.profit.currencyId).toBe('Metadata/Items/Currency/CurrencyRerollRare');
     expect(opportunity.volume).toBe(1234);
     expect(opportunity.detail).toBe('instant 185:1 · competitive 366:1');
   });

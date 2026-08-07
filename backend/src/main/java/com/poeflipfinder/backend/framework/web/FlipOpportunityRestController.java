@@ -49,7 +49,7 @@ public class FlipOpportunityRestController implements FlipOpportunitiesApi {
                 toContractModels(viewModel.via()),
                 toContractModels(viewModel.sell()),
                 viewModel.marginPercent(),
-                viewModel.profit(),
+                toContractModel(viewModel.profit()),
                 viewModel.volume(),
                 viewModel.detail());
     }
@@ -59,8 +59,11 @@ public class FlipOpportunityRestController implements FlipOpportunitiesApi {
     }
 
     private CurrencyAmount toContractModel(CurrencyAmountViewModel viewModel) {
-        CurrencyAmount contractModel =
-                new CurrencyAmount(viewModel.currencyId(), viewModel.name(), viewModel.quantity());
+        CurrencyAmount contractModel = new CurrencyAmount(
+                viewModel.currencyId(),
+                viewModel.name(),
+                CurrencyAmount.ItemTypeEnum.fromValue(viewModel.itemType()),
+                viewModel.quantity());
         if (viewModel.iconUrl() != null) {
             contractModel.iconUrl(viewModel.iconUrl());
         }

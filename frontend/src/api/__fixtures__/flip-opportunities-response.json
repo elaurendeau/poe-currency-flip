@@ -6,6 +6,7 @@
         "currencyId": "Metadata/Items/Currency/CurrencyRerollRare",
         "name": "Chaos Orb",
         "iconUrl": "https://www.pathofexile.com/gen/image/.../CurrencyRerollRare.png",
+        "itemType": "CURRENCY",
         "quantity": 1
       }
     ],
@@ -14,6 +15,7 @@
         "currencyId": "Metadata/Items/Currency/CurrencyIdentification",
         "name": "Scroll of Wisdom",
         "iconUrl": "https://www.pathofexile.com/gen/image/.../CurrencyIdentification.png",
+        "itemType": "CURRENCY",
         "quantity": 366
       }
     ],
@@ -22,11 +24,18 @@
         "currencyId": "Metadata/Items/Currency/CurrencyRerollRare",
         "name": "Chaos Orb",
         "iconUrl": "https://www.pathofexile.com/gen/image/.../CurrencyRerollRare.png",
+        "itemType": "CURRENCY",
         "quantity": 1.9784
       }
     ],
     "marginPercent": 97.84,
-    "profit": 0.9784,
+    "profit": {
+      "currencyId": "Metadata/Items/Currency/CurrencyRerollRare",
+      "name": "Chaos Orb",
+      "iconUrl": "https://www.pathofexile.com/gen/image/.../CurrencyRerollRare.png",
+      "itemType": "CURRENCY",
+      "quantity": 0.9784
+    },
     "volume": 1234,
     "detail": "instant 185:1 · competitive 366:1"
   }

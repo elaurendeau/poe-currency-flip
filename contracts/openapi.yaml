@@ -132,7 +132,7 @@ components:
           description: Null if ingestion has never completed a successful run.
     CurrencyAmount:
       type: object
-      required: [currencyId, name, quantity]
+      required: [currencyId, name, itemType, quantity]
       properties:
         currencyId:
           type: string
@@ -142,6 +142,10 @@ components:
         iconUrl:
           type: string
           nullable: true
+          description: Always null for divination cards -- GGG's Item Icons data exposes no image for them (docs/DATA_SOURCES.md). Clients render a generic card-suit icon in that case.
+        itemType:
+          type: string
+          enum: [CURRENCY, DIVINATION_CARD]
         quantity:
           type: number
           format: double
@@ -168,9 +172,9 @@ components:
           type: number
           format: double
         profit:
-          type: number
-          format: double
-          description: In terms of the start currency -- not necessarily Chaos-equivalent.
+          allOf:
+            - $ref: "#/components/schemas/CurrencyAmount"
+          description: Always denominated in Chaos Orb, regardless of the start currency -- see docs/TECH_STACK.md's row design and docs/PRD.md § 7.2.
         volume:
           type: number
           format: double

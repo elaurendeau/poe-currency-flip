@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { FlipOpportunity, Technique } from '../entities/FlipOpportunity';
+import type { CurrencyAmount, FlipOpportunity, Technique } from '../entities/FlipOpportunity';
 import {
   buildDisplayGroups,
   filterByTechnique,
@@ -9,14 +9,22 @@ import {
   sortOpportunities,
 } from './flipOpportunityTablePresenter';
 
+function currencyAmount(currencyId: string, name: string, quantity: number): CurrencyAmount {
+  return { currencyId, name, iconUrl: null, itemType: 'CURRENCY', quantity };
+}
+
+function chaosProfit(quantity: number): CurrencyAmount {
+  return currencyAmount('chaos', 'Chaos Orb', quantity);
+}
+
 function opportunity(overrides: Partial<FlipOpportunity> = {}): FlipOpportunity {
   return {
     technique: 'EXCHANGE_SPREAD',
-    start: [{ currencyId: 'chaos', name: 'Chaos Orb', iconUrl: null, quantity: 1 }],
-    via: [{ currencyId: 'wisdom', name: 'Scroll of Wisdom', iconUrl: null, quantity: 366 }],
-    sell: [{ currencyId: 'chaos', name: 'Chaos Orb', iconUrl: null, quantity: 1.9784 }],
+    start: [currencyAmount('chaos', 'Chaos Orb', 1)],
+    via: [currencyAmount('wisdom', 'Scroll of Wisdom', 366)],
+    sell: [currencyAmount('chaos', 'Chaos Orb', 1.9784)],
     marginPercent: 97.84,
-    profit: 0.9784,
+    profit: chaosProfit(0.9784),
     volume: 1234,
     detail: 'instant 185:1 · competitive 366:1',
     ...overrides,
@@ -33,7 +41,7 @@ const allEnabled: Record<Technique, boolean> = {
 describe('getRouteKey', () => {
   it('is identical for two opportunities with the same technique and currencies', () => {
     const a = opportunity();
-    const b = opportunity({ marginPercent: 12, profit: 0.1, volume: 5 });
+    const b = opportunity({ marginPercent: 12, profit: chaosProfit(0.1), volume: 5 });
 
     expect(getRouteKey(a)).toBe(getRouteKey(b));
   });
@@ -48,7 +56,7 @@ describe('getRouteKey', () => {
   it('differs when the via currency differs', () => {
     const a = opportunity();
     const b = opportunity({
-      via: [{ currencyId: 'portal', name: 'Portal Scroll', iconUrl: null, quantity: 10 }],
+      via: [currencyAmount('portal', 'Portal Scroll', 10)],
     });
 
     expect(getRouteKey(a)).not.toBe(getRouteKey(b));
@@ -93,8 +101,8 @@ describe('filterByThresholds', () => {
 
 describe('sortOpportunities', () => {
   it('sorts ascending by the requested column', () => {
-    const low = opportunity({ profit: 1 });
-    const high = opportunity({ profit: 9 });
+    const low = opportunity({ profit: chaosProfit(1) });
+    const high = opportunity({ profit: chaosProfit(9) });
 
     expect(sortOpportunities([high, low], 'profit', 'asc')).toEqual([low, high]);
   });
@@ -128,7 +136,11 @@ describe('partitionFavorites', () => {
 
   it('preserves relative order within each group', () => {
     const favA = opportunity({ technique: 'EXCHANGE_SPREAD', volume: 1 });
-    const favB = opportunity({ technique: 'EXCHANGE_SPREAD', volume: 2, via: [{ currencyId: 'x', name: 'X', iconUrl: null, quantity: 1 }] });
+    const favB = opportunity({
+      technique: 'EXCHANGE_SPREAD',
+      volume: 2,
+      via: [currencyAmount('x', 'X', 1)],
+    });
     const keys = new Set([getRouteKey(favA), getRouteKey(favB)]);
 
     const result = partitionFavorites([favA, favB], keys);
@@ -144,13 +156,13 @@ describe('buildDisplayGroups', () => {
       technique: 'BULK_BUY',
       marginPercent: 5,
       volume: 1,
-      via: [{ currencyId: 'y', name: 'Y', iconUrl: null, quantity: 1 }],
+      via: [currencyAmount('y', 'Y', 1)],
     });
     const nonFavorite = opportunity({
       technique: 'EXCHANGE_SPREAD',
       marginPercent: 50,
       volume: 2,
-      via: [{ currencyId: 'z', name: 'Z', iconUrl: null, quantity: 1 }],
+      via: [currencyAmount('z', 'Z', 1)],
     });
 
     const result = buildDisplayGroups([keptFavorite, filteredOutFavorite, nonFavorite], {

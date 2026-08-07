@@ -13,7 +13,7 @@ public record FlipOpportunity(
         List<CurrencyAmount> via,
         List<CurrencyAmount> sell,
         double marginPercent,
-        double profitInChaos,
+        CurrencyAmount profit, // always denominated in Chaos Orb, per TECH_STACK.md's row design -- never the start currency's own unit
         double volume,
         String detail) {
 }

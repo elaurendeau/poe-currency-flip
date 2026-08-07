@@ -10,11 +10,11 @@ vi.mock('../api/flipOpportunityApi', () => ({
 
 const opportunity: FlipOpportunity = {
   technique: 'EXCHANGE_SPREAD',
-  start: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, quantity: 1 }],
-  via: [{ currencyId: 'B', name: 'Scroll of Wisdom', iconUrl: null, quantity: 366 }],
-  sell: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, quantity: 1.9784 }],
+  start: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 1 }],
+  via: [{ currencyId: 'B', name: 'Scroll of Wisdom', iconUrl: null, itemType: 'CURRENCY', quantity: 366 }],
+  sell: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 1.9784 }],
   marginPercent: 97.84,
-  profit: 0.9784,
+  profit: { currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 0.9784 },
   volume: 1234,
   detail: 'instant 185:1 · competitive 366:1',
 };

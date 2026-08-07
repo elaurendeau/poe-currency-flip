@@ -8,7 +8,7 @@ public record FlipOpportunityViewModel(
         List<CurrencyAmountViewModel> via,
         List<CurrencyAmountViewModel> sell,
         double marginPercent,
-        double profit,
+        CurrencyAmountViewModel profit,
         double volume,
         String detail) {
 }

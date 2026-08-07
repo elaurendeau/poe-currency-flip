@@ -8,7 +8,13 @@ type CurrencyAmountDto = components['schemas']['CurrencyAmount'];
 export class FlipOpportunityApiError extends Error {}
 
 function toCurrencyAmount(dto: CurrencyAmountDto): CurrencyAmount {
-  return { currencyId: dto.currencyId, name: dto.name, iconUrl: dto.iconUrl ?? null, quantity: dto.quantity };
+  return {
+    currencyId: dto.currencyId,
+    name: dto.name,
+    iconUrl: dto.iconUrl ?? null,
+    itemType: dto.itemType,
+    quantity: dto.quantity,
+  };
 }
 
 function toFlipOpportunity(dto: FlipOpportunityDto): FlipOpportunity {
@@ -18,7 +24,7 @@ function toFlipOpportunity(dto: FlipOpportunityDto): FlipOpportunity {
     via: dto.via.map(toCurrencyAmount),
     sell: dto.sell.map(toCurrencyAmount),
     marginPercent: dto.marginPercent,
-    profit: dto.profit,
+    profit: toCurrencyAmount(dto.profit),
     volume: dto.volume,
     detail: dto.detail,
   };

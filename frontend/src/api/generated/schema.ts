@@ -105,7 +105,10 @@ export interface components {
             /** @description The currency's external id, e.g. "Metadata/Items/Currency/CurrencyRerollRare" */
             currencyId: string;
             name: string;
+            /** @description Always null for divination cards -- GGG's Item Icons data exposes no image for them (docs/DATA_SOURCES.md). Clients render a generic card-suit icon in that case. */
             iconUrl?: string | null;
+            /** @enum {string} */
+            itemType: "CURRENCY" | "DIVINATION_CARD";
             /** Format: double */
             quantity: number;
         };
@@ -117,11 +120,8 @@ export interface components {
             sell: components["schemas"]["CurrencyAmount"][];
             /** Format: double */
             marginPercent: number;
-            /**
-             * Format: double
-             * @description In terms of the start currency -- not necessarily Chaos-equivalent.
-             */
-            profit: number;
+            /** @description Always denominated in Chaos Orb, regardless of the start currency -- see docs/TECH_STACK.md's row design and docs/PRD.md § 7.2. */
+            profit: components["schemas"]["CurrencyAmount"];
             /** Format: double */
             volume: number;
             /** @description Free-text caveat/explanation, e.g. the instant-vs-competitive rates for Exchange Spread. */

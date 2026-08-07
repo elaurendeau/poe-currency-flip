@@ -6,7 +6,7 @@ export type ThresholdValues = Partial<Record<SortColumn, number>>;
 
 const COLUMN_VALUE: Record<SortColumn, (opportunity: FlipOpportunity) => number> = {
   margin: (opportunity) => opportunity.marginPercent,
-  profit: (opportunity) => opportunity.profit,
+  profit: (opportunity) => opportunity.profit.quantity,
   volume: (opportunity) => opportunity.volume,
 };
 

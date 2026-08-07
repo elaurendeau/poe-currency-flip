@@ -5,11 +5,11 @@ import { FlipOpportunityTable } from './FlipOpportunityTable';
 
 const opportunity: FlipOpportunity = {
   technique: 'EXCHANGE_SPREAD',
-  start: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, quantity: 1 }],
-  via: [{ currencyId: 'B', name: 'Scroll of Wisdom', iconUrl: null, quantity: 366 }],
-  sell: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, quantity: 1.9784 }],
+  start: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 1 }],
+  via: [{ currencyId: 'B', name: 'Scroll of Wisdom', iconUrl: null, itemType: 'CURRENCY', quantity: 366 }],
+  sell: [{ currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 1.9784 }],
   marginPercent: 97.84,
-  profit: 0.9784,
+  profit: { currencyId: 'A', name: 'Chaos Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 0.9784 },
   volume: 1234,
   detail: 'instant 185:1 · competitive 366:1',
 };
@@ -68,6 +68,18 @@ describe('FlipOpportunityTable', () => {
 
     expect(screen.getByText('Scroll of Wisdom')).toBeInTheDocument();
     expect(screen.getByText('Portal Scroll')).toBeInTheDocument();
+  });
+
+  it('renders a generic card icon instead of an <img> for a divination card, which has no real icon', () => {
+    const withCard: FlipOpportunity = {
+      ...opportunity,
+      via: [{ currencyId: 'C', name: 'The Doctor', iconUrl: null, itemType: 'DIVINATION_CARD', quantity: 5 }],
+    };
+    const { container } = render(<FlipOpportunityTable {...baseProps()} others={[withCard]} />);
+
+    expect(screen.getByText('The Doctor')).toBeInTheDocument();
+    expect(container.querySelector('.via-icons img')).not.toBeInTheDocument();
+    expect(container.querySelector('.via-icons .divination-card-icon')).toBeInTheDocument();
   });
 
   it('renders favorites above others with a visible divider between the groups', () => {
