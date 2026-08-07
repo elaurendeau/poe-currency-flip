@@ -296,4 +296,36 @@ class ComputeFlipOpportunitiesInteractorTest {
         assertThat(opportunities).extracting(FlipOpportunity::technique)
                 .containsOnly(Technique.EXCHANGE_SPREAD);
     }
+
+    @Test
+    void computeFlipOpportunities_zeroVolumeExchangeSpread_isExcluded() {
+        // Same chaos-wisdom pair as the undercut test above, but with the buy
+        // leg's stock (highestStockA, since 366 is the higher extreme) driven
+        // to 0 -- a pair nobody can actually trade against isn't a real
+        // opportunity, no matter how attractive its margin looks.
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(snapshot(chaos, wisdom, 1, 185, 1, 366, 50, 0, 50, 60)));
+
+        assertThat(compute()).isEmpty();
+    }
+
+    @Test
+    void computeFlipOpportunities_zeroVolumeBulkBuyDirection_isExcludedButOtherDirectionSurvives() {
+        // Chaos-deck leg's buy-side stock (highestStockA, the 13 extreme) is
+        // 0, which only starves the Chaos->Divine direction (it buys through
+        // this leg); Divine->Chaos buys through the divine leg and sells
+        // through this leg's *sell* stock (lowestStockA), which is untouched.
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(
+                        snapshot(chaos, divine, 210, 1, 210, 1),
+                        snapshot(chaos, deck, 1, 8, 1, 13, 100, 0, 1, 1),
+                        snapshot(divine, deck, 1, 1700, 1, 1900)));
+
+        List<FlipOpportunity> opportunities = compute();
+
+        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY).hasSize(1);
+        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY)
+                .extracting(o -> o.sell().get(0).currency())
+                .containsExactly(chaos);
+    }
 }

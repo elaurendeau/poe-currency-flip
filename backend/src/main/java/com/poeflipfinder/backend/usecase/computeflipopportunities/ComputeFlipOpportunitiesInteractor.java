@@ -42,8 +42,15 @@ public class ComputeFlipOpportunitiesInteractor implements ComputeFlipOpportunit
                 .toList();
         List<FlipOpportunity> bulkBuy = bulkBuyOpportunityFinder.find(snapshots, divineChaosRate);
 
-        outputBoundary.present(new ComputeFlipOpportunitiesResponseModel(
-                Stream.concat(exchangeSpread.stream(), bulkBuy.stream()).toList()));
+        // A leg with zero real stock behind it produced the ratio purely from
+        // stale/outlier data (docs/PRD.md § 7.2/§ 7.5) -- there's no one to
+        // actually trade with, so it's not a real opportunity no matter how
+        // attractive its margin looks.
+        List<FlipOpportunity> merged = Stream.concat(exchangeSpread.stream(), bulkBuy.stream())
+                .filter(opportunity -> opportunity.volume() > 0)
+                .toList();
+
+        outputBoundary.present(new ComputeFlipOpportunitiesResponseModel(merged));
     }
 
     /**
