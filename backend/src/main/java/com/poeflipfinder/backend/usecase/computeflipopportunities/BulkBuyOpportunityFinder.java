@@ -104,6 +104,14 @@ class BulkBuyOpportunityFinder {
      * rate -- a comparison reference, not an order we're suggesting the user
      * post.
      *
+     * <p>The buy leg uses {@code suggestedBuyPrice} (a competitive limit
+     * order, undercut -1) but the sell leg uses {@code marketSellPrice} (the
+     * hour's worst-but-real observed rate, no further +1 push) rather than
+     * {@code suggestedSellPrice} -- posting two unfilled limit orders back
+     * to back on a large, often-illiquid intermediary stack is a bigger risk
+     * than posting one, so only the entry is priced competitively; the exit
+     * assumes dumping into demand that's already been shown to exist.
+     *
      * <p>Scaled so the trade always ends at exactly 1 Divine sold, rather
      * than starting from 1 Chaos: "1 Chaos -> 0.005 Divine" is a meaningless
      * fraction to read, since Chaos is the much smaller-value currency here.
@@ -121,14 +129,14 @@ class BulkBuyOpportunityFinder {
             return null;
         }
         double sellAmount = 1.0;
-        double viaAmount = divineLeg.suggestedSellPrice(); // sells for exactly 1 Divine, by definition
+        double viaAmount = divineLeg.marketSellPrice(); // sells for exactly 1 Divine, by definition
         double startAmount = viaAmount / chaosLeg.suggestedBuyPrice().get();
 
         double directBaselineDivine = startAmount / rate.chaosPerDivine();
         double marginPercent = (sellAmount - directBaselineDivine) / directBaselineDivine * 100;
         double profitChaos = (sellAmount - directBaselineDivine) * rate.chaosPerDivine();
         double volume = Math.min(chaosLeg.buyLegStock(), divineLeg.sellLegStock());
-        String detail = detail(chaosLeg.suggestedBuyPrice().get(), divineLeg.suggestedSellPrice(), rate.chaosPerDivine());
+        String detail = detail(chaosLeg.suggestedBuyPrice().get(), divineLeg.marketSellPrice(), rate.chaosPerDivine());
 
         return new FlipOpportunity(
                 Technique.BULK_BUY,
@@ -144,7 +152,8 @@ class BulkBuyOpportunityFinder {
     /**
      * Buy the intermediary with 1 Divine, sell it for Chaos, compare against
      * the direct Divine->Chaos baseline -- already Chaos-denominated, so the
-     * profit figure needs no conversion.
+     * profit figure needs no conversion. Same buy-competitive/sell-market
+     * split as {@link #chaosToDivine} above.
      */
     private FlipOpportunity divineToChaos(
             Currency intermediary, UndercutQuote chaosLeg, UndercutQuote divineLeg, DivineChaosRate rate) {
@@ -152,12 +161,12 @@ class BulkBuyOpportunityFinder {
             return null;
         }
         double viaAmount = divineLeg.suggestedBuyPrice().get();
-        double sellAmountChaos = viaAmount / chaosLeg.suggestedSellPrice();
+        double sellAmountChaos = viaAmount / chaosLeg.marketSellPrice();
         double directBaselineChaos = rate.chaosPerDivine();
         double marginPercent = (sellAmountChaos - directBaselineChaos) / directBaselineChaos * 100;
         double profitChaos = sellAmountChaos - directBaselineChaos;
         double volume = Math.min(divineLeg.buyLegStock(), chaosLeg.sellLegStock());
-        String detail = detail(viaAmount, chaosLeg.suggestedSellPrice(), rate.chaosPerDivine());
+        String detail = detail(viaAmount, chaosLeg.marketSellPrice(), rate.chaosPerDivine());
 
         return new FlipOpportunity(
                 Technique.BULK_BUY,

@@ -18,6 +18,7 @@ class UndercutQuoteTest {
         assertThat(quote).isPresent();
         assertThat(quote.get().suggestedBuyPrice()).contains(365.0);
         assertThat(quote.get().suggestedSellPrice()).isEqualTo(186.0);
+        assertThat(quote.get().marketSellPrice()).isEqualTo(185.0); // same floor, no +1 push
         assertThat(quote.get().buyLegStock()).isEqualTo(60); // highestStockStart -- the buy-leg extreme won here
         assertThat(quote.get().sellLegStock()).isEqualTo(50);
     }
@@ -32,6 +33,7 @@ class UndercutQuoteTest {
         assertThat(quote).isPresent();
         assertThat(quote.get().suggestedBuyPrice()).isEmpty();
         assertThat(quote.get().suggestedSellPrice()).isEqualTo(2.0);
+        assertThat(quote.get().marketSellPrice()).isEqualTo(1.0);
         assertThat(quote.get().buyLegStock()).isEqualTo(70);
         assertThat(quote.get().sellLegStock()).isEqualTo(40);
     }
@@ -52,5 +54,6 @@ class UndercutQuoteTest {
         assertThat(quote).isPresent();
         assertThat(quote.get().suggestedBuyPrice()).contains(184.0);
         assertThat(quote.get().suggestedSellPrice()).isEqualTo(186.0);
+        assertThat(quote.get().marketSellPrice()).isEqualTo(185.0);
     }
 }

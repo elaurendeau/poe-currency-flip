@@ -65,28 +65,32 @@ class BulkBuyOpportunityFinderTest {
         // Rescaled so the trade always ends at exactly 1 Divine sold instead
         // of starting from 1 Chaos ("1 Chaos -> 0.005 Divine" is a
         // meaningless fraction to read): via always equals the divine leg's
-        // sell price (1701, since that's by definition how much of the
-        // intermediary sells for exactly 1 Divine), and start is however
-        // much Chaos that took (1701/12 = 141.75). Margin is unaffected
-        // (scale-invariant); profit scales up proportionally (0.481481 * 141.75 = 68.25).
+        // *market* sell price (1700, the worst-but-real hourly extreme with
+        // no further +1 push -- selling a bulk intermediary stack risks a
+        // second unfilled limit order on top of the buy leg's), and start is
+        // however much Chaos that took (1700/12 = 141.667). Margin is
+        // unaffected by the rescaling itself (still scale-invariant); profit
+        // scales up proportionally.
         assertThat(chaosToDivine.technique()).isEqualTo(Technique.BULK_BUY);
         assertThat(chaosToDivine.start().get(0).currency()).isEqualTo(chaos);
-        assertThat(chaosToDivine.start().get(0).quantity()).isCloseTo(141.75, within(0.001));
+        assertThat(chaosToDivine.start().get(0).quantity()).isCloseTo(1700.0 / 12, within(0.001));
         assertThat(chaosToDivine.via().get(0).currency()).isEqualTo(deck);
-        assertThat(chaosToDivine.via().get(0).quantity()).isEqualTo(1701.0);
+        assertThat(chaosToDivine.via().get(0).quantity()).isEqualTo(1700.0);
         assertThat(chaosToDivine.sell().get(0).quantity()).isEqualTo(1.0);
-        assertThat(chaosToDivine.marginPercent()).isCloseTo(13.0 / 27 * 100, within(0.001));
+        assertThat(chaosToDivine.marginPercent()).isCloseTo(41.0 / 85 * 100, within(0.001));
         assertThat(chaosToDivine.profit().currency()).isEqualTo(chaos);
-        assertThat(chaosToDivine.profit().quantity()).isCloseTo(68.25, within(0.001));
+        assertThat(chaosToDivine.profit().quantity()).isCloseTo(205.0 / 3, within(0.001));
         assertThat(chaosToDivine.volume()).isEqualTo(30); // min(chaos buyLegStock=50, divine sellLegStock=30)
 
+        // Divine->Chaos sells through the chaos leg's market price (8, not
+        // the competitive 9), so 1899 deck / 8 = 237.375 Chaos.
         assertThat(divineToChaos.start().get(0).currency()).isEqualTo(divine);
         assertThat(divineToChaos.start().get(0).quantity()).isEqualTo(1.0);
         assertThat(divineToChaos.via().get(0).quantity()).isEqualTo(1899.0);
-        assertThat(divineToChaos.sell().get(0).quantity()).isCloseTo(211.0, within(1e-7));
-        assertThat(divineToChaos.marginPercent()).isCloseTo(100.0 / 210, within(0.001));
+        assertThat(divineToChaos.sell().get(0).quantity()).isCloseTo(237.375, within(1e-7));
+        assertThat(divineToChaos.marginPercent()).isCloseTo(27.375 / 210 * 100, within(0.001));
         assertThat(divineToChaos.profit().currency()).isEqualTo(chaos);
-        assertThat(divineToChaos.profit().quantity()).isCloseTo(1.0, within(1e-7));
+        assertThat(divineToChaos.profit().quantity()).isCloseTo(27.375, within(1e-7));
         assertThat(divineToChaos.volume()).isEqualTo(80); // min(divine buyLegStock=80, chaos sellLegStock=100)
     }
 
@@ -106,7 +110,9 @@ class BulkBuyOpportunityFinderTest {
         assertThat(opportunity.start().get(0).currency()).isEqualTo(divine);
         assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos);
         assertThat(opportunity.via().get(0).quantity()).isEqualTo(79.0); // floor(80)-1
-        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(39.5, within(1e-7)); // 79/2
+        // Sells through the chaos leg's market price (1, the floored raw
+        // extreme with no +1 push), not the competitive 2 -- 79/1 = 79.
+        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(79.0, within(1e-7));
     }
 
     @Test

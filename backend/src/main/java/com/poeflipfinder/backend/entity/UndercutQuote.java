@@ -19,9 +19,20 @@ import java.util.Optional;
  * this same leg's buy price is viable. This asymmetry matters: a caller
  * evaluating a trade that only needs this leg's *sell* price (not its buy
  * price) must still get a usable quote even when the buy side is empty.
+ *
+ * <p>{@code marketSellPrice} is a second, less aggressive sell reference:
+ * the same less-favorable hourly extreme, floored, but without the +1
+ * push. It represents dumping into already-observed demand at a rate at
+ * least as good as the worst real fill seen this hour, rather than posting
+ * a fresh limit order and hoping it fills -- used where a caller (Bulk Buy)
+ * judges a second unfilled limit order too risky on top of the buy leg's.
  */
 public record UndercutQuote(
-        Optional<Double> suggestedBuyPrice, double suggestedSellPrice, double buyLegStock, double sellLegStock) {
+        Optional<Double> suggestedBuyPrice,
+        double suggestedSellPrice,
+        double marketSellPrice,
+        double buyLegStock,
+        double sellLegStock) {
 
     public static Optional<UndercutQuote> resolve(
             double lowestRatioStart,
@@ -42,10 +53,13 @@ public record UndercutQuote(
 
         double flooredBuyPrice = Math.floor(rawBuyPrice) - 1;
         Optional<Double> suggestedBuyPrice = flooredBuyPrice >= 1 ? Optional.of(flooredBuyPrice) : Optional.empty();
-        double suggestedSellPrice = Math.floor(rawSellBackPrice) + 1;
+        double flooredSellBackPrice = Math.floor(rawSellBackPrice);
+        double suggestedSellPrice = flooredSellBackPrice + 1;
+        double marketSellPrice = flooredSellBackPrice;
         double buyLegStock = buyAtHighestExtreme ? highestStockStart : lowestStockStart;
         double sellLegStock = buyAtHighestExtreme ? lowestStockStart : highestStockStart;
 
-        return Optional.of(new UndercutQuote(suggestedBuyPrice, suggestedSellPrice, buyLegStock, sellLegStock));
+        return Optional.of(new UndercutQuote(
+                suggestedBuyPrice, suggestedSellPrice, marketSellPrice, buyLegStock, sellLegStock));
     }
 }
