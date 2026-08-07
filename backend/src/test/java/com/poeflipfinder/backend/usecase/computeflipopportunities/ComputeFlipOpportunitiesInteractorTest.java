@@ -310,11 +310,15 @@ class ComputeFlipOpportunitiesInteractorTest {
     }
 
     @Test
-    void computeFlipOpportunities_zeroVolumeBulkBuyDirection_isExcludedButOtherDirectionSurvives() {
+    void computeFlipOpportunities_zeroVolumeBulkBuyLeg_excludesBothDirections() {
         // Chaos-deck leg's buy-side stock (highestStockA, the 13 extreme) is
-        // 0, which only starves the Chaos->Divine direction (it buys through
-        // this leg); Divine->Chaos buys through the divine leg and sells
-        // through this leg's *sell* stock (lowestStockA), which is untouched.
+        // 0. Both Bulk Buy directions now price their chaos-deck leg off that
+        // same 13 extreme (marketSellPrice reuses the buy-favorable extreme
+        // rather than the round-trip one -- see UndercutQuote), so both
+        // Chaos->Divine (buys through this leg) and Divine->Chaos (sells
+        // through this leg) are bottlenecked by the same, now-zero, stock
+        // figure: min() is symmetric, so there's no fixture where a single
+        // leg's stock starves one bulk-buy direction but not the other.
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(
                         snapshot(chaos, divine, 210, 1, 210, 1),
@@ -323,9 +327,6 @@ class ComputeFlipOpportunitiesInteractorTest {
 
         List<FlipOpportunity> opportunities = compute();
 
-        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY).hasSize(1);
-        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY)
-                .extracting(o -> o.sell().get(0).currency())
-                .containsExactly(chaos);
+        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY).isEmpty();
     }
 }

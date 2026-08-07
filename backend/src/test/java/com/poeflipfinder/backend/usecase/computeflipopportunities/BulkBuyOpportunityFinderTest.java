@@ -49,9 +49,14 @@ class BulkBuyOpportunityFinderTest {
 
     @Test
     void find_bothDirectionsViable_producesTwoOpportunitiesWithHandVerifiedNumbers() {
-        // Chaos-deck leg: priceAtLowest=8, priceAtHighest=13 -> buy=floor(13)-1=12, sell=floor(8)+1=9.
+        // Chaos-deck leg: priceAtLowest=8, priceAtHighest=13 -> buy=floor(13)-1=12.
+        // marketSellPrice = floor(13) = 13 -- the SAME extreme as the buy price
+        // (the worse-for-a-seller one), not the round-trip-favorable 8. This is
+        // the exact shape of a real production bug: a wide in-hour spread (here
+        // 8 vs 13) previously fed the optimistic 8 into a one-directional sell,
+        // overstating how much a real seller could get.
         ExchangeMarketSnapshot chaosLeg = snapshot(chaos, deck, 1, 8, 1, 13, 100, 50, 1, 1);
-        // Divine-deck leg: priceAtLowest=1700, priceAtHighest=1900 -> buy=1899, sell=1701.
+        // Divine-deck leg: priceAtLowest=1700, priceAtHighest=1900 -> buy=1899, marketSellPrice=floor(1900)=1900.
         ExchangeMarketSnapshot divineLeg = snapshot(divine, deck, 1, 1700, 1, 1900, 30, 80, 1, 1);
 
         List<FlipOpportunity> opportunities = finder.find(List.of(chaosLeg, divineLeg), rate210);
@@ -65,33 +70,37 @@ class BulkBuyOpportunityFinderTest {
         // Rescaled so the trade always ends at exactly 1 Divine sold instead
         // of starting from 1 Chaos ("1 Chaos -> 0.005 Divine" is a
         // meaningless fraction to read): via always equals the divine leg's
-        // *market* sell price (1700, the worst-but-real hourly extreme with
-        // no further +1 push -- selling a bulk intermediary stack risks a
-        // second unfilled limit order on top of the buy leg's), and start is
-        // however much Chaos that took (1700/12 = 141.667). Margin is
-        // unaffected by the rescaling itself (still scale-invariant); profit
-        // scales up proportionally.
+        // *market* sell price (1900, the worse-for-a-seller real hourly
+        // extreme -- same one the buy price is undercut from, floored with no
+        // further push), and start is however much Chaos that took
+        // (1900/12 = 158.333). Margin is unaffected by the rescaling itself
+        // (still scale-invariant); profit scales up proportionally.
         assertThat(chaosToDivine.technique()).isEqualTo(Technique.BULK_BUY);
         assertThat(chaosToDivine.start().get(0).currency()).isEqualTo(chaos);
-        assertThat(chaosToDivine.start().get(0).quantity()).isCloseTo(1700.0 / 12, within(0.001));
+        assertThat(chaosToDivine.start().get(0).quantity()).isCloseTo(1900.0 / 12, within(0.001));
         assertThat(chaosToDivine.via().get(0).currency()).isEqualTo(deck);
-        assertThat(chaosToDivine.via().get(0).quantity()).isEqualTo(1700.0);
+        assertThat(chaosToDivine.via().get(0).quantity()).isEqualTo(1900.0);
         assertThat(chaosToDivine.sell().get(0).quantity()).isEqualTo(1.0);
-        assertThat(chaosToDivine.marginPercent()).isCloseTo(41.0 / 85 * 100, within(0.001));
+        assertThat(chaosToDivine.marginPercent()).isCloseTo(31.0 / 95 * 100, within(0.001));
         assertThat(chaosToDivine.profit().currency()).isEqualTo(chaos);
-        assertThat(chaosToDivine.profit().quantity()).isCloseTo(205.0 / 3, within(0.001));
-        assertThat(chaosToDivine.volume()).isEqualTo(30); // min(chaos buyLegStock=50, divine sellLegStock=30)
+        assertThat(chaosToDivine.profit().quantity()).isCloseTo(155.0 / 3, within(0.001));
+        assertThat(chaosToDivine.volume()).isEqualTo(50); // min(chaos buyLegStock=50, divine buyLegStock=80)
 
-        // Divine->Chaos sells through the chaos leg's market price (8, not
-        // the competitive 9), so 1899 deck / 8 = 237.375 Chaos.
+        // Divine->Chaos sells through the chaos leg's market price (13, not
+        // the round-trip-favorable 8), so 1899 deck / 13 = 146.077 Chaos --
+        // below the 210 c/div direct baseline, i.e. this direction is a real
+        // loss even though the reverse direction is profitable. Exactly the
+        // asymmetry BulkBuyOpportunityFinder's class doc calls out: each
+        // direction is evaluated independently, and one being viable says
+        // nothing about the other.
         assertThat(divineToChaos.start().get(0).currency()).isEqualTo(divine);
         assertThat(divineToChaos.start().get(0).quantity()).isEqualTo(1.0);
         assertThat(divineToChaos.via().get(0).quantity()).isEqualTo(1899.0);
-        assertThat(divineToChaos.sell().get(0).quantity()).isCloseTo(237.375, within(1e-7));
-        assertThat(divineToChaos.marginPercent()).isCloseTo(27.375 / 210 * 100, within(0.001));
+        assertThat(divineToChaos.sell().get(0).quantity()).isCloseTo(1899.0 / 13, within(1e-7));
+        assertThat(divineToChaos.marginPercent()).isCloseTo((1899.0 / 13 - 210) / 210 * 100, within(0.001));
         assertThat(divineToChaos.profit().currency()).isEqualTo(chaos);
-        assertThat(divineToChaos.profit().quantity()).isCloseTo(27.375, within(1e-7));
-        assertThat(divineToChaos.volume()).isEqualTo(80); // min(divine buyLegStock=80, chaos sellLegStock=100)
+        assertThat(divineToChaos.profit().quantity()).isCloseTo(1899.0 / 13 - 210, within(1e-7));
+        assertThat(divineToChaos.volume()).isEqualTo(50); // min(divine buyLegStock=80, chaos buyLegStock=50)
     }
 
     @Test
@@ -116,48 +125,42 @@ class BulkBuyOpportunityFinderTest {
     }
 
     @Test
-    void find_chaosLegMarketSellPriceFloorsToZero_divineToChaosDroppedButChaosToDivineSurvives() {
+    void find_chaosLegPriceCollapsesBelowOne_bothDirectionsDroppedSafelyNoCrash() {
         // A real production incident: marketSellPrice (no +1 push, unlike
-        // suggestedSellPrice) can floor to exactly 0 when the less-favorable
-        // extreme is below 1 -- e.g. priceAtHighest=0.5 here floors to 0.
+        // suggestedSellPrice) can floor to exactly 0 when its raw extreme is
+        // below 1 -- e.g. both priceAtLowest=0.5 and priceAtHighest=0.3 here.
         // divineToChaos divides by chaosLeg.marketSellPrice(), so an
         // unguarded 0 produces Infinity, which Jackson serializes as the
         // *string* "Infinity" and crashes the frontend's .toFixed() call
-        // (blank black screen in production). Buy side (7, from floor(8)-1)
-        // is still valid, so only the direction that actually divides by
-        // the zero market price should be dropped.
-        ExchangeMarketSnapshot chaosLeg = snapshot(chaos, wisdom, 1, 8, 2, 1, 100, 50, 1, 1);
+        // (blank black screen in production).
+        //
+        // marketSellPrice now shares its raw extreme with suggestedBuyPrice
+        // (see UndercutQuote), so a leg's price collapsing below 1 always
+        // takes out BOTH directions that leg participates in together --
+        // chaosToDivine via chaosLeg.suggestedBuyPrice() being empty, and
+        // divineToChaos via chaosLeg.marketSellPrice() being <= 0 -- rather
+        // than exactly one surviving. The guard's job is just to make sure
+        // that shows up as zero opportunities, never a crash.
+        ExchangeMarketSnapshot chaosLeg = snapshot(chaos, wisdom, 2, 1, 10, 3, 100, 50, 1, 1);
         ExchangeMarketSnapshot divineLeg = snapshot(divine, wisdom, 1, 1700, 1, 1900, 30, 80, 1, 1);
 
         List<FlipOpportunity> opportunities = finder.find(List.of(chaosLeg, divineLeg), rate210);
 
-        assertThat(opportunities).hasSize(1);
-        FlipOpportunity opportunity = opportunities.get(0);
-        assertThat(opportunity.sell().get(0).currency()).isEqualTo(divine); // chaosToDivine only
-        assertThat(opportunity.marginPercent()).isFinite();
-        assertThat(opportunity.profit().quantity()).isFinite();
-        assertThat(opportunity.start().get(0).quantity()).isFinite();
-        assertThat(opportunity.sell().get(0).quantity()).isFinite();
+        assertThat(opportunities).isEmpty();
     }
 
     @Test
-    void find_divineLegMarketSellPriceFloorsToZero_chaosToDivineDroppedButDivineToChaosSurvives() {
+    void find_divineLegPriceCollapsesBelowOne_bothDirectionsDroppedSafelyNoCrash() {
         // Mirror of the case above: chaosToDivine uses divineLeg.marketSellPrice()
         // as its via amount, which feeds into a division against the direct
         // baseline -- an unguarded 0 there produces Infinity in marginPercent
         // even though no field is a literal division by the zero itself.
         ExchangeMarketSnapshot chaosLeg = snapshot(chaos, deck, 1, 8, 1, 13, 100, 50, 1, 1);
-        ExchangeMarketSnapshot divineLeg = snapshot(divine, deck, 1, 8, 2, 1, 100, 50, 1, 1);
+        ExchangeMarketSnapshot divineLeg = snapshot(divine, deck, 2, 1, 10, 3, 100, 50, 1, 1);
 
         List<FlipOpportunity> opportunities = finder.find(List.of(chaosLeg, divineLeg), rate210);
 
-        assertThat(opportunities).hasSize(1);
-        FlipOpportunity opportunity = opportunities.get(0);
-        assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos); // divineToChaos only
-        assertThat(opportunity.marginPercent()).isFinite();
-        assertThat(opportunity.profit().quantity()).isFinite();
-        assertThat(opportunity.via().get(0).quantity()).isFinite();
-        assertThat(opportunity.sell().get(0).quantity()).isFinite();
+        assertThat(opportunities).isEmpty();
     }
 
     @Test

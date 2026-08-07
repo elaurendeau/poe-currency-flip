@@ -105,12 +105,14 @@ class BulkBuyOpportunityFinder {
      * post.
      *
      * <p>The buy leg uses {@code suggestedBuyPrice} (a competitive limit
-     * order, undercut -1) but the sell leg uses {@code marketSellPrice} (the
-     * hour's worst-but-real observed rate, no further +1 push) rather than
-     * {@code suggestedSellPrice} -- posting two unfilled limit orders back
-     * to back on a large, often-illiquid intermediary stack is a bigger risk
-     * than posting one, so only the entry is priced competitively; the exit
-     * assumes dumping into demand that's already been shown to exist.
+     * order, undercut -1) but the sell leg uses {@code marketSellPrice} --
+     * see {@link UndercutQuote} for why that is the hour's worse-for-a-seller
+     * extreme, not {@code suggestedSellPrice}'s round-trip-favorable one.
+     * Posting two unfilled limit orders back to back on a large,
+     * often-illiquid intermediary stack is also a bigger risk than posting
+     * one, so only the entry is priced competitively; the exit assumes
+     * dumping into demand that's already been shown to exist, at worst at
+     * the less generous of the hour's two real rates.
      *
      * <p>Scaled so the trade always ends at exactly 1 Divine sold, rather
      * than starting from 1 Chaos: "1 Chaos -> 0.005 Divine" is a meaningless
@@ -135,7 +137,7 @@ class BulkBuyOpportunityFinder {
         double directBaselineDivine = startAmount / rate.chaosPerDivine();
         double marginPercent = (sellAmount - directBaselineDivine) / directBaselineDivine * 100;
         double profitChaos = (sellAmount - directBaselineDivine) * rate.chaosPerDivine();
-        double volume = Math.min(chaosLeg.buyLegStock(), divineLeg.sellLegStock());
+        double volume = Math.min(chaosLeg.buyLegStock(), divineLeg.buyLegStock());
         String detail = detail(chaosLeg.suggestedBuyPrice().get(), divineLeg.marketSellPrice(), rate.chaosPerDivine());
 
         return new FlipOpportunity(
@@ -165,7 +167,7 @@ class BulkBuyOpportunityFinder {
         double directBaselineChaos = rate.chaosPerDivine();
         double marginPercent = (sellAmountChaos - directBaselineChaos) / directBaselineChaos * 100;
         double profitChaos = sellAmountChaos - directBaselineChaos;
-        double volume = Math.min(divineLeg.buyLegStock(), chaosLeg.sellLegStock());
+        double volume = Math.min(divineLeg.buyLegStock(), chaosLeg.buyLegStock());
         String detail = detail(viaAmount, chaosLeg.marketSellPrice(), rate.chaosPerDivine());
 
         return new FlipOpportunity(

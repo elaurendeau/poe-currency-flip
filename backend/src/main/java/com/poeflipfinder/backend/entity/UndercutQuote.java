@@ -20,19 +20,26 @@ import java.util.Optional;
  * evaluating a trade that only needs this leg's *sell* price (not its buy
  * price) must still get a usable quote even when the buy side is empty.
  *
- * <p>{@code marketSellPrice} is a second, less aggressive sell reference:
- * the same less-favorable hourly extreme, floored, but without the +1
- * push. It represents dumping into already-observed demand at a rate at
- * least as good as the worst real fill seen this hour, rather than posting
- * a fresh limit order and hoping it fills -- used where a caller (Bulk Buy)
- * judges a second unfilled limit order too risky on top of the buy leg's.
+ * <p>{@code marketSellPrice} is a second, less aggressive sell reference for
+ * a genuine one-directional sell of the "via" currency into the base
+ * currency (used by Bulk Buy, which is dumping a currency it already holds,
+ * not round-tripping the same pair). It must <strong>not</strong> be
+ * confused with {@code suggestedSellPrice}'s hourly extreme: that extreme is
+ * chosen to be favorable for a same-pair round trip (buy this pair's cheap
+ * extreme, sell back at its dear extreme -- the whole premise of the
+ * Exchange Spread feature), which makes it the <em>optimistic</em> case for
+ * a one-directional seller, not the conservative one. {@code
+ * marketSellPrice} instead reuses the hour's <em>other</em> real extreme --
+ * the same one {@code suggestedBuyPrice} is undercut from -- floored with no
+ * further push, representing the worst of the two real fills seen this hour
+ * from a seller's perspective: fewer base-currency units back per unit of
+ * "via" currency sold than the round-trip-favorable extreme would imply.
  */
 public record UndercutQuote(
         Optional<Double> suggestedBuyPrice,
         double suggestedSellPrice,
         double marketSellPrice,
-        double buyLegStock,
-        double sellLegStock) {
+        double buyLegStock) {
 
     public static Optional<UndercutQuote> resolve(
             double lowestRatioStart,
@@ -49,17 +56,14 @@ public record UndercutQuote(
 
         boolean buyAtHighestExtreme = priceAtHighest >= priceAtLowest;
         double rawBuyPrice = buyAtHighestExtreme ? priceAtHighest : priceAtLowest;
-        double rawSellBackPrice = buyAtHighestExtreme ? priceAtLowest : priceAtHighest;
+        double rawRoundTripSellPrice = buyAtHighestExtreme ? priceAtLowest : priceAtHighest;
 
         double flooredBuyPrice = Math.floor(rawBuyPrice) - 1;
         Optional<Double> suggestedBuyPrice = flooredBuyPrice >= 1 ? Optional.of(flooredBuyPrice) : Optional.empty();
-        double flooredSellBackPrice = Math.floor(rawSellBackPrice);
-        double suggestedSellPrice = flooredSellBackPrice + 1;
-        double marketSellPrice = flooredSellBackPrice;
+        double suggestedSellPrice = Math.floor(rawRoundTripSellPrice) + 1;
+        double marketSellPrice = Math.floor(rawBuyPrice);
         double buyLegStock = buyAtHighestExtreme ? highestStockStart : lowestStockStart;
-        double sellLegStock = buyAtHighestExtreme ? lowestStockStart : highestStockStart;
 
-        return Optional.of(new UndercutQuote(
-                suggestedBuyPrice, suggestedSellPrice, marketSellPrice, buyLegStock, sellLegStock));
+        return Optional.of(new UndercutQuote(suggestedBuyPrice, suggestedSellPrice, marketSellPrice, buyLegStock));
     }
 }
