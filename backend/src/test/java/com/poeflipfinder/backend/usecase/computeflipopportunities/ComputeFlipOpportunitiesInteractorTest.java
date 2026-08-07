@@ -39,6 +39,9 @@ class ComputeFlipOpportunitiesInteractorTest {
             new Currency(3L, "Metadata/Items/Currency/CurrencyModValues", "Divine Orb", null, Currency.ItemType.CURRENCY);
     private final Currency portal =
             new Currency(4L, "Metadata/Items/Currency/CurrencyPortal", "Portal Scroll", null, Currency.ItemType.CURRENCY);
+    private final Currency deck = new Currency(
+            5L, "Metadata/Items/DivinationCards/DivinationCardStackedDeck", "Stacked Deck", null,
+            Currency.ItemType.DIVINATION_CARD);
 
     private ComputeFlipOpportunitiesInteractor interactor() {
         return new ComputeFlipOpportunitiesInteractor(snapshotQueryGateway, outputBoundary);
@@ -258,5 +261,39 @@ class ComputeFlipOpportunitiesInteractorTest {
                 .thenReturn(List.of(snapshot(chaos, wisdom, 0, 185, 1, 366)));
 
         assertThat(compute()).isEmpty();
+    }
+
+    @Test
+    void computeFlipOpportunities_mergesExchangeSpreadAndBulkBuyIntoOneList() {
+        // Chaos<->Divine reference (chaosPerDivine=210), an Exchange Spread
+        // pair (chaos-wisdom), and a Bulk Buy candidate (deck trading
+        // against both chaos and divine) -- all three techniques' worth of
+        // data feeding one request, proving the Stream.concat wiring rather
+        // than just each piece in isolation.
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(
+                        snapshot(chaos, divine, 210, 1, 210, 1),
+                        snapshot(chaos, wisdom, 1, 185, 1, 366),
+                        snapshot(chaos, deck, 1, 8, 1, 13),
+                        snapshot(divine, deck, 1, 1700, 1, 1900)));
+
+        List<FlipOpportunity> opportunities = compute();
+
+        assertThat(opportunities).extracting(FlipOpportunity::technique)
+                .contains(Technique.EXCHANGE_SPREAD, Technique.BULK_BUY);
+        assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY).hasSize(2);
+    }
+
+    @Test
+    void computeFlipOpportunities_noChaosDivineRate_bulkBuyContributesNothingButExchangeSpreadStillWorks() {
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(
+                        snapshot(chaos, wisdom, 1, 185, 1, 366),
+                        snapshot(chaos, deck, 1, 8, 1, 13)));
+
+        List<FlipOpportunity> opportunities = compute();
+
+        assertThat(opportunities).extracting(FlipOpportunity::technique)
+                .containsOnly(Technique.EXCHANGE_SPREAD);
     }
 }

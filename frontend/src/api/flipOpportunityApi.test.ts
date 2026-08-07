@@ -17,7 +17,7 @@ describe('fetchFlipOpportunities', () => {
 
     const opportunities = await fetchFlipOpportunities('Standard');
 
-    expect(opportunities).toHaveLength(1);
+    expect(opportunities).toHaveLength(2);
     const [opportunity] = opportunities;
     expect(opportunity.technique).toBe('EXCHANGE_SPREAD');
     expect(opportunity.start).toEqual([
@@ -36,6 +36,17 @@ describe('fetchFlipOpportunities', () => {
     expect(opportunity.profit.currencyId).toBe('Metadata/Items/Currency/CurrencyRerollRare');
     expect(opportunity.volume).toBe(1234);
     expect(opportunity.detail).toBe('buy 365:1 · sell 186:1');
+
+    // Bulk Buy is the first row shape where start and sell currencies
+    // genuinely differ (not a round trip back to the same currency) --
+    // regression coverage for that specifically, per docs/PRD.md § 7.5.
+    const [, bulkBuy] = opportunities;
+    expect(bulkBuy.technique).toBe('BULK_BUY');
+    expect(bulkBuy.start[0].currencyId).toBe('Metadata/Items/Currency/CurrencyModValues');
+    expect(bulkBuy.via[0].itemType).toBe('DIVINATION_CARD');
+    expect(bulkBuy.via[0].iconUrl).toBeNull();
+    expect(bulkBuy.sell[0].currencyId).toBe('Metadata/Items/Currency/CurrencyRerollRare');
+    expect(bulkBuy.start[0].currencyId).not.toBe(bulkBuy.sell[0].currencyId);
   });
 
   it('url-encodes the league id and hits /flip-opportunities', async () => {

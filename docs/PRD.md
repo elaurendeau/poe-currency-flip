@@ -106,7 +106,10 @@ Finds a third item that has active Currency Exchange markets against two differe
 
 **Requirements:**
 - Uses only Currency Exchange data already covered in [DATA_SOURCES.md](DATA_SOURCES.md) — no new external data source is needed. This is a graph-traversal analysis over the same market pairs used elsewhere: for any item tradeable against multiple currencies, compute the implied cross-rate and compare it to the direct rate for that currency pair (if one exists).
-- Compute: cost to acquire the intermediary item in currency A, proceeds from reselling it in currency B, net margin versus the direct A→B rate.
+- **Currency A and currency B are restricted to Chaos Orb and Divine Orb** — the same two currencies Feature B is anchored on, since those are the only ones a player is assumed to already hold (see § 7.2). The search is therefore: for every item that trades against both Chaos and Divine, does routing through it beat the direct Chaos↔Divine rate? Both directions (Chaos→item→Divine and Divine→item→Chaos) are computed independently, since the realistic buy/sell pricing below isn't symmetric — one direction can be profitable while the reverse isn't.
+- **Both legs use the same realistic buy/sell pricing as Feature B** (round down, then undercut by 1 in the direction that makes the order attractive to a counterparty — see § 7.2). The "direct A→B rate" used as the comparison baseline is deliberately the raw, non-undercut, averaged Chaos/Divine rate, not a real order suggestion — it's a reference to beat, not a trade being proposed.
+- Compute: cost to acquire the intermediary item in currency A, proceeds from reselling it in currency B, **net margin versus the direct A→B rate** (not versus the starting amount — start and sell are different currencies here, so "gain over what you put in" isn't a meaningful ratio the way it is for Feature B's same-currency round trip). Profit is always converted to Chaos, per § 7.2's rule.
+- If the Chaos↔Divine reference rate isn't available at all, no Bulk Buy opportunities are produced (nothing to compare against).
 - Sortable by margin, absolute profit, and volume (bounded by whichever leg of the trade — the buy or the resell — has less depth).
 - Show both legs explicitly (buy item X with A, sell item X for B) so the user can execute it manually, consistent with Features A–C.
 
