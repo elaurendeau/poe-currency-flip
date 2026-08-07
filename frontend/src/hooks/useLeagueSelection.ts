@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fetchLeagues } from '../api/leagueApi';
+import { fetchLeagues, refreshLeagues } from '../api/leagueApi';
 import type { League } from '../entities/League';
 
 export function resolveDefaultLeagueId(leagues: League[]): string | null {
@@ -35,11 +35,11 @@ export function useLeagueSelection(): LeagueSelection {
     };
   }, []);
 
-  const loadLeagues = useCallback((setPending: (pending: boolean) => void) => {
+  const loadLeagues = useCallback((setPending: (pending: boolean) => void, fetcher: () => Promise<League[]>) => {
     setPending(true);
     setError(null);
 
-    fetchLeagues()
+    fetcher()
       .then((fetchedLeagues) => {
         if (!isMounted.current) return;
         setLeagues(fetchedLeagues);
@@ -61,10 +61,12 @@ export function useLeagueSelection(): LeagueSelection {
   }, []);
 
   useEffect(() => {
-    loadLeagues(setIsLoading);
+    loadLeagues(setIsLoading, fetchLeagues);
   }, [loadLeagues]);
 
-  const refresh = useCallback(() => loadLeagues(setIsRefreshing), [loadLeagues]);
+  // Refreshing hits GGG's live Leagues API and updates the cache (docs/PRD.md
+  // § 7.7) -- the initial load above is always a cheap cached read.
+  const refresh = useCallback(() => loadLeagues(setIsRefreshing, refreshLeagues), [loadLeagues]);
 
   const selectedLeague = useMemo(
     () => leagues.find((league) => league.id === selectedLeagueId) ?? null,

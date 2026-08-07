@@ -11,10 +11,30 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List leagues available for the Feature D league selector */
+        /**
+         * List leagues available for the Feature D league selector
+         * @description A cached read (docs/SCHEMA.md § League cache) -- never calls GGG's live Leagues API. Call POST /leagues/refresh to update the cache.
+         */
         get: operations["getLeagues"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leagues/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Manually re-fetch the league list from GGG's live Leagues API and update the cache (docs/PRD.md § 7.7). This is the only path that calls GGG for league data -- GET /leagues never does. */
+        post: operations["refreshLeagues"];
         delete?: never;
         options?: never;
         head?: never;
@@ -146,6 +166,26 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Leagues with Currency Exchange activity, SSF leagues excluded */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["League"][];
+                };
+            };
+        };
+    };
+    refreshLeagues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The freshly-synced league list, same shape as GET /leagues */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -1,11 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchLeagues } from '../api/leagueApi';
+import { fetchLeagues, refreshLeagues } from '../api/leagueApi';
 import type { League } from '../entities/League';
 import { resolveDefaultLeagueId, useLeagueSelection } from './useLeagueSelection';
 
 vi.mock('../api/leagueApi', () => ({
   fetchLeagues: vi.fn(),
+  refreshLeagues: vi.fn(),
 }));
 
 const standard: League = { id: 'Standard', name: 'Standard', isDefault: false };
@@ -14,6 +15,7 @@ const allflame: League = { id: 'Allflame', name: 'Allflame', isDefault: true };
 
 afterEach(() => {
   vi.mocked(fetchLeagues).mockReset();
+  vi.mocked(refreshLeagues).mockReset();
 });
 
 describe('resolveDefaultLeagueId', () => {
@@ -64,6 +66,7 @@ describe('useLeagueSelection', () => {
     act(() => result.current.selectLeague('Hardcore'));
     expect(result.current.selectedLeague).toEqual(hardcore);
 
+    vi.mocked(refreshLeagues).mockResolvedValue([standard, hardcore, allflame]);
     act(() => result.current.refresh());
     await waitFor(() => expect(result.current.isRefreshing).toBe(false));
 
@@ -78,10 +81,24 @@ describe('useLeagueSelection', () => {
 
     act(() => result.current.selectLeague('Hardcore'));
 
-    vi.mocked(fetchLeagues).mockResolvedValueOnce([standard, allflame]);
+    vi.mocked(refreshLeagues).mockResolvedValueOnce([standard, allflame]);
     act(() => result.current.refresh());
 
     await waitFor(() => expect(result.current.isRefreshing).toBe(false));
     expect(result.current.selectedLeague).toEqual(allflame);
+  });
+
+  it('refreshing calls refreshLeagues (the live GGG sync), not fetchLeagues (the cached read)', async () => {
+    vi.mocked(fetchLeagues).mockResolvedValue([standard, hardcore, allflame]);
+    vi.mocked(refreshLeagues).mockResolvedValue([standard, hardcore, allflame]);
+
+    const { result } = renderHook(() => useLeagueSelection());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.isRefreshing).toBe(false));
+
+    expect(refreshLeagues).toHaveBeenCalledTimes(1);
+    expect(fetchLeagues).toHaveBeenCalledTimes(1); // only the initial mount load
   });
 });

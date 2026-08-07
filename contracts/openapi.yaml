@@ -16,10 +16,31 @@ paths:
     get:
       operationId: getLeagues
       summary: List leagues available for the Feature D league selector
+      description: >
+        A cached read (docs/SCHEMA.md § League cache) -- never calls GGG's
+        live Leagues API. Call POST /leagues/refresh to update the cache.
       tags: [Leagues]
       responses:
         "200":
           description: Leagues with Currency Exchange activity, SSF leagues excluded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/League"
+
+  /leagues/refresh:
+    post:
+      operationId: refreshLeagues
+      summary: >
+        Manually re-fetch the league list from GGG's live Leagues API and
+        update the cache (docs/PRD.md § 7.7). This is the only path that
+        calls GGG for league data -- GET /leagues never does.
+      tags: [Leagues]
+      responses:
+        "200":
+          description: The freshly-synced league list, same shape as GET /leagues
           content:
             application/json:
               schema:

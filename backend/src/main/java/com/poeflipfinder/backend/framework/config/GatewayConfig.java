@@ -7,7 +7,9 @@ import com.poeflipfinder.backend.framework.persistence.CurrencyJpaRepository;
 import com.poeflipfinder.backend.framework.persistence.ExchangeIngestionStateJpaRepository;
 import com.poeflipfinder.backend.framework.persistence.ExchangeMarketSnapshotJpaRepository;
 import com.poeflipfinder.backend.framework.persistence.JpaCurrencyReferenceGateway;
+import com.poeflipfinder.backend.framework.persistence.JpaLeagueQueryGateway;
 import com.poeflipfinder.backend.framework.persistence.JpaLeagueReferenceGateway;
+import com.poeflipfinder.backend.framework.persistence.JpaLeagueSyncGateway;
 import com.poeflipfinder.backend.framework.persistence.JpaSnapshotQueryGateway;
 import com.poeflipfinder.backend.framework.persistence.JpaSnapshotRepositoryGateway;
 import com.poeflipfinder.backend.framework.persistence.LeagueJpaRepository;
@@ -60,6 +62,16 @@ public class GatewayConfig {
     @Bean
     public JpaLeagueReferenceGateway jpaLeagueReferenceGateway(LeagueJpaRepository leagueJpaRepository) {
         return new JpaLeagueReferenceGateway(leagueJpaRepository);
+    }
+
+    @Bean
+    public JpaLeagueQueryGateway jpaLeagueQueryGateway(LeagueJpaRepository leagueJpaRepository) {
+        return new JpaLeagueQueryGateway(leagueJpaRepository);
+    }
+
+    @Bean
+    public JpaLeagueSyncGateway jpaLeagueSyncGateway(LeagueJpaRepository leagueJpaRepository) {
+        return new JpaLeagueSyncGateway(leagueJpaRepository);
     }
 
     @Bean

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import leaguesResponseFixture from './__fixtures__/leagues-response.json';
-import { fetchLeagues, LeagueApiError } from './leagueApi';
+import { fetchLeagues, LeagueApiError, refreshLeagues } from './leagueApi';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -38,5 +38,31 @@ describe('fetchLeagues', () => {
     );
 
     await expect(fetchLeagues()).rejects.toBeInstanceOf(LeagueApiError);
+  });
+});
+
+describe('refreshLeagues', () => {
+  it('POSTs to /leagues/refresh and normalizes the response the same way as fetchLeagues', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(leaguesResponseFixture),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const leagues = await refreshLeagues();
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/leagues/refresh'), { method: 'POST' });
+    expect(leagues).toHaveLength(8);
+    expect(leagues[0]).toEqual({ id: 'Standard', name: 'Standard', isDefault: false });
+  });
+
+  it('throws LeagueApiError when the response is not ok', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve([]) }),
+    );
+
+    await expect(refreshLeagues()).rejects.toBeInstanceOf(LeagueApiError);
   });
 });

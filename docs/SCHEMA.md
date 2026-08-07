@@ -46,9 +46,10 @@ league
   display_name
   is_current            from category.current
   has_exchange_activity boolean
+  known_to_ggg          boolean — true only once a real GGG Leagues API sync has confirmed this league exists
 ```
 
-Refreshed from the live Leagues API ([DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list)), not hand-maintained. `has_exchange_activity` is set once ingestion actually observes market data for that league — this is the real gate in [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution) (step 3), stronger than the SSF rule-filter alone.
+Two independent writers populate this table, which is why `known_to_ggg` exists: Currency Exchange ingestion creates a row for *any* league string it sees in raw trade data (including private/unlisted leagues GGG's public Leagues API never returns), via `resolveOrCreateLeague`; a manual "Refresh leagues" sync (docs/PRD.md § 7.7) calls the live Leagues API ([DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list)) and upserts the real, public league list, setting `known_to_ggg = true`. `GET /leagues` (a cached DB read, never a live call — see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution)) filters on `known_to_ggg` so those private/junk rows never reach the dropdown. `has_exchange_activity` is set independently, once ingestion actually observes market data for that league — the real gate for League Resolution step 3, stronger than the SSF rule-filter alone.
 
 ## Ingestion state and market data
 

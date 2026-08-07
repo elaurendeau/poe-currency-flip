@@ -1,32 +1,31 @@
 package com.poeflipfinder.backend.usecase.resolveleaguelist;
 
 import com.poeflipfinder.backend.entity.League;
-import com.poeflipfinder.backend.gateway.LeagueGateway;
+import com.poeflipfinder.backend.gateway.LeagueQueryGateway;
 import java.util.List;
 
 /**
- * Orchestrates league resolution (docs/ARCHITECTURE.md § League Resolution).
- * Steps 1-2 (fetch, SSF filtering) happen in the gateway; step 4 (default
- * selection) happens here since it's application policy, not raw-data
- * normalization. Step 3 (cross-check against ingested Currency Exchange
- * activity) is not yet wired in -- it depends on the ingestion service
- * (a later task) and will be added as a second gateway call here once that
- * exists, without changing this class's public shape.
+ * Orchestrates the league list read (docs/ARCHITECTURE.md § League
+ * Resolution). This is a DB-cached read, not a live GGG call -- every page
+ * load hitting GGG directly made the league dropdown feel perpetually
+ * loading. The live fetch + cache population happens in
+ * usecase.refreshleaguelist.RefreshLeagueListInteractor instead, triggered
+ * only by the user's explicit "Refresh leagues" action (docs/PRD.md § 7.7).
  */
 public class ResolveLeagueListInteractor implements ResolveLeagueListInputBoundary {
 
-    private final LeagueGateway leagueGateway;
+    private final LeagueQueryGateway leagueQueryGateway;
     private final ResolveLeagueListOutputBoundary outputBoundary;
 
     public ResolveLeagueListInteractor(
-            LeagueGateway leagueGateway, ResolveLeagueListOutputBoundary outputBoundary) {
-        this.leagueGateway = leagueGateway;
+            LeagueQueryGateway leagueQueryGateway, ResolveLeagueListOutputBoundary outputBoundary) {
+        this.leagueQueryGateway = leagueQueryGateway;
         this.outputBoundary = outputBoundary;
     }
 
     @Override
     public void resolveLeagueList() {
-        List<League> leagues = leagueGateway.fetchLeagues();
+        List<League> leagues = leagueQueryGateway.findAllLeagues();
         outputBoundary.present(new ResolveLeagueListResponseModel(leagues));
     }
 }
