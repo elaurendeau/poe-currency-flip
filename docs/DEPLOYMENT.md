@@ -14,6 +14,13 @@ docs/            This doc set
 
 One repo, both apps — simplest for a solo project; nothing here needs the overhead of separate repos or a build orchestration tool.
 
+## Live site
+
+The actual production URLs are deliberately **not** written in this repo (a public repo listing them makes the sites an easy scrape/DDoS target). They're stored as GitHub Actions repository variables instead — visible to collaborators under Settings → Secrets and variables → Actions → Variables, not to public repo visitors:
+
+- `PRODUCTION_FRONTEND_URL` — the Vercel site
+- `PRODUCTION_BACKEND_URL` — the Render API (context path `/api`; expect a 20-60s cold-start delay after idle, see [TECH_STACK.md](TECH_STACK.md))
+
 ## Local Development
 
 **Prerequisites:** Docker Desktop (with its bundled Docker Compose) and Node.js 20+. The backend itself doesn't need a local JDK/Maven install for this workflow — it builds and runs entirely inside the container.
