@@ -84,12 +84,12 @@ class ComputeFlipOpportunitiesInteractorTest {
     }
 
     @Test
-    void computeFlipOpportunities_chaosWisdomPair_matchesValidatedWorkedExample() {
-        // Regression/contract test: this exact formula was validated by hand
-        // against docs/mockups/flip-row-reference.html's own worked example
-        // (Chaos<->Wisdom, "instant 185:1c * competitive 366:1c") before
-        // being implemented -- see the implementation plan. 1:185 and 1:366
-        // are the hour's two observed rate extremes.
+    void computeFlipOpportunities_chaosWisdomPair_undercutsBothLegsBeforeComputingProfit() {
+        // Raw observed extremes are 185:1 and 366:1 (Chaos:Wisdom). Per
+        // docs/PRD.md § 7.2, the buy leg floors then undercuts by -1
+        // (366 -> 365) and the sell leg floors then undercuts by +1
+        // (185 -> 186) -- these are the actually-postable prices, not the
+        // raw historical extremes.
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(snapshot(chaos, wisdom, 1, 185, 1, 366)));
 
@@ -98,28 +98,25 @@ class ComputeFlipOpportunitiesInteractorTest {
         assertThat(opportunities).hasSize(1);
         FlipOpportunity opportunity = opportunities.get(0);
         assertThat(opportunity.technique()).isEqualTo(Technique.EXCHANGE_SPREAD);
-        assertThat(opportunity.marginPercent()).isCloseTo(97.84, within(0.1));
-        assertThat(opportunity.profit().currency()).isEqualTo(chaos);
-        assertThat(opportunity.profit().quantity()).isCloseTo(0.9784, within(0.001));
-        assertThat(opportunity.start()).hasSize(1);
         assertThat(opportunity.start().get(0).currency()).isEqualTo(chaos);
         assertThat(opportunity.start().get(0).quantity()).isEqualTo(1.0);
-        assertThat(opportunity.via()).hasSize(1);
         assertThat(opportunity.via().get(0).currency()).isEqualTo(wisdom);
-        assertThat(opportunity.via().get(0).quantity()).isCloseTo(366.0, within(0.001));
-        assertThat(opportunity.sell()).hasSize(1);
+        assertThat(opportunity.via().get(0).quantity()).isCloseTo(365.0, within(0.001));
         assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos);
-        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(1.9784, within(0.001));
+        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(1.962366, within(0.001));
+        assertThat(opportunity.marginPercent()).isCloseTo(96.2366, within(0.01));
+        assertThat(opportunity.profit().currency()).isEqualTo(chaos);
+        assertThat(opportunity.profit().quantity()).isCloseTo(0.962366, within(0.001));
         assertThat(opportunity.volume()).isEqualTo(60); // highestStockA -- the buy-leg extreme won here
-        assertThat(opportunity.detail()).contains("185").contains("366");
+        assertThat(opportunity.detail()).isEqualTo("buy 365:1 · sell 186:1");
     }
 
     @Test
-    void computeFlipOpportunities_chaosInSlotB_stillAnchorsOnChaosWithMatchingResult() {
-        // Same real-world rates as the worked example (185/366 wisdom per
-        // chaos), just recorded with chaos as currencyB instead of A --
-        // GGG's own pair ordering isn't something we control, so the
-        // interactor must anchor on whichever slot the base currency is in.
+    void computeFlipOpportunities_chaosInSlotB_stillUndercutsCorrectlyAfterAnchorSwap() {
+        // Same real-world rates as above, just recorded with chaos as
+        // currencyB instead of A -- GGG's own pair ordering isn't something
+        // we control, so the interactor must anchor and undercut correctly
+        // regardless of which slot the base currency is in.
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(snapshot(wisdom, chaos, 185, 1, 366, 1, 10, 20, 50, 60)));
 
@@ -128,13 +125,9 @@ class ComputeFlipOpportunitiesInteractorTest {
         assertThat(opportunities).hasSize(1);
         FlipOpportunity opportunity = opportunities.get(0);
         assertThat(opportunity.start().get(0).currency()).isEqualTo(chaos);
-        assertThat(opportunity.start().get(0).quantity()).isEqualTo(1.0);
-        assertThat(opportunity.via().get(0).currency()).isEqualTo(wisdom);
-        assertThat(opportunity.via().get(0).quantity()).isCloseTo(366.0, within(0.001));
-        assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos);
-        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(1.9784, within(0.001));
-        assertThat(opportunity.profit().currency()).isEqualTo(chaos);
-        assertThat(opportunity.profit().quantity()).isCloseTo(0.9784, within(0.001));
+        assertThat(opportunity.via().get(0).quantity()).isCloseTo(365.0, within(0.001));
+        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(1.962366, within(0.001));
+        assertThat(opportunity.profit().quantity()).isCloseTo(0.962366, within(0.001));
         // Chaos is currencyB here, so the buy-leg stock must come from the B
         // side (60), not A's (20) -- proves the volume field followed the
         // anchor swap too, not just start/via/sell.
@@ -154,13 +147,37 @@ class ComputeFlipOpportunitiesInteractorTest {
     }
 
     @Test
-    void computeFlipOpportunities_chaosAndDivinePairItself_anchorsOnChaosNotDivine() {
-        // When both sides of a pair are base currencies (the Chaos<->Divine
-        // pair itself), Chaos wins as the anchor since profit is always
-        // Chaos-denominated -- no conversion needed for this pair's own
-        // profit figure.
+    void computeFlipOpportunities_buySideCannotSustainTheUndercut_isDropped() {
+        // Reference buy rate floors to 1, so undercutting by -1 would go to
+        // 0 -- there's no way to post a meaningful buy order here (this is
+        // exactly what happens buying Divine Orb with a single Chaos Orb:
+        // the raw rate is well under 1).
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(snapshot(chaos, wisdom, 2, 2, 2, 3)));
+
+        assertThat(compute()).isEmpty();
+    }
+
+    @Test
+    void computeFlipOpportunities_chaosAndDivinePairItself_isDroppedSinceOneChaosCannotBuyAWholeDivine() {
+        // A real Chaos<->Divine rate (~210 chaos per divine) means "buying
+        // Divine with 1 Chaos" nets a small fraction of a Divine, which
+        // can't sustain the -1 undercut -- this pair's own listing is
+        // correctly dropped even though Chaos still wins the anchor slot.
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(snapshot(divine, chaos, 1, 200, 1, 210)));
+
+        assertThat(compute()).isEmpty();
+    }
+
+    @Test
+    void computeFlipOpportunities_chaosAndDivineBothQualify_chaosStillWinsTheAnchorSlot() {
+        // Deliberately unrealistic ratios (not a real Chaos/Divine rate) --
+        // this test isolates the anchor-preference rule (Chaos beats Divine
+        // when both are present) from the undercut-viability question
+        // covered by the test above.
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(snapshot(divine, chaos, 1, 1, 3, 1)));
 
         List<FlipOpportunity> opportunities = compute();
 
@@ -172,24 +189,26 @@ class ComputeFlipOpportunitiesInteractorTest {
 
     @Test
     void computeFlipOpportunities_divineAnchoredPair_convertsProfitToChaosUsingTheChaosDivineRate() {
-        // Chaos<->Divine reference pair: both extremes agree at exactly 210
-        // chaos per divine (210 chaos-side ratio : 1 divine-side ratio), so
-        // the averaged rate is unambiguous.
+        // Chaos<->Divine reference pair, used only to derive the rate --
+        // its own listing is dropped (see the dedicated test above), but
+        // resolveDivineChaosRate reads the raw ratios directly regardless.
         ExchangeMarketSnapshot chaosDivine = snapshot(chaos, divine, 210, 1, 210, 1);
-        // Divine-anchored pair: identical shape to the original worked
-        // example, but starting from Divine instead of Chaos -- rawProfit is
-        // 0.9784 *Divine*, which must become 0.9784 * 210 = 205.464 Chaos.
+        // Divine-anchored pair: identical raw shape to the Chaos/Wisdom
+        // worked example, but starting from Divine instead of Chaos. The
+        // undercut math is unit-agnostic (365 wisdom bought, 1.962366
+        // *Divine* received back), so the raw profit is 0.962366 Divine,
+        // which must become 0.962366 * 210 = 202.0968 Chaos.
         ExchangeMarketSnapshot divineWisdom = snapshot(divine, wisdom, 1, 185, 1, 366);
         when(snapshotQueryGateway.findActiveSnapshots("Standard")).thenReturn(List.of(chaosDivine, divineWisdom));
 
         List<FlipOpportunity> opportunities = compute();
 
-        assertThat(opportunities).hasSize(2);
+        assertThat(opportunities).hasSize(1);
         FlipOpportunity divineAnchored = byViaCurrency(opportunities, wisdom).orElseThrow();
         assertThat(divineAnchored.start().get(0).currency()).isEqualTo(divine);
-        assertThat(divineAnchored.marginPercent()).isCloseTo(97.84, within(0.1)); // unit-agnostic, unaffected by conversion
+        assertThat(divineAnchored.marginPercent()).isCloseTo(96.2366, within(0.01)); // unit-agnostic, unaffected by conversion
         assertThat(divineAnchored.profit().currency()).isEqualTo(chaos);
-        assertThat(divineAnchored.profit().quantity()).isCloseTo(205.464, within(0.01));
+        assertThat(divineAnchored.profit().quantity()).isCloseTo(202.0968, within(0.01));
     }
 
     @Test
@@ -208,23 +227,27 @@ class ComputeFlipOpportunitiesInteractorTest {
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(
                         snapshot(chaos, wisdom, 1, 185, 1, 366),
-                        snapshot(chaos, divine, 1, 200, 1, 210)));
+                        snapshot(chaos, portal, 1, 36, 1, 140)));
 
         List<FlipOpportunity> opportunities = compute();
 
         assertThat(opportunities).hasSize(2);
         assertThat(opportunities).extracting(o -> o.via().get(0).currency())
-                .containsExactlyInAnyOrder(wisdom, divine);
+                .containsExactlyInAnyOrder(wisdom, portal);
     }
 
     @Test
-    void computeFlipOpportunities_tiedExtremes_zeroMargin() {
+    void computeFlipOpportunities_tiedExtremes_undercuttingBothLegsNetsASmallLoss() {
+        // With no real spread (both extremes identical), undercutting the
+        // buy leg down and the sell leg up costs a little on each side --
+        // a small guaranteed loss, not exactly zero. This is the realistic
+        // cost of actually getting both legs filled.
         when(snapshotQueryGateway.findActiveSnapshots("Standard"))
                 .thenReturn(List.of(snapshot(chaos, wisdom, 1, 185, 1, 185)));
 
         FlipOpportunity opportunity = compute().get(0);
-        assertThat(opportunity.marginPercent()).isCloseTo(0.0, within(0.0001));
-        assertThat(opportunity.profit().quantity()).isCloseTo(0.0, within(0.0001));
+        assertThat(opportunity.marginPercent()).isCloseTo(-1.0753, within(0.01));
+        assertThat(opportunity.profit().quantity()).isCloseTo(-0.010753, within(0.0001));
     }
 
     @Test

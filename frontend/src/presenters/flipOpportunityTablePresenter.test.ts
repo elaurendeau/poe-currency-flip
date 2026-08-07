@@ -26,7 +26,7 @@ function opportunity(overrides: Partial<FlipOpportunity> = {}): FlipOpportunity 
     marginPercent: 97.84,
     profit: chaosProfit(0.9784),
     volume: 1234,
-    detail: 'instant 185:1 · competitive 366:1',
+    detail: 'buy 365:1 · sell 186:1',
     ...overrides,
   };
 }

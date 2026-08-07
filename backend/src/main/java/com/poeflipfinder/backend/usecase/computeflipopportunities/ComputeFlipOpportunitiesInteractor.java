@@ -59,11 +59,21 @@ public class ComputeFlipOpportunitiesInteractor implements ComputeFlipOpportunit
      * docs/DATA_SOURCES.md). The two stored extremes are independent
      * (ratioA, ratioB) observations, not reciprocals of each other. Derived
      * price of start->via at either extreme is ratioVia/ratioStart; the more
-     * favorable of the two extremes is used to buy (proxy for
-     * "competitive"), the less favorable to sell back (proxy for
-     * "instant"). Formula validated by hand against
-     * docs/mockups/flip-row-reference.html's own worked example -- see
-     * ComputeFlipOpportunitiesInteractorTest.
+     * favorable of the two extremes is the reference buy rate, the less
+     * favorable the reference sell-back rate.
+     *
+     * <p>Those raw historical rates aren't directly tradeable -- currency
+     * can't be transacted in fractions, and posting a limit order at the
+     * literal best-ever observed rate rarely gets filled. Per docs/PRD.md
+     * § 7.2, both reference rates are floored to whole numbers and then
+     * undercut by 1 unit in whichever direction makes the posted order more
+     * attractive than the going rate to a counterparty (worse for us than
+     * the raw reference, but realistically achievable): the buy price steps
+     * down, the sell price steps up. If the buy side can't sustain a -1
+     * undercut (the reference rate doesn't clear 1 whole unit -- e.g. buying
+     * Divine Orb with a single Chaos Orb), the opportunity is dropped
+     * rather than shown with a meaningless price. Formula validated by hand
+     * -- see ComputeFlipOpportunitiesInteractorTest.
      */
     private FlipOpportunity toExchangeSpreadOpportunity(
             ExchangeMarketSnapshot snapshot, DivineChaosRate divineChaosRate) {
@@ -88,17 +98,23 @@ public class ComputeFlipOpportunitiesInteractor implements ComputeFlipOpportunit
         }
 
         boolean buyAtHighestExtreme = priceAtHighest >= priceAtLowest;
-        double buyPrice = buyAtHighestExtreme ? priceAtHighest : priceAtLowest;
-        double sellBackPrice = buyAtHighestExtreme ? priceAtLowest : priceAtHighest;
+        double rawBuyPrice = buyAtHighestExtreme ? priceAtHighest : priceAtLowest;
+        double rawSellBackPrice = buyAtHighestExtreme ? priceAtLowest : priceAtHighest;
+
+        double suggestedBuyPrice = Math.floor(rawBuyPrice) - 1;
+        if (suggestedBuyPrice < 1) {
+            return null;
+        }
+        double suggestedSellPrice = Math.floor(rawSellBackPrice) + 1;
 
         double startAmount = 1.0;
-        double viaAmount = startAmount * buyPrice;
-        double sellAmount = viaAmount / sellBackPrice;
+        double viaAmount = startAmount * suggestedBuyPrice;
+        double sellAmount = viaAmount / suggestedSellPrice;
         double rawProfit = sellAmount - startAmount;
         double marginPercent = rawProfit / startAmount * 100;
         double volume = buyAtHighestExtreme ? highestStockStart : lowestStockStart;
         String detail =
-                "instant %s:1 · competitive %s:1".formatted(formatRatio(sellBackPrice), formatRatio(buyPrice));
+                "buy %s:1 · sell %s:1".formatted(formatRatio(suggestedBuyPrice), formatRatio(suggestedSellPrice));
 
         CurrencyAmount profit = resolveProfitInChaos(startCurrency, rawProfit, divineChaosRate);
         if (profit == null) {

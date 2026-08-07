@@ -35,7 +35,7 @@ describe('fetchFlipOpportunities', () => {
     expect(opportunity.profit.quantity).toBeCloseTo(0.9784);
     expect(opportunity.profit.currencyId).toBe('Metadata/Items/Currency/CurrencyRerollRare');
     expect(opportunity.volume).toBe(1234);
-    expect(opportunity.detail).toBe('instant 185:1 · competitive 366:1');
+    expect(opportunity.detail).toBe('buy 365:1 · sell 186:1');
   });
 
   it('url-encodes the league id and hits /flip-opportunities', async () => {
