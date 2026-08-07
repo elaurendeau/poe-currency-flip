@@ -99,29 +99,42 @@ class BulkBuyOpportunityFinder {
     }
 
     /**
-     * Buy the intermediary with 1 Chaos, sell it for Divine, compare against
-     * the direct Chaos->Divine baseline: 1 Chaos's worth of Divine at the
-     * raw, non-undercut, averaged rate -- a comparison reference, not an
-     * order we're suggesting the user post.
+     * Buy the intermediary with Chaos, sell it for Divine, compare against
+     * the direct Chaos->Divine baseline at the raw, non-undercut, averaged
+     * rate -- a comparison reference, not an order we're suggesting the user
+     * post.
+     *
+     * <p>Scaled so the trade always ends at exactly 1 Divine sold, rather
+     * than starting from 1 Chaos: "1 Chaos -> 0.005 Divine" is a meaningless
+     * fraction to read, since Chaos is the much smaller-value currency here.
+     * "~230 Chaos -> 1 Divine" is how a player actually thinks about this
+     * direction, and lines up directly with the "direct ~225 c/div" figure
+     * in the detail line. Margin is scale-invariant (a ratio); profit scales
+     * with the trade size, same as it would if a player actually multiplied
+     * the trade up. Per-unit rates (buy/sell/direct) and volume (real market
+     * depth, independent of how much of it we choose to reference) are
+     * unaffected by the rescaling either way.
      */
     private FlipOpportunity chaosToDivine(
             Currency intermediary, UndercutQuote chaosLeg, UndercutQuote divineLeg, DivineChaosRate rate) {
         if (chaosLeg.suggestedBuyPrice().isEmpty()) {
             return null;
         }
-        double viaAmount = chaosLeg.suggestedBuyPrice().get();
-        double sellAmountDivine = viaAmount / divineLeg.suggestedSellPrice();
-        double directBaselineDivine = 1.0 / rate.chaosPerDivine();
-        double marginPercent = (sellAmountDivine - directBaselineDivine) / directBaselineDivine * 100;
-        double profitChaos = (sellAmountDivine - directBaselineDivine) * rate.chaosPerDivine();
+        double sellAmount = 1.0;
+        double viaAmount = divineLeg.suggestedSellPrice(); // sells for exactly 1 Divine, by definition
+        double startAmount = viaAmount / chaosLeg.suggestedBuyPrice().get();
+
+        double directBaselineDivine = startAmount / rate.chaosPerDivine();
+        double marginPercent = (sellAmount - directBaselineDivine) / directBaselineDivine * 100;
+        double profitChaos = (sellAmount - directBaselineDivine) * rate.chaosPerDivine();
         double volume = Math.min(chaosLeg.buyLegStock(), divineLeg.sellLegStock());
-        String detail = detail(viaAmount, divineLeg.suggestedSellPrice(), rate.chaosPerDivine());
+        String detail = detail(chaosLeg.suggestedBuyPrice().get(), divineLeg.suggestedSellPrice(), rate.chaosPerDivine());
 
         return new FlipOpportunity(
                 Technique.BULK_BUY,
-                List.of(new CurrencyAmount(rate.chaosCurrency(), 1.0)),
+                List.of(new CurrencyAmount(rate.chaosCurrency(), startAmount)),
                 List.of(new CurrencyAmount(intermediary, viaAmount)),
-                List.of(new CurrencyAmount(rate.divineCurrency(), sellAmountDivine)),
+                List.of(new CurrencyAmount(rate.divineCurrency(), sellAmount)),
                 marginPercent,
                 new CurrencyAmount(rate.chaosCurrency(), profitChaos),
                 volume,
