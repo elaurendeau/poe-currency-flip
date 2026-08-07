@@ -125,7 +125,7 @@ class BulkBuyOpportunityFinder {
      */
     private FlipOpportunity chaosToDivine(
             Currency intermediary, UndercutQuote chaosLeg, UndercutQuote divineLeg, DivineChaosRate rate) {
-        if (chaosLeg.suggestedBuyPrice().isEmpty()) {
+        if (chaosLeg.suggestedBuyPrice().isEmpty() || divineLeg.marketSellPrice() <= 0) {
             return null;
         }
         double sellAmount = 1.0;
@@ -157,7 +157,7 @@ class BulkBuyOpportunityFinder {
      */
     private FlipOpportunity divineToChaos(
             Currency intermediary, UndercutQuote chaosLeg, UndercutQuote divineLeg, DivineChaosRate rate) {
-        if (divineLeg.suggestedBuyPrice().isEmpty()) {
+        if (divineLeg.suggestedBuyPrice().isEmpty() || chaosLeg.marketSellPrice() <= 0) {
             return null;
         }
         double viaAmount = divineLeg.suggestedBuyPrice().get();

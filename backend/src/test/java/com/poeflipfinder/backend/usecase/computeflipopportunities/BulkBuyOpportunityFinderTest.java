@@ -116,6 +116,51 @@ class BulkBuyOpportunityFinderTest {
     }
 
     @Test
+    void find_chaosLegMarketSellPriceFloorsToZero_divineToChaosDroppedButChaosToDivineSurvives() {
+        // A real production incident: marketSellPrice (no +1 push, unlike
+        // suggestedSellPrice) can floor to exactly 0 when the less-favorable
+        // extreme is below 1 -- e.g. priceAtHighest=0.5 here floors to 0.
+        // divineToChaos divides by chaosLeg.marketSellPrice(), so an
+        // unguarded 0 produces Infinity, which Jackson serializes as the
+        // *string* "Infinity" and crashes the frontend's .toFixed() call
+        // (blank black screen in production). Buy side (7, from floor(8)-1)
+        // is still valid, so only the direction that actually divides by
+        // the zero market price should be dropped.
+        ExchangeMarketSnapshot chaosLeg = snapshot(chaos, wisdom, 1, 8, 2, 1, 100, 50, 1, 1);
+        ExchangeMarketSnapshot divineLeg = snapshot(divine, wisdom, 1, 1700, 1, 1900, 30, 80, 1, 1);
+
+        List<FlipOpportunity> opportunities = finder.find(List.of(chaosLeg, divineLeg), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        FlipOpportunity opportunity = opportunities.get(0);
+        assertThat(opportunity.sell().get(0).currency()).isEqualTo(divine); // chaosToDivine only
+        assertThat(opportunity.marginPercent()).isFinite();
+        assertThat(opportunity.profit().quantity()).isFinite();
+        assertThat(opportunity.start().get(0).quantity()).isFinite();
+        assertThat(opportunity.sell().get(0).quantity()).isFinite();
+    }
+
+    @Test
+    void find_divineLegMarketSellPriceFloorsToZero_chaosToDivineDroppedButDivineToChaosSurvives() {
+        // Mirror of the case above: chaosToDivine uses divineLeg.marketSellPrice()
+        // as its via amount, which feeds into a division against the direct
+        // baseline -- an unguarded 0 there produces Infinity in marginPercent
+        // even though no field is a literal division by the zero itself.
+        ExchangeMarketSnapshot chaosLeg = snapshot(chaos, deck, 1, 8, 1, 13, 100, 50, 1, 1);
+        ExchangeMarketSnapshot divineLeg = snapshot(divine, deck, 1, 8, 2, 1, 100, 50, 1, 1);
+
+        List<FlipOpportunity> opportunities = finder.find(List.of(chaosLeg, divineLeg), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        FlipOpportunity opportunity = opportunities.get(0);
+        assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos); // divineToChaos only
+        assertThat(opportunity.marginPercent()).isFinite();
+        assertThat(opportunity.profit().quantity()).isFinite();
+        assertThat(opportunity.via().get(0).quantity()).isFinite();
+        assertThat(opportunity.sell().get(0).quantity()).isFinite();
+    }
+
+    @Test
     void find_rateUnavailable_returnsEmptyRegardlessOfSnapshots() {
         ExchangeMarketSnapshot chaosLeg = snapshot(chaos, deck, 1, 8, 1, 13, 100, 50, 1, 1);
         ExchangeMarketSnapshot divineLeg = snapshot(divine, deck, 1, 1700, 1, 1900, 30, 80, 1, 1);
