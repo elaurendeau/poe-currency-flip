@@ -123,6 +123,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     league = insert_league!(league_external_id, is_current: true)
     chaos = insert_currency!(BaseCurrencyIds.chaos_external_id())
+    divine = insert_currency!(BaseCurrencyIds.divine_external_id())
 
     card =
       insert_currency!(
@@ -132,6 +133,23 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       )
 
     reward = insert_currency!("Metadata/Items/Currency/CurrencyTestReward", "Test Reward")
+
+    # Divination Card needs the Chaos<->Divine reference rate to compute
+    # anything at all (DivineChaosRate.resolve returning nil short-circuits
+    # DivinationCardOpportunityFinder to []) -- without this snapshot the
+    # only rows produced were incidental Exchange Spread pairs off the two
+    # snapshots below, which happen to also contain "Test Card"/"Test
+    # Reward" text but never the two-item via chain this test is for.
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: divine.id,
+      lowest_ratio_a: 210.0,
+      lowest_ratio_b: 1.0,
+      highest_ratio_a: 210.0,
+      highest_ratio_b: 1.0
+    })
 
     insert_snapshot!(%{
       generation_id: 1,
