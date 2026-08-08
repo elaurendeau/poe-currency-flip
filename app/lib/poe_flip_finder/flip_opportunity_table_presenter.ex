@@ -1,0 +1,89 @@
+defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
+  @moduledoc """
+  Client-side display logic for the flip opportunity table (docs/PRD.md
+  § 7.8/7.9/7.10): technique/threshold filtering, sorting, and
+  favorites-grouping. Purely a display concern -- it does not change what
+  gets computed, only what's shown and in what order.
+  """
+
+  alias PoeFlipFinder.FlipOpportunity
+
+  @type sort_column :: :margin | :profit | :volume
+  @type sort_direction :: :asc | :desc
+  @type thresholds :: %{optional(sort_column()) => number()}
+
+  defp column_value(:margin, opportunity), do: opportunity.margin_percent
+  defp column_value(:profit, opportunity), do: opportunity.profit.quantity
+  defp column_value(:volume, opportunity), do: opportunity.volume
+
+  @doc """
+  Identifies the trade route (technique + currencies), not the computed
+  instance -- per docs/PRD.md § 7.10, favorites must survive a refresh
+  even though margin/profit/volume are recomputed fresh every time.
+  """
+  @spec get_route_key(FlipOpportunity.t()) :: String.t()
+  def get_route_key(opportunity) do
+    ids = fn amounts -> Enum.map_join(amounts, "+", & &1.currency.external_id) end
+
+    [
+      Atom.to_string(opportunity.technique),
+      ids.(opportunity.start),
+      ids.(opportunity.via),
+      ids.(opportunity.sell)
+    ]
+    |> Enum.join("|")
+  end
+
+  @spec filter_by_technique([FlipOpportunity.t()], %{
+          optional(FlipOpportunity.technique()) => boolean()
+        }) :: [
+          FlipOpportunity.t()
+        ]
+  def filter_by_technique(opportunities, enabled_techniques) do
+    Enum.filter(opportunities, &Map.get(enabled_techniques, &1.technique, false))
+  end
+
+  @spec filter_by_thresholds([FlipOpportunity.t()], thresholds()) :: [FlipOpportunity.t()]
+  def filter_by_thresholds(opportunities, thresholds) do
+    Enum.filter(opportunities, fn opportunity ->
+      Enum.all?(thresholds, fn {column, minimum} ->
+        column_value(column, opportunity) >= minimum
+      end)
+    end)
+  end
+
+  @spec sort_opportunities([FlipOpportunity.t()], sort_column(), sort_direction()) :: [
+          FlipOpportunity.t()
+        ]
+  def sort_opportunities(opportunities, column, direction) do
+    Enum.sort_by(opportunities, &column_value(column, &1), direction)
+  end
+
+  @type display_groups :: %{favorites: [FlipOpportunity.t()], others: [FlipOpportunity.t()]}
+
+  @spec partition_favorites([FlipOpportunity.t()], MapSet.t(String.t())) :: display_groups()
+  def partition_favorites(opportunities, favorite_route_keys) do
+    {favorites, others} =
+      Enum.split_with(opportunities, &MapSet.member?(favorite_route_keys, get_route_key(&1)))
+
+    %{favorites: favorites, others: others}
+  end
+
+  @type display_options :: %{
+          enabled_techniques: %{optional(FlipOpportunity.technique()) => boolean()},
+          thresholds: thresholds(),
+          sort_column: sort_column(),
+          sort_direction: sort_direction(),
+          favorite_route_keys: MapSet.t(String.t())
+        }
+
+  @doc "A favorite that no longer passes the technique/threshold filters simply disappears from both groups -- no placeholder, per docs/PRD.md § 7.10."
+  @spec build_display_groups([FlipOpportunity.t()], display_options()) :: display_groups()
+  def build_display_groups(opportunities, options) do
+    opportunities
+    |> filter_by_technique(options.enabled_techniques)
+    |> filter_by_thresholds(options.thresholds)
+    |> sort_opportunities(options.sort_column, options.sort_direction)
+    |> partition_favorites(options.favorite_route_keys)
+  end
+end
