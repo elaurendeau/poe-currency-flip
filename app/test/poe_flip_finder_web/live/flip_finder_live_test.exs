@@ -455,6 +455,24 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
   end
 
+  test "Deselect all clears every category and Select all restores them, hiding/reshowing rows",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    view |> element("button.category-menu-toggle") |> render_click()
+
+    html = view |> element(".category-drawer-action", "Deselect all") |> render_click()
+    assert count_rows(html) == 0
+    refute html =~ "category-item--selected"
+
+    html = view |> element(".category-drawer-action", "Select all") |> render_click()
+    assert count_rows(html) == 1
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+  end
+
   test "toggle_category hides and reshows matching rows without affecting other categories", %{
     conn: conn
   } do
@@ -507,6 +525,25 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     assert_push_event(view, "persist_display_preferences", %{
       enabled_categories: %{currency: true, oils: false}
+    })
+  end
+
+  test "Deselect all and Select all each persist the bulk update", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    view |> element("button.category-menu-toggle") |> render_click()
+
+    view |> element(".category-drawer-action", "Deselect all") |> render_click()
+
+    assert_push_event(view, "persist_display_preferences", %{
+      enabled_categories: %{currency: false, oils: false}
+    })
+
+    view |> element(".category-drawer-action", "Select all") |> render_click()
+
+    assert_push_event(view, "persist_display_preferences", %{
+      enabled_categories: %{currency: true, oils: true}
     })
   end
 

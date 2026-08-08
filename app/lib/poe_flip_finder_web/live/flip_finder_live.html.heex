@@ -90,6 +90,10 @@
         ×
       </span>
     </div>
+    <div class="category-drawer-actions">
+      <span class="category-drawer-action" phx-click="select_all_categories">Select all</span>
+      <span class="category-drawer-action" phx-click="deselect_all_categories">Deselect all</span>
+    </div>
     <div class="category-drawer-list">
       <div
         :for={{category, label} <- category_options()}

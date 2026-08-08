@@ -164,6 +164,22 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     {:noreply, persist_display_preferences(socket)}
   end
 
+  def handle_event("select_all_categories", _params, socket) do
+    enabled =
+      Map.new(socket.assigns.enabled_categories, fn {category, _enabled} -> {category, true} end)
+
+    socket = assign(socket, :enabled_categories, enabled)
+    {:noreply, persist_display_preferences(socket)}
+  end
+
+  def handle_event("deselect_all_categories", _params, socket) do
+    enabled =
+      Map.new(socket.assigns.enabled_categories, fn {category, _enabled} -> {category, false} end)
+
+    socket = assign(socket, :enabled_categories, enabled)
+    {:noreply, persist_display_preferences(socket)}
+  end
+
   def handle_event("toggle_sort", %{"column" => column}, socket) do
     column_atom = String.to_existing_atom(column)
 
