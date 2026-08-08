@@ -207,18 +207,16 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
   defp resolve_oriented_quote(snapshot, base_external_id, other_external_id, viable?) do
     direct = quote_treating_as_base(snapshot, base_external_id)
 
-    cond do
-      direct != nil and viable?.(direct) ->
-        {:ok, direct, false}
+    if direct != nil and viable?.(direct) do
+      {:ok, direct, false}
+    else
+      inverted = quote_treating_as_base(snapshot, other_external_id)
 
-      true ->
-        inverted = quote_treating_as_base(snapshot, other_external_id)
-
-        if inverted != nil and viable?.(inverted) do
-          {:ok, inverted, true}
-        else
-          nil
-        end
+      if inverted != nil and viable?.(inverted) do
+        {:ok, inverted, true}
+      else
+        nil
+      end
     end
   end
 
