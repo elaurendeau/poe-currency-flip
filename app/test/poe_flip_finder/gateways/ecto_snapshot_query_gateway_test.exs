@@ -26,7 +26,7 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGatewayTest do
 
   defp insert_snapshot!(attrs) do
     defaults = %{
-      snapshot_hour: DateTime.utc_now(),
+      snapshot_hour: DateTime.utc_now() |> DateTime.truncate(:second),
       volume_traded_a: 10,
       volume_traded_b: 10,
       lowest_stock_a: 1,

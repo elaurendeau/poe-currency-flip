@@ -15,7 +15,8 @@ defmodule PoeFlipFinder.Gateways.Schema.ExchangeMarketSnapshot do
     field :league_id, :id
     field :currency_a_id, :id
     field :currency_b_id, :id
-    field :snapshot_hour, :utc_datetime_usec
+    # Second precision, not usec -- see the migration for why.
+    field :snapshot_hour, :utc_datetime
     field :volume_traded_a, :integer
     field :volume_traded_b, :integer
     field :lowest_stock_a, :integer

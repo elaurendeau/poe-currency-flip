@@ -52,7 +52,10 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGatewayTest do
         display_name: currency_b_schema.display_name,
         item_type: :currency
       },
-      snapshot_hour: DateTime.utc_now(),
+      # Second precision, matching what DateTime.from_unix!/1 (what
+      # GggExchangeSourceGateway actually produces) always has -- see
+      # the "save_snapshots accepts a second-precision snapshot_hour" test.
+      snapshot_hour: DateTime.utc_now() |> DateTime.truncate(:second),
       volume_traded_a: 10,
       volume_traded_b: 10,
       lowest_stock_a: 1,
@@ -79,6 +82,27 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGatewayTest do
 
     assert is_integer(generation_id)
     assert generation_id > 0
+  end
+
+  test "save_snapshots accepts a second-precision snapshot_hour, matching real GGG-sourced data" do
+    # Regression test: GggExchangeSourceGateway builds snapshot_hour via
+    # DateTime.from_unix!/1 on a GGG change-stream epoch second, which has
+    # second (not microsecond) precision. Repo.insert_all -- unlike
+    # Repo.insert with a changeset -- does no precision coercion, so a
+    # :utc_datetime_usec column crashed on this exact value against real
+    # production data; every other test here happens to use
+    # DateTime.utc_now() (microsecond precision), which masked the bug.
+    league = insert_league!("Standard")
+    chaos = insert_currency!("Chaos")
+    divine = insert_currency!("Divine")
+
+    real_shaped_hour = DateTime.from_unix!(1_754_481_600)
+    snapshot = %{domain_snapshot(1, league, chaos, divine) | snapshot_hour: real_shaped_hour}
+
+    assert :ok = EctoSnapshotRepositoryGateway.save_snapshots([snapshot])
+
+    [saved] = Repo.all(Schema.ExchangeMarketSnapshot)
+    assert DateTime.compare(saved.snapshot_hour, real_shaped_hour) == :eq
   end
 
   test "commit_generation activates the new generation and purges the superseded one" do

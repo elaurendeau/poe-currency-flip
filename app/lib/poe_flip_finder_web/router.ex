@@ -17,7 +17,7 @@ defmodule PoeFlipFinderWeb.Router do
   scope "/", PoeFlipFinderWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", FlipFinderLive
   end
 
   # Other scopes may use custom stacks.

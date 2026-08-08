@@ -1,0 +1,317 @@
+<div class="app" id="flip-finder-app" phx-hook="FavoritesStorage">
+  <header class="app-header">
+    <h1 class="app-title">PoE Flip Finder</h1>
+
+    <div id="local-timezone" phx-hook="LocalTimezone" class="header-center">
+      <%= cond do %>
+        <% @freshness_error -> %>
+          <div class="header-center--error">Failed to load market data freshness</div>
+        <% @freshness_loading -> %>
+          Loading market data freshness…
+        <% true -> %>
+          <%= if @freshness && @freshness.active_generation_refreshed_at do %>
+            <span class="stamp">
+              {PoeFlipFinder.TimestampPresenter.format_absolute_timestamp(
+                @freshness.active_generation_refreshed_at,
+                @utc_offset_minutes
+              )}
+            </span>
+          <% else %>
+            <span>Never refreshed</span>
+          <% end %>
+          <%= if @last_refresh_result && !@last_refresh_result.fully_caught_up do %>
+            <span class="header-center__partial">
+              — partial ({@last_refresh_result.hours_processed}h), refresh again to continue
+            </span>
+          <% end %>
+      <% end %>
+    </div>
+
+    <div class="league-controls">
+      <span class="data-label">Data</span>
+      <button
+        type="button"
+        class="ingestion-refresh-button"
+        phx-click="refresh_ingestion"
+        disabled={@ingestion_refreshing}
+        aria-label="Refresh market data"
+        title="Refresh market data"
+      >
+        <.refresh_icon spinning={@ingestion_refreshing} />
+      </button>
+
+      <%= cond do %>
+        <% @leagues_error -> %>
+          <span class="league-selector league-selector--error">Failed to load leagues</span>
+        <% @leagues_loading -> %>
+          <span class="league-selector league-selector--loading">Loading leagues…</span>
+        <% true -> %>
+          <select class="league-selector" phx-change="select_league" aria-label="League">
+            <option
+              :for={league <- @leagues}
+              value={league.external_id}
+              selected={@selected_league && @selected_league.external_id == league.external_id}
+            >
+              {league.display_name}
+            </option>
+          </select>
+      <% end %>
+
+      <button
+        type="button"
+        class="league-refresh-button"
+        phx-click="refresh_leagues"
+        disabled={@leagues_refreshing || @leagues_loading}
+        aria-label="Refresh leagues"
+        title="Refresh leagues"
+      >
+        <.refresh_icon spinning={@leagues_refreshing} />
+      </button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <%= if @selected_league do %>
+      <div class="panel">
+        <div class="filter-bar">
+          <label :for={{technique, label, icon_class} <- technique_options()} class="filter-check">
+            <input
+              type="checkbox"
+              checked={@enabled_techniques[technique]}
+              phx-click="toggle_technique"
+              phx-value-technique={technique}
+              aria-label={label}
+            />
+            <.technique_icon technique={technique} class={icon_class} />
+            {label}
+          </label>
+        </div>
+
+        <div class="grid header-row">
+          <span style="text-align: center">Start</span>
+          <span>Via</span>
+          <span style="text-align: center">Sell</span>
+          <.sortable_column_header
+            column={:margin}
+            label="Margin"
+            placeholder="min %"
+            sort_column={@sort_column}
+            sort_direction={@sort_direction}
+            threshold_value={@thresholds[:margin]}
+          />
+          <.sortable_column_header
+            column={:profit}
+            label="Profit"
+            placeholder="min c"
+            sort_column={@sort_column}
+            sort_direction={@sort_direction}
+            threshold_value={@thresholds[:profit]}
+          />
+          <.sortable_column_header
+            column={:volume}
+            label="Volume"
+            placeholder="min"
+            sort_column={@sort_column}
+            sort_direction={@sort_direction}
+            threshold_value={@thresholds[:volume]}
+          />
+        </div>
+
+        <% groups =
+          PoeFlipFinder.FlipOpportunityTablePresenter.build_display_groups(@opportunities, %{
+            enabled_techniques: @enabled_techniques,
+            thresholds: @thresholds,
+            sort_column: @sort_column,
+            sort_direction: @sort_direction,
+            favorite_route_keys: @favorite_route_keys
+          }) %>
+
+        <%= cond do %>
+          <% @opportunities_error -> %>
+            <p class="flip-table-message flip-table-message--error">
+              Failed to load flip opportunities
+            </p>
+          <% @opportunities_loading -> %>
+            <p class="flip-table-message">Loading flip opportunities…</p>
+          <% Enum.empty?(groups.favorites) && Enum.empty?(groups.others) -> %>
+            <p class="flip-table-message">No flip opportunities yet.</p>
+          <% true -> %>
+            <.flip_row
+              :for={opportunity <- groups.favorites}
+              opportunity={opportunity}
+              favorite?={true}
+            />
+            <div :if={groups.favorites != [] && groups.others != []} class="favorites-divider" />
+            <.flip_row
+              :for={opportunity <- groups.others}
+              opportunity={opportunity}
+              favorite?={false}
+            />
+        <% end %>
+
+        <div
+          :if={@context_menu}
+          id="ctx-menu"
+          class="ctx-menu"
+          style={"left: #{@context_menu.x}px; top: #{@context_menu.y}px;"}
+          phx-click-away="close_context_menu"
+        >
+          <div class="ctx-item" phx-click="toggle_favorite_from_menu">
+            <.star_icon />
+            {if @context_menu.is_favorite, do: "Unfavorite", else: "Favorite"}
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <p>Select a league to get started.</p>
+    <% end %>
+  </main>
+
+  <footer class="app-footer">
+    Build <span class="build-hash">{@build_hash}</span>
+    · {PoeFlipFinder.TimestampPresenter.format_absolute_timestamp(
+      @build_date,
+      @utc_offset_minutes
+    )}
+  </footer>
+
+  <button
+    type="button"
+    class="ratio-calculator-launcher"
+    phx-click="toggle_ratio_calculator"
+    aria-label={
+      if @ratio_calculator_open, do: "Close ratio calculator", else: "Open ratio calculator"
+    }
+    title="Ratio calculator"
+  >
+    <.calculator_icon />
+  </button>
+
+  <div
+    :if={@ratio_calculator_open}
+    class="ratio-calculator-bubble"
+    role="dialog"
+    aria-label="Ratio calculator"
+  >
+    <% ratio = PoeFlipFinder.RatioCalculator.ratio_value(@ratio_text)
+    ratio_valid? = not is_nil(ratio)
+    show_error? = !ratio_valid? && String.trim(@ratio_text) != ""
+    left_num = parse_display_number(@ratio_left_text)
+    right_num = parse_display_number(@ratio_right_text)
+
+    exact_match? =
+      ratio_valid? && left_num && right_num &&
+        PoeFlipFinder.RatioCalculator.exact_ratio_match?(left_num, right_num, ratio)
+
+    achieved_ratio =
+      if ratio_valid? && left_num && right_num,
+        do: PoeFlipFinder.RatioCalculator.format_achieved_ratio(left_num, right_num),
+        else: nil
+
+    anchor_value = if @ratio_anchor == :left, do: left_num, else: right_num
+
+    closest_matches =
+      if ratio_valid? && !exact_match? && anchor_value,
+        do:
+          PoeFlipFinder.RatioCalculator.closest_ratio_matches(ratio, @ratio_anchor, anchor_value),
+        else: []
+
+    suggestions =
+      if ratio_valid? && !exact_match? && anchor_value,
+        do:
+          PoeFlipFinder.RatioCalculator.nearby_whole_ratio_suggestions(
+            ratio,
+            @ratio_anchor,
+            anchor_value
+          ),
+        else: [] %>
+
+    <div class="ratio-calculator-header">
+      <span class="ratio-calculator-title">Ratio Calculator</span>
+      <button
+        type="button"
+        class="ratio-calculator-close"
+        phx-click="close_ratio_calculator"
+        aria-label="Close"
+      >
+        ×
+      </button>
+    </div>
+    <div class="ratio-calculator-body">
+      <p class="ratio-calculator-help">
+        Enter a ratio, then edit either number to find the closest whole-number match.
+      </p>
+
+      <label class="ratio-calculator-field">
+        <span class="ratio-calculator-label">Ratio</span>
+        <form phx-change="ratio_text_changed" phx-submit="ratio_text_changed">
+          <input
+            class={"ratio-calculator-input#{if show_error?, do: " ratio-calculator-input--error"}"}
+            value={@ratio_text}
+            phx-debounce="150"
+            name="value"
+            placeholder="e.g. 15.5:1"
+          />
+        </form>
+      </label>
+
+      <div class="ratio-calculator-pair-row">
+        <label class="ratio-calculator-field">
+          <span class="ratio-calculator-label">Left</span>
+          <form phx-change="ratio_left_changed" phx-submit="ratio_left_changed">
+            <input
+              class="ratio-calculator-input"
+              value={@ratio_left_text}
+              phx-debounce="150"
+              name="value"
+              disabled={!ratio_valid?}
+            />
+          </form>
+        </label>
+        <span class="ratio-calculator-sep">:</span>
+        <label class="ratio-calculator-field">
+          <span class="ratio-calculator-label">Right</span>
+          <form phx-change="ratio_right_changed" phx-submit="ratio_right_changed">
+            <input
+              class="ratio-calculator-input"
+              value={@ratio_right_text}
+              phx-debounce="150"
+              name="value"
+              disabled={!ratio_valid?}
+            />
+          </form>
+        </label>
+      </div>
+
+      <p :if={show_error?} class="ratio-calculator-error">Enter a ratio like 15.5:1</p>
+
+      <p :if={ratio_valid? && exact_match? && achieved_ratio} class="ratio-calculator-hint">
+        ≈ <span class="ratio-calculator-hint-value">{achieved_ratio}</span>:1 — exact match
+      </p>
+
+      <div
+        :if={ratio_valid? && !exact_match? && closest_matches != []}
+        class="ratio-calculator-suggestions"
+      >
+        <div class="ratio-calculator-suggestions-label">Closest matches</div>
+        <div :for={match <- closest_matches} class="ratio-calculator-suggestion">
+          <span class="ratio-calculator-suggestion-ratio">≈{match.achieved_ratio}:1</span>
+          <span class="ratio-calculator-suggestion-pair">{match.left}:{match.right}</span>
+        </div>
+      </div>
+
+      <div
+        :if={ratio_valid? && !exact_match? && suggestions != []}
+        class="ratio-calculator-suggestions"
+      >
+        <div class="ratio-calculator-suggestions-label">Other whole-ratio options</div>
+        <div :for={suggestion <- suggestions} class="ratio-calculator-suggestion">
+          <span class="ratio-calculator-suggestion-ratio">{suggestion.ratio}:1</span>
+          <span class="ratio-calculator-suggestion-pair">
+            {suggestion.left}:{suggestion.right}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

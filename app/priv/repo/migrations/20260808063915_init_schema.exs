@@ -85,7 +85,12 @@ defmodule PoeFlipFinder.Repo.Migrations.InitSchema do
       add :league_id, references(:league), null: false
       add :currency_a_id, references(:currency), null: false
       add :currency_b_id, references(:currency), null: false
-      add :snapshot_hour, :utc_datetime_usec, null: false
+      # :utc_datetime (second precision), not :utc_datetime_usec -- this
+      # value is always DateTime.from_unix!/1 on a GGG change-stream epoch
+      # second, which has no sub-second meaning at all. Repo.insert_all
+      # (unlike Repo.insert with a changeset) does no precision coercion,
+      # so a usec column here crashes on a real, second-precision value.
+      add :snapshot_hour, :utc_datetime, null: false
       add :volume_traded_a, :bigint, null: false
       add :volume_traded_b, :bigint, null: false
       add :lowest_stock_a, :bigint, null: false

@@ -42,7 +42,7 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
 
   defp insert_snapshot!(attrs) do
     defaults = %{
-      snapshot_hour: DateTime.utc_now(),
+      snapshot_hour: DateTime.utc_now() |> DateTime.truncate(:second),
       volume_traded_a: 100,
       volume_traded_b: 100,
       lowest_stock_a: 50,
