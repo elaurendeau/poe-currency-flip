@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       deploy_target:
-        description: "Deploy this branch after tests pass (to the single Render/Vercel site -- see docs/DEPLOYMENT.md)"
+        description: "Deploy this branch after tests pass (see docs/DEPLOYMENT.md)"
         type: choice
-        options: [none, backend, frontend, both]
+        options: [none, backend, frontend, app, both]
         default: none
 
 jobs:
@@ -115,3 +115,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+
+  # The new Elixir/Phoenix LiveView app's own Render service, separate from
+  # deploy-backend/deploy-frontend above until Phase 7 cutover -- see
+  # docs/DEPLOYMENT.md. Not yet wired to push-to-main (deliberately: the old
+  # Java/React site stays the one live production deploy until the new app
+  # has verified feature parity), only to a manual workflow_dispatch run.
+  deploy-app:
+    needs: test-app
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'app'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS -X POST "${{ secrets.RENDER_APP_DEPLOY_HOOK_URL }}"
