@@ -1,5 +1,6 @@
 package com.poeflipfinder.backend.framework.config;
 
+import com.poeflipfinder.backend.framework.divinationcard.BundledDivinationCardReferenceGateway;
 import com.poeflipfinder.backend.framework.exchange.GggExchangeSourceGateway;
 import com.poeflipfinder.backend.framework.itemicon.GggItemIconGateway;
 import com.poeflipfinder.backend.framework.league.GggLeagueGateway;
@@ -51,6 +52,11 @@ public class GatewayConfig {
     @Bean
     public GggItemIconGateway gggItemIconGateway() {
         return new GggItemIconGateway();
+    }
+
+    @Bean
+    public BundledDivinationCardReferenceGateway bundledDivinationCardReferenceGateway() {
+        return new BundledDivinationCardReferenceGateway();
     }
 
     @Bean

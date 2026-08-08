@@ -4,6 +4,7 @@ import com.poeflipfinder.backend.controller.ComputeFlipOpportunitiesController;
 import com.poeflipfinder.backend.framework.web.generated.api.FlipOpportunitiesApi;
 import com.poeflipfinder.backend.framework.web.generated.model.CurrencyAmount;
 import com.poeflipfinder.backend.framework.web.generated.model.FlipOpportunity;
+import com.poeflipfinder.backend.gateway.DivinationCardReferenceGateway;
 import com.poeflipfinder.backend.gateway.SnapshotQueryGateway;
 import com.poeflipfinder.backend.presenter.ComputeFlipOpportunitiesPresenter;
 import com.poeflipfinder.backend.presenter.CurrencyAmountViewModel;
@@ -23,16 +24,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class FlipOpportunityRestController implements FlipOpportunitiesApi {
 
     private final SnapshotQueryGateway snapshotQueryGateway;
+    private final DivinationCardReferenceGateway divinationCardReferenceGateway;
 
-    public FlipOpportunityRestController(SnapshotQueryGateway snapshotQueryGateway) {
+    public FlipOpportunityRestController(
+            SnapshotQueryGateway snapshotQueryGateway, DivinationCardReferenceGateway divinationCardReferenceGateway) {
         this.snapshotQueryGateway = snapshotQueryGateway;
+        this.divinationCardReferenceGateway = divinationCardReferenceGateway;
     }
 
     @Override
     public ResponseEntity<List<FlipOpportunity>> getFlipOpportunities(String league) {
         ComputeFlipOpportunitiesPresenter presenter = new ComputeFlipOpportunitiesPresenter();
         ComputeFlipOpportunitiesInteractor interactor =
-                new ComputeFlipOpportunitiesInteractor(snapshotQueryGateway, presenter);
+                new ComputeFlipOpportunitiesInteractor(snapshotQueryGateway, divinationCardReferenceGateway, presenter);
         ComputeFlipOpportunitiesController controller = new ComputeFlipOpportunitiesController(interactor);
 
         controller.computeFlipOpportunities(league);

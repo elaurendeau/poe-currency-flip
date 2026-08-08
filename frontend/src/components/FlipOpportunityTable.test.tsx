@@ -82,6 +82,25 @@ describe('FlipOpportunityTable', () => {
     expect(container.querySelector('.via-icons .divination-card-icon')).toBeInTheDocument();
   });
 
+  it('renders every via step with an arrow between them, not just the first', () => {
+    const divinationCard: FlipOpportunity = {
+      ...opportunity,
+      via: [
+        { currencyId: 'C', name: 'The Vanity', iconUrl: null, itemType: 'DIVINATION_CARD', quantity: 5 },
+        { currencyId: 'D', name: 'Regal Orb', iconUrl: null, itemType: 'CURRENCY', quantity: 1 },
+      ],
+    };
+    const { container } = render(<FlipOpportunityTable {...baseProps()} others={[divinationCard]} />);
+
+    // Both names are bare text nodes (matching the mockup's markup exactly),
+    // so they're read via textContent rather than getByText -- getByText
+    // only matches an element's direct text-node children, and here two
+    // sibling names share the same parent.
+    expect(container.querySelector('.via-icons')?.textContent).toContain('The Vanity');
+    expect(container.querySelector('.via-icons')?.textContent).toContain('Regal Orb');
+    expect(container.querySelectorAll('.via-icons .arrow')).toHaveLength(1);
+  });
+
   it('renders favorites above others with a visible divider between the groups', () => {
     render(<FlipOpportunityTable {...baseProps()} favorites={[opportunity]} others={[second]} />);
 

@@ -1,0 +1,22 @@
+[
+  { "cardName": "Chaotic Disposition", "stackSize": 1, "rewardCurrencyName": "Chaos Orb", "rewardQuantity": 5, "isPredictable": true },
+  { "cardName": "Rain of Chaos", "stackSize": 8, "rewardCurrencyName": "Chaos Orb", "rewardQuantity": 1, "isPredictable": true },
+  { "cardName": "The Wrath", "stackSize": 8, "rewardCurrencyName": "Chaos Orb", "rewardQuantity": 10, "isPredictable": true },
+  { "cardName": "Brother's Gift", "stackSize": 1, "rewardCurrencyName": "Divine Orb", "rewardQuantity": 5, "isPredictable": true },
+  { "cardName": "The Fortunate", "stackSize": 12, "rewardCurrencyName": "Divine Orb", "rewardQuantity": 2, "isPredictable": true },
+  { "cardName": "Brother's Stash", "stackSize": 1, "rewardCurrencyName": "Exalted Orb", "rewardQuantity": 5, "isPredictable": true },
+  { "cardName": "Abandoned Wealth", "stackSize": 5, "rewardCurrencyName": "Exalted Orb", "rewardQuantity": 3, "isPredictable": true },
+  { "cardName": "The Hoarder", "stackSize": 12, "rewardCurrencyName": "Exalted Orb", "rewardQuantity": 1, "isPredictable": true },
+  { "cardName": "Coveted Possession", "stackSize": 9, "rewardCurrencyName": "Regal Orb", "rewardQuantity": 5, "isPredictable": true },
+  { "cardName": "A Sea of Blue", "stackSize": 3, "rewardCurrencyName": "Orb of Alteration", "rewardQuantity": 13, "isPredictable": true },
+  { "cardName": "The Inventor", "stackSize": 6, "rewardCurrencyName": "Vaal Orb", "rewardQuantity": 10, "isPredictable": true },
+  { "cardName": "No Traces", "stackSize": 9, "rewardCurrencyName": "Orb of Scouring", "rewardQuantity": 30, "isPredictable": true },
+  { "cardName": "The Fool", "stackSize": 4, "rewardCurrencyName": "Orb of Chance", "rewardQuantity": 20, "isPredictable": true },
+  { "cardName": "The Scholar", "stackSize": 3, "rewardCurrencyName": "Scroll of Wisdom", "rewardQuantity": 40, "isPredictable": true },
+  { "cardName": "Demigod's Wager", "stackSize": 7, "rewardCurrencyName": "Orb of Annulment", "rewardQuantity": 1, "isPredictable": true },
+  { "cardName": "The Heroic Shot", "stackSize": 1, "rewardCurrencyName": "Chromatic Orb", "rewardQuantity": 17, "isPredictable": true },
+  { "cardName": "I See Brothers", "stackSize": 2, "rewardCurrencyName": "Fracturing Orb", "rewardQuantity": 2, "isPredictable": true },
+  { "cardName": "Vinia's Token", "stackSize": 5, "rewardCurrencyName": "Orb of Regret", "rewardQuantity": 10, "isPredictable": true },
+  { "cardName": "The Doctor", "stackSize": 8, "rewardCurrencyName": null, "rewardQuantity": null, "isPredictable": false },
+  { "cardName": "Emperor's Luck", "stackSize": 5, "rewardCurrencyName": null, "rewardQuantity": null, "isPredictable": false }
+]

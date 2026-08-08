@@ -279,6 +279,11 @@ body {
   font-size: 12px;
 }
 
+.arrow {
+  color: #525a63;
+  font-size: 12px;
+}
+
 .margin {
   text-align: right;
   font-family: Consolas, monospace;

@@ -7,12 +7,15 @@ import static org.mockito.Mockito.when;
 import com.poeflipfinder.backend.entity.Currency;
 import com.poeflipfinder.backend.entity.ExchangeMarketSnapshot;
 import com.poeflipfinder.backend.entity.FlipOpportunity;
+import com.poeflipfinder.backend.entity.DivinationCardReward;
 import com.poeflipfinder.backend.entity.League;
 import com.poeflipfinder.backend.entity.Technique;
+import com.poeflipfinder.backend.gateway.DivinationCardReferenceGateway;
 import com.poeflipfinder.backend.gateway.SnapshotQueryGateway;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +31,15 @@ class ComputeFlipOpportunitiesInteractorTest {
     private SnapshotQueryGateway snapshotQueryGateway;
 
     @Mock
+    private DivinationCardReferenceGateway divinationCardReferenceGateway;
+
+    @Mock
     private ComputeFlipOpportunitiesOutputBoundary outputBoundary;
+
+    @BeforeEach
+    void noDivinationCardReferenceDataByDefault() {
+        when(divinationCardReferenceGateway.findAll()).thenReturn(List.of());
+    }
 
     private final League league = new League(1L, "Standard", "Standard", false, true);
     private final Currency chaos =
@@ -44,7 +55,8 @@ class ComputeFlipOpportunitiesInteractorTest {
             Currency.ItemType.DIVINATION_CARD);
 
     private ComputeFlipOpportunitiesInteractor interactor() {
-        return new ComputeFlipOpportunitiesInteractor(snapshotQueryGateway, outputBoundary);
+        return new ComputeFlipOpportunitiesInteractor(
+                snapshotQueryGateway, divinationCardReferenceGateway, outputBoundary);
     }
 
     private ExchangeMarketSnapshot snapshot(
@@ -328,5 +340,41 @@ class ComputeFlipOpportunitiesInteractorTest {
         List<FlipOpportunity> opportunities = compute();
 
         assertThat(opportunities).filteredOn(o -> o.technique() == Technique.BULK_BUY).isEmpty();
+    }
+
+    private DivinationCardReward divinationCardReward(String cardName, String rewardCurrencyName) {
+        Currency cardPlaceholder = new Currency(null, null, cardName, null, Currency.ItemType.DIVINATION_CARD);
+        Currency rewardPlaceholder = new Currency(null, null, rewardCurrencyName, null, Currency.ItemType.CURRENCY);
+        return new DivinationCardReward(cardPlaceholder, 8, rewardPlaceholder, 5, true);
+    }
+
+    @Test
+    void computeFlipOpportunities_mergesDivinationCardIntoTheSameList() {
+        // DivinationCardOpportunityFinder needs the Chaos<->Divine reference
+        // rate too (same as Bulk Buy), so a chaos-divine snapshot must be
+        // present alongside the chaos-deck one.
+        when(divinationCardReferenceGateway.findAll())
+                .thenReturn(List.of(divinationCardReward("Stacked Deck", "Chaos Orb")));
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(snapshot(chaos, divine, 210, 1, 210, 1), snapshot(chaos, deck, 1, 8, 1, 13)));
+
+        List<FlipOpportunity> opportunities = compute();
+
+        assertThat(opportunities).extracting(FlipOpportunity::technique).contains(Technique.DIVINATION_CARD);
+    }
+
+    @Test
+    void computeFlipOpportunities_zeroVolumeDivinationCard_isExcluded() {
+        // Same zero-buy-leg-stock shape as the Exchange Spread/Bulk Buy
+        // regression tests above -- proves the shared filter covers
+        // Divination Card too, not just the two techniques it already existed for.
+        when(divinationCardReferenceGateway.findAll())
+                .thenReturn(List.of(divinationCardReward("Stacked Deck", "Chaos Orb")));
+        when(snapshotQueryGateway.findActiveSnapshots("Standard"))
+                .thenReturn(List.of(
+                        snapshot(chaos, divine, 210, 1, 210, 1),
+                        snapshot(chaos, deck, 1, 8, 1, 13, 100, 0, 1, 1)));
+
+        assertThat(compute()).filteredOn(o -> o.technique() == Technique.DIVINATION_CARD).isEmpty();
     }
 }

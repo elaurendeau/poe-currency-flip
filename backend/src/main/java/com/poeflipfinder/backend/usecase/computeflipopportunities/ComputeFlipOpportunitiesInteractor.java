@@ -6,6 +6,7 @@ import com.poeflipfinder.backend.entity.ExchangeMarketSnapshot;
 import com.poeflipfinder.backend.entity.FlipOpportunity;
 import com.poeflipfinder.backend.entity.Technique;
 import com.poeflipfinder.backend.entity.UndercutQuote;
+import com.poeflipfinder.backend.gateway.DivinationCardReferenceGateway;
 import com.poeflipfinder.backend.gateway.SnapshotQueryGateway;
 import java.util.List;
 import java.util.Objects;
@@ -13,21 +14,27 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
- * Computes Feature B (Exchange Spread/Margin Finder, docs/PRD.md § 7.2) and
- * Feature E (Bulk Buy, docs/PRD.md § 7.5) opportunities, merging both into
- * one response list. Named for the aggregate per docs/CODE_STYLE.md's own
- * worked example -- expected to grow a dependency per technique (Vendor
- * Recipe, Divination Card) as those features are built.
+ * Computes Feature B (Exchange Spread/Margin Finder, docs/PRD.md § 7.2),
+ * Feature C (Divination Card Flip Finder, docs/PRD.md § 7.3), and Feature E
+ * (Bulk Buy, docs/PRD.md § 7.5) opportunities, merging all into one response
+ * list. Named for the aggregate per docs/CODE_STYLE.md's own worked example
+ * -- expected to grow a dependency for Vendor Recipe once that feature is
+ * built.
  */
 public class ComputeFlipOpportunitiesInteractor implements ComputeFlipOpportunitiesInputBoundary {
 
     private final SnapshotQueryGateway snapshotQueryGateway;
+    private final DivinationCardReferenceGateway divinationCardReferenceGateway;
     private final ComputeFlipOpportunitiesOutputBoundary outputBoundary;
     private final BulkBuyOpportunityFinder bulkBuyOpportunityFinder = new BulkBuyOpportunityFinder();
+    private final DivinationCardOpportunityFinder divinationCardOpportunityFinder = new DivinationCardOpportunityFinder();
 
     public ComputeFlipOpportunitiesInteractor(
-            SnapshotQueryGateway snapshotQueryGateway, ComputeFlipOpportunitiesOutputBoundary outputBoundary) {
+            SnapshotQueryGateway snapshotQueryGateway,
+            DivinationCardReferenceGateway divinationCardReferenceGateway,
+            ComputeFlipOpportunitiesOutputBoundary outputBoundary) {
         this.snapshotQueryGateway = snapshotQueryGateway;
+        this.divinationCardReferenceGateway = divinationCardReferenceGateway;
         this.outputBoundary = outputBoundary;
     }
 
@@ -41,12 +48,15 @@ public class ComputeFlipOpportunitiesInteractor implements ComputeFlipOpportunit
                 .filter(Objects::nonNull)
                 .toList();
         List<FlipOpportunity> bulkBuy = bulkBuyOpportunityFinder.find(snapshots, divineChaosRate);
+        List<FlipOpportunity> divinationCard = divinationCardOpportunityFinder.find(
+                snapshots, divinationCardReferenceGateway.findAll(), divineChaosRate);
 
         // A leg with zero real stock behind it produced the ratio purely from
         // stale/outlier data (docs/PRD.md § 7.2/§ 7.5) -- there's no one to
         // actually trade with, so it's not a real opportunity no matter how
         // attractive its margin looks.
-        List<FlipOpportunity> merged = Stream.concat(exchangeSpread.stream(), bulkBuy.stream())
+        List<FlipOpportunity> merged = Stream.of(exchangeSpread, bulkBuy, divinationCard)
+                .flatMap(List::stream)
                 .filter(opportunity -> opportunity.volume() > 0)
                 .toList();
 

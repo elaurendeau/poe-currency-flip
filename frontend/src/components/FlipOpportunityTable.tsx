@@ -1,4 +1,4 @@
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import { Fragment, type MouseEvent as ReactMouseEvent } from 'react';
 import type { CurrencyAmount, FlipOpportunity } from '../entities/FlipOpportunity';
 import { useRowContextMenu } from '../hooks/useRowContextMenu';
 import { formatMargin, formatProfit, formatQuantity, formatVolume } from '../presenters/flipOpportunityPresenter';
@@ -197,9 +197,15 @@ function FlipOpportunityRow({
       <CurrencyCell amount={opportunity.start[0]} />
       <div>
         <div className="via-icons">
-          <span className="qty">{formatQuantity(opportunity.via[0].quantity)}</span>
-          <CurrencyIcon amount={opportunity.via[0]} />
-          {opportunity.via[0].name}
+          {opportunity.via.map((amount, index) => (
+            // eslint-disable-next-line react/no-array-index-key -- via is a fixed, ordered chain of steps, not a reorderable list
+            <Fragment key={index}>
+              {index > 0 && <span className="arrow">&#8594;</span>}
+              <span className="qty">{formatQuantity(amount.quantity)}</span>
+              <CurrencyIcon amount={amount} />
+              {amount.name}
+            </Fragment>
+          ))}
         </div>
         <div className="sub">{opportunity.detail}</div>
       </div>
