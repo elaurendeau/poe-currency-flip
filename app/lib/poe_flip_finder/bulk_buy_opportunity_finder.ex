@@ -27,8 +27,11 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
 
     Enum.flat_map(chaos_legs, fn {intermediary, chaos_snapshot} ->
       case Map.fetch(divine_legs, intermediary) do
-        :error -> []
-        {:ok, divine_snapshot} -> opportunities_for(intermediary, chaos_snapshot, divine_snapshot, rate)
+        :error ->
+          []
+
+        {:ok, divine_snapshot} ->
+          opportunities_for(intermediary, chaos_snapshot, divine_snapshot, rate)
       end
     end)
   end
@@ -74,7 +77,10 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
   end
 
   defp base_currency?(currency) do
-    currency.external_id in [BaseCurrencyIds.chaos_external_id(), BaseCurrencyIds.divine_external_id()]
+    currency.external_id in [
+      BaseCurrencyIds.chaos_external_id(),
+      BaseCurrencyIds.divine_external_id()
+    ]
   end
 
   defp quote_for(snapshot, base_external_id) do
@@ -110,10 +116,22 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
   # Scaled so the trade always ends at exactly 1 Divine sold, rather than
   # starting from 1 Chaos: "1 Chaos -> 0.005 Divine" is a meaningless
   # fraction to read, since Chaos is the much smaller-value currency here.
-  defp chaos_to_divine(_intermediary, %UndercutQuote{suggested_buy_price: nil}, _divine_quote, _rate), do: nil
+  defp chaos_to_divine(
+         _intermediary,
+         %UndercutQuote{suggested_buy_price: nil},
+         _divine_quote,
+         _rate
+       ),
+       do: nil
 
-  defp chaos_to_divine(_intermediary, _chaos_quote, %UndercutQuote{market_sell_price: price}, _rate) when price <= 0,
-    do: nil
+  defp chaos_to_divine(
+         _intermediary,
+         _chaos_quote,
+         %UndercutQuote{market_sell_price: price},
+         _rate
+       )
+       when price <= 0,
+       do: nil
 
   defp chaos_to_divine(intermediary, chaos_quote, divine_quote, rate) do
     sell_amount = 1.0
@@ -134,7 +152,12 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
       margin_percent: margin_percent,
       profit: %CurrencyAmount{currency: rate.chaos_currency, quantity: profit_chaos},
       volume: volume,
-      detail: detail(chaos_quote.suggested_buy_price, divine_quote.market_sell_price, rate.chaos_per_divine)
+      detail:
+        detail(
+          chaos_quote.suggested_buy_price,
+          divine_quote.market_sell_price,
+          rate.chaos_per_divine
+        )
     }
   end
 
@@ -142,10 +165,22 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
   # the direct Divine->Chaos baseline -- already Chaos-denominated, so the
   # profit figure needs no conversion. Same buy-competitive/sell-market
   # split as chaos_to_divine/4 above.
-  defp divine_to_chaos(_intermediary, _chaos_quote, %UndercutQuote{suggested_buy_price: nil}, _rate), do: nil
+  defp divine_to_chaos(
+         _intermediary,
+         _chaos_quote,
+         %UndercutQuote{suggested_buy_price: nil},
+         _rate
+       ),
+       do: nil
 
-  defp divine_to_chaos(_intermediary, %UndercutQuote{market_sell_price: price}, _divine_quote, _rate) when price <= 0,
-    do: nil
+  defp divine_to_chaos(
+         _intermediary,
+         %UndercutQuote{market_sell_price: price},
+         _divine_quote,
+         _rate
+       )
+       when price <= 0,
+       do: nil
 
   defp divine_to_chaos(intermediary, chaos_quote, divine_quote, rate) do
     via_amount = divine_quote.suggested_buy_price

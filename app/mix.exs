@@ -61,7 +61,8 @@ defmodule PoeFlipFinder.MixProject do
       {:bandit, "~> 1.5"},
       {:boundary, "~> 0.10", runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:bypass, "~> 2.1", only: :test}
+      {:bypass, "~> 2.1", only: :test},
+      {:req, "~> 0.5"}
     ]
   end
 

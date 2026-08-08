@@ -17,18 +17,43 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
 
   @now ~U[2026-08-06 12:00:00Z]
 
-  @league %League{id: 1, external_id: "Standard", display_name: "Standard", is_current: false, has_exchange_activity: true}
-  @chaos %Currency{id: 1, external_id: "Metadata/Items/Currency/CurrencyRerollRare", display_name: "Chaos Orb", item_type: :currency}
-  @divine %Currency{id: 2, external_id: "Metadata/Items/Currency/CurrencyModValues", display_name: "Divine Orb", item_type: :currency}
+  @league %League{
+    id: 1,
+    external_id: "Standard",
+    display_name: "Standard",
+    is_current: false,
+    has_exchange_activity: true
+  }
+  @chaos %Currency{
+    id: 1,
+    external_id: "Metadata/Items/Currency/CurrencyRerollRare",
+    display_name: "Chaos Orb",
+    item_type: :currency
+  }
+  @divine %Currency{
+    id: 2,
+    external_id: "Metadata/Items/Currency/CurrencyModValues",
+    display_name: "Divine Orb",
+    item_type: :currency
+  }
   @deck %Currency{
     id: 3,
     external_id: "Metadata/Items/DivinationCards/DivinationCardStackedDeck",
     display_name: "Stacked Deck",
     item_type: :divination_card
   }
-  @wisdom %Currency{id: 4, external_id: "Metadata/Items/Currency/CurrencyIdentification", display_name: "Scroll of Wisdom", item_type: :currency}
+  @wisdom %Currency{
+    id: 4,
+    external_id: "Metadata/Items/Currency/CurrencyIdentification",
+    display_name: "Scroll of Wisdom",
+    item_type: :currency
+  }
 
-  @rate_210 %DivineChaosRate{chaos_currency: @chaos, divine_currency: @divine, chaos_per_divine: 210.0}
+  @rate_210 %DivineChaosRate{
+    chaos_currency: @chaos,
+    divine_currency: @divine,
+    chaos_per_divine: 210.0
+  }
 
   defp snapshot(
          currency_a,
@@ -70,6 +95,7 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # 8 vs 13) previously fed the optimistic 8 into a one-directional sell,
     # overstating how much a real seller could get.
     chaos_leg = snapshot(@chaos, @deck, 1, 8, 1, 13, 100, 50, 1, 1)
+
     # Divine-deck leg: price_at_lowest=1700, price_at_highest=1900 -> buy=1899, market_sell_price=floor(1900)=1900.
     divine_leg = snapshot(@divine, @deck, 1, 1700, 1, 1900, 30, 80, 1, 1)
 

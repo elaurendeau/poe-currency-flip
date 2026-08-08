@@ -75,7 +75,9 @@ defmodule PoeFlipFinder.UndercutQuote do
   defp build_quote(price_at_lowest, price_at_highest, lowest_stock_start, highest_stock_start) do
     buy_at_highest_extreme? = price_at_highest >= price_at_lowest
     raw_buy_price = if buy_at_highest_extreme?, do: price_at_highest, else: price_at_lowest
-    raw_round_trip_sell_price = if buy_at_highest_extreme?, do: price_at_lowest, else: price_at_highest
+
+    raw_round_trip_sell_price =
+      if buy_at_highest_extreme?, do: price_at_lowest, else: price_at_highest
 
     floored_buy_price = Float.floor(raw_buy_price) - 1
     suggested_buy_price = if floored_buy_price >= 1, do: floored_buy_price, else: nil

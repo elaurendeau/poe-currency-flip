@@ -122,8 +122,12 @@ defmodule PoeFlipFinder.RatioCalculator do
   end
 
   defp ratio_suggestion(candidate, anchor, anchor_value) do
-    left = if anchor == :left, do: anchor_value, else: nearest_left_for_right(anchor_value, candidate)
-    right = if anchor == :right, do: anchor_value, else: nearest_right_for_left(anchor_value, candidate)
+    left =
+      if anchor == :left, do: anchor_value, else: nearest_left_for_right(anchor_value, candidate)
+
+    right =
+      if anchor == :right, do: anchor_value, else: nearest_right_for_left(anchor_value, candidate)
+
     %{ratio: candidate, left: left, right: right}
   end
 

@@ -9,7 +9,7 @@ This document follows the same Robert C. Martin ("Uncle Bob") Clean Code / SOLID
 ## Naming
 
 - Names reveal intent, same as [CODE_STYLE.md § Naming](CODE_STYLE.md#naming) — `checkpoint_next_change_id` beats `id`.
-- Predicate functions end in `?` (`stale?`, `solo_self_found?`) — this is the language's own convention, replacing CODE_STYLE.md's `isX`/`hasX` prefix rule.
+- Predicate functions end in `?` (`stale?`, `solo_self_found?`) — this is the language's own convention, replacing CODE_STYLE.md's `isX`/`hasX` prefix rule. This applies to *functions only* — a boolean struct field is never named with a trailing `?` (`is_current`, `predictable`, `at_tip`, not `predictable?`), both because a field access isn't a function call and because every domain struct eventually backs an Ecto schema whose field names map to DB columns, which can't contain `?`.
 - A function that can raise, alongside a same-named function that returns a tagged tuple, gets a `!` suffix (`fetch_hour!/1` raises; `fetch_hour/1` returns `{:ok, result} | {:error, reason}`). The `!` version is always a thin raising wrapper around the tuple-returning one — never independent logic living only under the `!` name.
 - One word per concept, project-wide — same rule as Java: this project standardizes on `fetch_*` (outbound HTTP), `resolve_*` (computed/derived lookups), `normalize_*` (adapter raw→domain conversion).
 - Module names are nouns matching their architectural role (`ExchangeSourceGateway`, `FlipOpportunity`); function names are verb phrases (`normalize_snapshot/1`, `compute_margin/2`).
