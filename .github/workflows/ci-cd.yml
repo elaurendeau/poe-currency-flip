@@ -8,67 +8,64 @@ on:
   workflow_dispatch:
     inputs:
       deploy_target:
-        description: "Deploy this branch after tests pass (to the single Render/Vercel site -- see docs/DEPLOYMENT.md)"
+        description: "Deploy this branch after tests pass (see docs/DEPLOYMENT.md)"
         type: choice
-        options: [none, backend, frontend, both]
+        options: [none, app]
         default: none
 
 jobs:
-  test-backend:
+  test-app:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: app
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: poeflipfinder
+          POSTGRES_PASSWORD: poeflipfinder
+          POSTGRES_DB: poe_flip_finder_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U poeflipfinder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: erlef/setup-beam@v1
         with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-      - run: ./mvnw -B verify
-
-  test-frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+          otp-version: "28"
+          elixir-version: "1.18"
+      - uses: actions/cache@v4
         with:
-          # jsdom 30.x (a test dependency) requires Node >=22.22.2 or
-          # >=24.15.0 and hard-fails on Node 20 -- confirmed by reproducing
-          # this exact failure in a node:20-bookworm container.
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run build
-      - run: npm test --if-present
+          path: |
+            app/deps
+            app/_build
+          key: ${{ runner.os }}-mix-${{ hashFiles('app/mix.lock') }}
+      - run: mix deps.get
+      # Day-one enforcement (docs/CODE_STYLE.md): a boundary violation is a
+      # compiler warning by default -- --warnings-as-errors is what actually
+      # turns the Dependency Rule into a build failure, not just local-only
+      # prose.
+      - run: mix compile --warnings-as-errors
+      - run: mix credo --strict
+      - run: mix test
 
-  # Deploy jobs run automatically on a push to main, or on demand from any
-  # branch via workflow_dispatch (Actions tab -> Run workflow -> pick branch
-  # + deploy_target) -- either way, only if the matching test job passed.
-  # Render/Vercel's own git-triggered auto-deploy is turned OFF in their
-  # dashboards (see docs/DEPLOYMENT.md), so this is the *only* path to a
-  # deploy -- a failing test can never reach production, automatic or manual.
-  # There is only one Render/Vercel site (see docs/DEPLOYMENT.md); a manual
-  # deploy from a non-main branch ships that branch's code to it.
-  deploy-backend:
-    needs: test-backend
+  # Runs automatically on a push to main, or on demand from any branch via
+  # workflow_dispatch (Actions tab -> Run workflow -> pick branch +
+  # deploy_target: app) -- either way, only if test-app passed. Render's own
+  # git-triggered auto-deploy is turned OFF in its dashboard (see
+  # docs/DEPLOYMENT.md), so this is the *only* path to a deploy -- a failing
+  # test can never reach production, automatic or manual. There is only one
+  # Render site; a manual deploy from a non-main branch ships that branch's
+  # code to it.
+  deploy-app:
+    needs: test-app
     if: |
       (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && contains(fromJSON('["backend", "both"]'), github.event.inputs.deploy_target))
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'app')
     runs-on: ubuntu-latest
     steps:
-      - run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-
-  deploy-frontend:
-    needs: test-frontend
-    if: |
-      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
-      (github.event_name == 'workflow_dispatch' && contains(fromJSON('["frontend", "both"]'), github.event.inputs.deploy_target))
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -fsS -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}"
+      - run: curl -fsS -X POST "${{ secrets.RENDER_APP_DEPLOY_HOOK_URL }}"

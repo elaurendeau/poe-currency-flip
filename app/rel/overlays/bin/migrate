@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+exec ./poe_flip_finder eval PoeFlipFinder.Release.migrate

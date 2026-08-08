@@ -1,0 +1,570 @@
+defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
+  # async: false -- Bypass base_url config for GggLeagueGateway/
+  # GggExchangeSourceGateway is global Application env (see
+  # PoeFlipFinder.LeaguesTest), and several tests here activate a
+  # generation, touching the singleton exchange_ingestion_state row (see
+  # EctoSnapshotRepositoryGatewayTest for why concurrent writers deadlock).
+  use PoeFlipFinderWeb.ConnCase, async: false
+
+  import Phoenix.LiveViewTest
+
+  alias PoeFlipFinder.{BaseCurrencyIds, FlipOpportunities, FlipOpportunityTablePresenter}
+  alias PoeFlipFinder.Gateways.{GggExchangeSourceGateway, GggLeagueGateway, Schema}
+
+  # Outside-in Phoenix.LiveViewTest coverage per docs/PRD.md's Feature A-L,
+  # one per the approved migration plan's Phase 5 requirement. Business-rule
+  # edge cases (catch-up cap behavior, unresolvable-pair dedup, margin/
+  # threshold math, ratio math itself, etc.) are already exhaustively
+  # covered at the context/pure-function level (IngestionCatchupTest,
+  # FlipOpportunitiesTest, RatioCalculatorTest, ...) per the Use-Case
+  # Discovery Procedure -- this file proves the LiveView's own wiring
+  # (event -> assign -> render), not the business logic underneath it.
+
+  setup do
+    bypass = Bypass.open()
+
+    Application.put_env(:poe_flip_finder, GggLeagueGateway,
+      base_url: "http://localhost:#{bypass.port}"
+    )
+
+    Application.put_env(:poe_flip_finder, GggExchangeSourceGateway,
+      base_url: "http://localhost:#{bypass.port}"
+    )
+
+    on_exit(fn ->
+      Application.delete_env(:poe_flip_finder, GggLeagueGateway)
+      Application.delete_env(:poe_flip_finder, GggExchangeSourceGateway)
+    end)
+
+    {:ok, bypass: bypass}
+  end
+
+  defp insert_currency!(external_id) do
+    %Schema.Currency{}
+    |> Ecto.Changeset.change(
+      external_id: external_id,
+      display_name: external_id,
+      item_type: :currency
+    )
+    |> PoeFlipFinder.Repo.insert!()
+  end
+
+  defp insert_league!(external_id, opts) do
+    %Schema.League{}
+    |> Ecto.Changeset.change(
+      Keyword.merge(
+        [external_id: external_id, display_name: external_id, known_to_ggg: true],
+        opts
+      )
+    )
+    |> PoeFlipFinder.Repo.insert!()
+  end
+
+  defp insert_snapshot!(attrs) do
+    defaults = %{
+      snapshot_hour: DateTime.utc_now() |> DateTime.truncate(:second),
+      volume_traded_a: 100,
+      volume_traded_b: 100,
+      lowest_stock_a: 50,
+      highest_stock_a: 60,
+      lowest_stock_b: 50,
+      highest_stock_b: 60
+    }
+
+    %Schema.ExchangeMarketSnapshot{}
+    |> Ecto.Changeset.change(Map.merge(defaults, attrs))
+    |> PoeFlipFinder.Repo.insert!()
+  end
+
+  defp activate_generation!(generation_id) do
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(active_generation_id: generation_id, updated_at: DateTime.utc_now())
+    |> PoeFlipFinder.Repo.update!()
+  end
+
+  # Seeds one exchange-spread opportunity (chaos-wisdom) exactly like
+  # FlipOpportunitiesTest's merge fixture, so the table has a real,
+  # computed row to filter/sort/favorite against in every test below.
+  defp seed_one_opportunity!(league_external_id) do
+    league = insert_league!(league_external_id, is_current: true)
+    chaos = insert_currency!(BaseCurrencyIds.chaos_external_id())
+    wisdom = insert_currency!("Wisdom")
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: wisdom.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 185.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 366.0
+    })
+
+    activate_generation!(1)
+    league
+  end
+
+  defp leagues_fixture do
+    Path.join([__DIR__, "..", "..", "fixtures", "ggg_leagues", "current_leagues.json"])
+    |> File.read!()
+  end
+
+  defp exchange_fixture(filename) do
+    Path.join([__DIR__, "..", "..", "fixtures", "ggg_exchange", filename]) |> File.read!()
+  end
+
+  # === Feature D: League Selector ===================================
+
+  test "mount with no leagues yet shows the empty state, not a crash", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+    assert render(view) =~ "Select a league to get started."
+  end
+
+  test "mount auto-selects the current league and loads its opportunities", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    other = insert_league!("Hardcore", is_current: false)
+    insert_currency!("Unused")
+
+    {:ok, view, _html} = live(conn, "/")
+    html = render(view)
+
+    assert html =~ "Standard"
+    assert has_element?(view, "option[selected]", "Standard")
+    refute has_element?(view, "option[selected]", other.display_name)
+    assert count_rows(html) == 1
+  end
+
+  test "select_league switches league and reloads opportunities for the new selection", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+    insert_league!("Hardcore", is_current: false)
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    html =
+      view
+      |> element("select.league-selector")
+      |> render_change(%{"value" => "Hardcore"})
+
+    assert has_element?(view, "option[selected]", "Hardcore")
+    # Hardcore has no snapshot data of its own -- switching away from
+    # Standard must clear the previous league's rows, not keep showing them.
+    assert count_rows(html) == 0
+    assert html =~ "No flip opportunities yet."
+  end
+
+  # === Feature G: Manual Data Source Refresh (leagues) ================
+
+  test "refresh_leagues syncs from the real GGG shape and auto-selects the current league", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 200, leagues_fixture())
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    assert render(view) =~ "Select a league to get started."
+
+    # The fetch runs via start_async, not inline in handle_event -- render_click
+    # returns as soon as the event handler itself returns, which is BEFORE the
+    # async task resolves, so this is the spinner state, not the final one
+    # (docs/PRD.md's data-freshness UX: a refresh in flight must be visibly
+    # spinning, not silent until it completes).
+    click_html = view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    assert click_html =~ "league-refresh-button__icon--spinning"
+    assert click_html =~ "Refreshing leagues…"
+
+    html = render_async(view, 2000)
+    refute html =~ "league-refresh-button__icon--spinning"
+    assert has_element?(view, "option[selected]", "Allflame")
+    assert html =~ "Standard"
+    # docs/PRD.md § 7.7: the temporary status banner confirms completion --
+    # separate from (and in addition to) the league selector itself updating.
+    refute html =~ "Refreshing leagues…"
+    assert html =~ "Leagues refreshed"
+  end
+
+  test "refresh_leagues surfaces a fetch failure instead of silently doing nothing", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 500, "internal error")
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    html = render_async(view, 2000)
+
+    assert html =~ "Failed to load leagues"
+    # docs/PRD.md § 7.7: a failure is reported only via the existing
+    # persistent error state -- the temporary banner is cleared, not
+    # repurposed into a second place to look for the same failure.
+    refute html =~ "Refreshing leagues…"
+  end
+
+  # === Feature F/G: Data Freshness Banner + Manual Refresh (ingestion) =
+
+  test "mount with a never-refreshed checkpoint shows the never-refreshed state", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+    assert render(view) =~ "Never refreshed"
+  end
+
+  test "refresh_ingestion walks the real GGG shape to tip, commits, and refreshes the timestamp",
+       %{conn: conn, bypass: bypass} do
+    requested_change_id = 1_785_985_200
+    tip_change_id = 1_785_988_800
+
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: requested_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(
+      bypass,
+      "GET",
+      "/api/currency-exchange/#{requested_change_id}",
+      fn conn -> Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json")) end
+    )
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      Plug.Conn.resp(conn, 404, exchange_fixture("tip_404.json"))
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    assert render(view) =~ "Never refreshed"
+
+    click_html = view |> element("button[aria-label='Refresh market data']") |> render_click()
+    assert click_html =~ "league-refresh-button__icon--spinning"
+    assert click_html =~ "Refreshing market data…"
+
+    html = render_async(view, 2000)
+    refute html =~ "league-refresh-button__icon--spinning"
+    refute html =~ "Never refreshed"
+    refute html =~ "Failed to load market data freshness"
+    # docs/PRD.md § 7.6: one hour of real new data was processed here (the
+    # single fixture page, then the tip) -- the "found new data" outcome,
+    # not "already caught up" or "partial progress".
+    refute html =~ "Refreshing market data…"
+    assert html =~ "Found new data (1h processed)"
+
+    state = PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    assert state.last_processed_change_id == tip_change_id
+    assert state.active_generation_id != 0
+  end
+
+  test "refresh_ingestion already at the tip shows the already-caught-up banner with an ETA", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # 10 minutes into the current bucket -- leaves ~50 minutes until the
+    # next one, comfortably clear of both the "under a minute" boundary and
+    # any minute-rollover flakiness from real test execution time.
+    tip_change_id = System.system_time(:second) - 600
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: tip_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      body = Jason.encode!(%{next_change_id: tip_change_id, markets: []})
+      Plug.Conn.resp(conn, 404, body)
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
+
+    # docs/PRD.md § 7.6: "already caught up" gets an explicit statement plus
+    # a computed ETA until new data will actually be available (derived from
+    # the real checkpoint's next-hour boundary), not a guess.
+    assert [_, minutes] = Regex.run(~r/Already caught up · next data in ~(\d+)m/, html)
+    assert String.to_integer(minutes) in 45..50
+  end
+
+  test "refresh_ingestion hitting the per-call hour cap shows the partial-progress banner", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    requested_change_id = 1_785_985_200
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: requested_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Application.put_env(:poe_flip_finder, :ingestion, max_hours_per_call: 1)
+    on_exit(fn -> Application.delete_env(:poe_flip_finder, :ingestion) end)
+
+    Bypass.expect_once(
+      bypass,
+      "GET",
+      "/api/currency-exchange/#{requested_change_id}",
+      fn conn -> Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json")) end
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
+
+    assert html =~ "Partial progress (1h) — refresh again to continue"
+  end
+
+  test "refresh_ingestion surfaces a fetch failure as the freshness error state", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    Bypass.expect(bypass, fn conn -> Plug.Conn.resp(conn, 500, "internal error") end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
+
+    assert html =~ "Failed to load market data freshness"
+    # docs/PRD.md § 7.6: same rule as leagues -- a failure only ever shows up
+    # via the persistent error state, never via the temporary banner.
+    refute html =~ "Refreshing market data…"
+  end
+
+  # === Feature H: Technique Filters ===================================
+
+  test "toggle_technique hides and reshows matching rows without affecting other techniques", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    html =
+      view
+      |> element("input[aria-label='Exchange spread']")
+      |> render_click()
+
+    assert count_rows(html) == 0
+
+    html =
+      view
+      |> element("input[aria-label='Exchange spread']")
+      |> render_click()
+
+    assert count_rows(html) == 1
+  end
+
+  # === Feature I: Column Sorting & Threshold Filters ==================
+
+  test "set_threshold filters out rows below the minimum, on the correct column", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    # The seeded pair's margin is well under 1000% -- an absurdly high
+    # threshold on Margin's own column must exclude it.
+    html =
+      view
+      |> element("form[phx-value-column='margin']")
+      |> render_change(%{"column" => "margin", "value" => "1000"})
+
+    assert count_rows(html) == 0
+
+    html =
+      view
+      |> element("form[phx-value-column='margin']")
+      |> render_change(%{"column" => "margin", "value" => ""})
+
+    assert count_rows(html) == 1
+  end
+
+  test "toggle_sort on the active column flips direction; on a new column switches and defaults desc",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    assert has_element?(view, "span.col-label.active", "Margin")
+
+    html = view |> element("span.col-label", "Profit") |> render_click()
+    assert html =~ ~r/col-label active[^>]*>\s*Profit/s or html =~ "Profit"
+    assert has_element?(view, "span.col-label.active", "Profit")
+
+    # Clicking the now-active Profit header again flips its direction
+    # rather than resetting to Margin -- toggle_sort's own branch for
+    # "already the active column".
+    view |> element("span.col-label", "Profit") |> render_click()
+    assert has_element?(view, "span.col-label.active", "Profit")
+  end
+
+  # === Features H/I: Persisted Display Preferences =====================
+  # docs/PRD.md § 7.8/7.9: technique filters, sort column/direction, and
+  # thresholds are a per-browser preference, same mechanism as Favorites.
+
+  test "toggling a technique, sorting, and setting a threshold each persist the updated preferences",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    view |> element("input[aria-label='Exchange spread']") |> render_click()
+
+    assert_push_event(view, "persist_display_preferences", %{
+      enabled_techniques: %{
+        vendor_recipe: true,
+        exchange_spread: false,
+        divination_card: true,
+        bulk_buy: true
+      },
+      sort_column: :margin,
+      sort_direction: :desc,
+      thresholds: %{}
+    })
+
+    view |> element("span.col-label", "Profit") |> render_click()
+    assert_push_event(view, "persist_display_preferences", %{sort_column: :profit} = _payload)
+
+    view
+    |> element("form[phx-value-column='volume']")
+    |> render_change(%{"column" => "volume", "value" => "50"})
+
+    assert_push_event(view, "persist_display_preferences", %{thresholds: %{volume: 50.0}} = _)
+  end
+
+  test "display_preferences_loaded applies a saved technique filter, sort, and threshold", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    html =
+      render_click(view, "display_preferences_loaded", %{
+        "enabled_techniques" => %{"exchange_spread" => false},
+        "sort_column" => "profit",
+        "sort_direction" => "asc",
+        "thresholds" => %{"margin" => 5}
+      })
+
+    # exchange_spread is the seeded opportunity's own technique -- disabling
+    # it via the loaded preference must filter the row out immediately.
+    assert count_rows(html) == 0
+    assert has_element?(view, "span.col-label.active", "Profit")
+  end
+
+  test "display_preferences_loaded with garbage input falls back to current defaults, not a crash",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    html =
+      render_click(view, "display_preferences_loaded", %{
+        "enabled_techniques" => "not-a-map",
+        "sort_column" => "not-a-real-column",
+        "sort_direction" => 12_345,
+        "thresholds" => ["also", "not", "a", "map"]
+      })
+
+    assert html =~ "PoE Flip Finder"
+    assert has_element?(view, "span.col-label.active", "Margin")
+    assert has_element?(view, "input[aria-label='Exchange spread'][checked]")
+  end
+
+  test "display_preferences_loaded with a partially-valid payload applies only the valid fields",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    render_click(view, "display_preferences_loaded", %{
+      "enabled_techniques" => %{"bulk_buy" => false, "unknown_future_technique" => false},
+      "sort_column" => "volume",
+      "thresholds" => %{"margin" => "not-a-number", "profit" => 12}
+    })
+
+    # sort_column applies; the unrecognized technique key is ignored rather
+    # than crashing; bulk_buy's real, valid entry still applies; the
+    # unparseable margin threshold is dropped, the valid profit one isn't.
+    assert has_element?(view, "span.col-label.active", "Volume")
+    refute has_element?(view, "input[aria-label='Bulk buy'][checked]")
+    assert has_element?(view, "input[aria-label='Vendor recipe'][checked]")
+  end
+
+  # === Feature J: Favorites ============================================
+
+  test "favoriting a row via the context menu moves it into the favorites group and persists it",
+       %{conn: conn} do
+    league = seed_one_opportunity!("Standard")
+    [opportunity] = FlipOpportunities.compute_flip_opportunities(league.external_id)
+    route_key = FlipOpportunityTablePresenter.get_route_key(opportunity)
+
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, ".grid.row.fav")
+
+    render_click(view, "open_context_menu", %{"route_key" => route_key, "x" => 10, "y" => 10})
+    assert has_element?(view, "#ctx-menu")
+
+    html = render_click(view, "toggle_favorite_from_menu", %{})
+
+    assert html =~ "grid row fav"
+    refute has_element?(view, "#ctx-menu")
+  end
+
+  test "favorites_loaded hydrates favorite state from the client's persisted localStorage set", %{
+    conn: conn
+  } do
+    league = seed_one_opportunity!("Standard")
+    [opportunity] = FlipOpportunities.compute_flip_opportunities(league.external_id)
+    route_key = FlipOpportunityTablePresenter.get_route_key(opportunity)
+
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, ".grid.row.fav")
+
+    html = render_click(view, "favorites_loaded", %{"route_keys" => [route_key]})
+
+    assert html =~ "grid row fav"
+  end
+
+  # === Feature K: Build Info Footer ===================================
+
+  test "the footer renders the compile-time build hash", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+    assert render(view) =~ PoeFlipFinderWeb.BuildInfo.git_hash()
+  end
+
+  # === Feature L: Ratio Calculator =====================================
+
+  test "opening the calculator and entering a ratio auto-fills the simplest integer pair", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, ".ratio-calculator-bubble")
+
+    view |> element("button[aria-label='Open ratio calculator']") |> render_click()
+    assert has_element?(view, ".ratio-calculator-bubble")
+
+    html =
+      view
+      |> element(".ratio-calculator-field form[phx-change='ratio_text_changed']")
+      |> render_change(%{"value" => "15.5:1"})
+
+    assert html =~ "exact match"
+
+    view
+    |> element(".ratio-calculator-pair-row form[phx-change='ratio_left_changed']")
+    |> render_change(%{"value" => "31"})
+
+    html =
+      view
+      |> element(".ratio-calculator-pair-row form[phx-change='ratio_right_changed']")
+      |> render_change(%{"value" => "2"})
+
+    assert html =~ "exact match"
+
+    html = view |> element("button[aria-label='Close ratio calculator']") |> render_click()
+    refute html =~ "ratio-calculator-bubble\">"
+  end
+
+  defp count_rows(html), do: length(Regex.scan(~r/data-route-key=/, html))
+end

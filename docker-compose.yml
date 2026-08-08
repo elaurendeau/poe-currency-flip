@@ -15,18 +15,5 @@ services:
       timeout: 5s
       retries: 10
 
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    environment:
-      DATABASE_URL: jdbc:postgresql://db:5432/poeflipfinder?user=poeflipfinder&password=poeflipfinder
-      FRONTEND_ORIGIN: http://localhost:5173
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-
 volumes:
   db-data:

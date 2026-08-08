@@ -1,10 +1,10 @@
 # Database Schema
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (resilience principles this schema follows) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts this schema normalizes) · [TECH_STACK.md](TECH_STACK.md) (Postgres via Spring Data JPA) · [CODE_STYLE.md](CODE_STYLE.md) (Java code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (resilience principles this schema follows) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts this schema normalizes) · [TECH_STACK.md](TECH_STACK.md) (Postgres via Ecto) · [CODE_STYLE.md](CODE_STYLE.md) (Elixir code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
 This is the internal domain model referenced in [ARCHITECTURE.md § Anti-Corruption Layer](ARCHITECTURE.md#1-anti-corruption-layer) — the only shape the rest of the application ever sees. External API responses are normalized into these tables at the adapter boundary; nothing outside the adapters touches raw GGG/wiki shapes.
 
-**This document is the rationale; [db/migration/V1__init_schema.sql](../db/migration/V1__init_schema.sql) is the actual executable schema.** The two must stay in sync — if you change one, change the other. Schema changes going forward are new Flyway migration files (`V2__...`, `V3__...`), never edits to `V1`, and never Hibernate auto-ddl (see [TECH_STACK.md](TECH_STACK.md)).
+**This document is the rationale; [app/priv/repo/migrations/](../app/priv/repo/migrations/) is the actual executable schema.** The two must stay in sync — if you change one, change the other. Schema changes going forward are new Ecto migration files, never edits to the existing init migration, and never a schema drifting out of sync with what its migrations actually created.
 
 ## Reference data (static, seeded once, updated rarely)
 
@@ -32,10 +32,10 @@ divination_card
   stack_size         cards needed for a full set
   reward_currency_id FK -> currency, nullable
   reward_quantity
-  is_predictable     boolean
+  predictable        boolean
 ```
 
-`is_predictable = false` for gamble/random-reward cards excluded from [PRD.md § 7.3](PRD.md#73-feature-c--divination-card-flip-finder). These rows are kept, not omitted, so the exclusion decision stays visible and auditable rather than silently absent from the data.
+`predictable = false` for gamble/random-reward cards excluded from [PRD.md § 7.3](PRD.md#73-feature-c--divination-card-flip-finder). These rows are kept, not omitted, so the exclusion decision stays visible and auditable rather than silently absent from the data.
 
 ## League cache
 
@@ -49,7 +49,7 @@ league
   known_to_ggg          boolean — true only once a real GGG Leagues API sync has confirmed this league exists
 ```
 
-Two independent writers populate this table, which is why `known_to_ggg` exists: Currency Exchange ingestion creates a row for *any* league string it sees in raw trade data (including private/unlisted leagues GGG's public Leagues API never returns), via `resolveOrCreateLeague`; a manual "Refresh leagues" sync (docs/PRD.md § 7.7) calls the live Leagues API ([DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list)) and upserts the real, public league list, setting `known_to_ggg = true`. `GET /leagues` (a cached DB read, never a live call — see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution)) filters on `known_to_ggg` so those private/junk rows never reach the dropdown. `has_exchange_activity` is set independently, once ingestion actually observes market data for that league — the real gate for League Resolution step 3, stronger than the SSF rule-filter alone.
+Two independent writers populate this table, which is why `known_to_ggg` exists: Currency Exchange ingestion creates a row for *any* league string it sees in raw trade data (including private/unlisted leagues GGG's public Leagues API never returns), via `resolve_or_create_league/1`; a manual "Refresh leagues" sync (docs/PRD.md § 7.7) calls the live Leagues API ([DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list)) and upserts the real, public league list, setting `known_to_ggg = true`. `GET /leagues` (a cached DB read, never a live call — see [ARCHITECTURE.md § League Resolution](ARCHITECTURE.md#league-resolution)) filters on `known_to_ggg` so those private/junk rows never reach the dropdown. `has_exchange_activity` is set independently, once ingestion actually observes market data for that league — the real gate for League Resolution step 3, stronger than the SSF rule-filter alone.
 
 ## Ingestion state and market data
 
@@ -92,4 +92,4 @@ No retention window, no trend history — consistent with [PRD.md § 9](PRD.md#9
 
 ## Deliberately not a table: flip opportunities
 
-Features A, B, C, and E's results (the ranked lists shown to the user) are **computed on demand** from the tables above at request time, not persisted. The manual-refresh model ([ARCHITECTURE.md § Currency Exchange Ingestion](ARCHITECTURE.md#currency-exchange-ingestion-change-stream--checkpoint-model)) means there's no live feed to cache against, and storing computed results would introduce a staleness/invalidation problem the architecture's failure-handling principles are explicitly designed to avoid. This computation lives in the Java service layer, reading from `exchange_market_snapshot`, `vendor_recipe`, `divination_card`, and `currency`.
+Features A, B, C, and E's results (the ranked lists shown to the user) are **computed on demand** from the tables above at request time, not persisted. The manual-refresh model ([ARCHITECTURE.md § Currency Exchange Ingestion](ARCHITECTURE.md#currency-exchange-ingestion-change-stream--checkpoint-model)) means there's no live feed to cache against, and storing computed results would introduce a staleness/invalidation problem the architecture's failure-handling principles are explicitly designed to avoid. This computation lives in the `PoeFlipFinder` context modules (the functional core, per [CODE_STYLE.md](CODE_STYLE.md)), reading from `exchange_market_snapshot`, `vendor_recipe`, `divination_card`, and `currency`.

@@ -1,30 +1,28 @@
 # Tech Stack
 
-**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (how we isolate ourselves from external sources) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [SCHEMA.md](SCHEMA.md) (database schema) · [CODE_STYLE.md](CODE_STYLE.md) (Java code style/design) · [FRONTEND_CODE_STYLE.md](FRONTEND_CODE_STYLE.md) (React/TypeScript code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
+**Related docs:** [PRD.md](PRD.md) (what we're building) · [ARCHITECTURE.md](ARCHITECTURE.md) (how we isolate ourselves from external sources) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [SCHEMA.md](SCHEMA.md) (database schema) · [CODE_STYLE.md](CODE_STYLE.md) (Elixir code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
-## Decision: backend is required, not optional
+## Decision: server-rendered, not a separate API + client-side app
 
-The Currency Exchange API ([DATA_SOURCES.md](DATA_SOURCES.md)) sends no `Access-Control-Allow-Origin` header, so browsers block calling it directly from frontend JavaScript — verified by direct testing (2026-08-05). A pure client-side app cannot ingest this data. All Currency Exchange ingestion, adapters, validation, and flip-margin computation ([ARCHITECTURE.md](ARCHITECTURE.md)) must run server-side.
+The Currency Exchange API ([DATA_SOURCES.md](DATA_SOURCES.md)) sends no `Access-Control-Allow-Origin` header, so browsers block calling it directly from client-side JavaScript — verified by direct testing. A pure client-side app cannot ingest this data; all Currency Exchange ingestion, adapters, validation, and flip-margin computation ([ARCHITECTURE.md](ARCHITECTURE.md)) must run server-side.
 
-(The Leagues API does allow direct browser calls (`Access-Control-Allow-Origin: *`), but the backend owns it anyway for consistency and so the frontend has one API to talk to.)
+This app is Phoenix LiveView: one Elixir process serves both the computation and the UI over a persistent connection, pushing rendered HTML diffs to the browser as state changes — no separate JSON API, no separate single-page-app build, no REST/GraphQL contract to keep in sync between two codebases. (The Leagues API does allow direct browser calls (`Access-Control-Allow-Origin: *`), but the server owns it anyway for consistency — there's only one place that talks to GGG at all.)
 
 ## Stack
 
 | Layer | Choice | Why |
 |---|---|---|
-| Backend | Java 21 + Spring Boot 3 | Owns ingestion/adapters/validation/computation — the highest-value-to-debug-yourself code, and the owner (a senior Java dev) can read and fix it directly without relying on AI to diagnose an unfamiliar language. |
-| Frontend | React + TypeScript | Standard choice for a sortable/filterable data-table site; most mainstream target for AI-assisted code generation and debugging. |
-| Database | PostgreSQL (via Spring Data JPA) | Stores the Currency Exchange ingestion checkpoint and normalized market state between runs, plus vendor recipe / divination card reference data. |
-| Schema migrations | Flyway | Versioned SQL migration files are the only source of truth for the schema — Hibernate's auto-ddl is disabled. Every schema change is a new numbered file, applied in order, tracked in Flyway's own history table; a data migration (backfilling/transforming existing rows) is just SQL in that same file. See [SCHEMA.md](SCHEMA.md) and [db/migration/V1__init_schema.sql](../db/migration/V1__init_schema.sql). |
-| Communication | REST API (JSON) | Frontend calls the backend; no need for GraphQL or websockets since this is refresh-on-demand, not a live feed. |
+| Application | Elixir 1.18 + Phoenix 1.7 + LiveView 1.0 | Owns ingestion/adapters/validation/computation and the UI in one process — see [CODE_STYLE.md](CODE_STYLE.md) for how Clean Architecture layering maps onto Phoenix Contexts + the `boundary` library. |
+| Database | PostgreSQL (via Ecto) | Stores the Currency Exchange ingestion checkpoint and normalized market state between runs, plus vendor recipe / divination card reference data. |
+| Schema migrations | Ecto Migrator | Versioned migration files under `app/priv/repo/migrations/` are the only source of truth for the schema. Every schema change is a new migration file, applied in order, tracked in Ecto's own `schema_migrations` table. See [SCHEMA.md](SCHEMA.md). |
+| Communication | None — server-rendered | LiveView pushes diffs over a persistent WebSocket (falling back to long-polling); no REST/GraphQL API, no client-side data-fetching layer to keep in sync with a separate backend. |
 
-## Hosting (all free tiers)
+## Hosting (free tier)
 
 | Component | Where | Notes |
 |---|---|---|
-| Backend | [Render.com](https://render.com) free web service | Git-push deploys, zero server maintenance. **Tradeoff:** spins down after ~15 min idle; next request pays a cold-start cost (JVM + Spring Boot boot time, roughly 20-60s) before responding. Given this app is refreshed manually and used occasionally rather than continuously, the backend will likely be asleep on most visits — accepted as a real but tolerable UX cost in exchange for $0 hosting and no ops work. |
-| Database | [Neon.tech](https://neon.tech) free Postgres | Serverless Postgres, free tier does not expire (unlike some other providers' free databases). Also scale-to-zero, consistent with the low-traffic usage pattern. |
-| Frontend | [Vercel](https://vercel.com) free tier | Static hosting for the React build. No cold-start concern — static assets are always served instantly regardless of backend state. |
+| Application | [Render.com](https://render.com) free web service (Docker) | Git-push deploys via CI, zero server maintenance. **Tradeoff:** spins down after ~15 min idle; next request pays a cold-start cost (BEAM VM boot time, roughly 20-60s) before responding. Given this app is refreshed manually and used occasionally rather than continuously, it will likely be asleep on most visits — accepted as a real but tolerable UX cost in exchange for $0 hosting and no ops work. See [DEPLOYMENT.md](DEPLOYMENT.md) for the Docker release and migrate-on-deploy setup. |
+| Database | [Neon.tech](https://neon.tech) free Postgres | Serverless Postgres, free tier does not expire (unlike some other providers' free databases). Also scale-to-zero, consistent with the low-traffic usage pattern. Requires SSL (`ssl: true` in the Ecto config) — Neon rejects plaintext connections outright. |
 
 Alternative considered and rejected for now: self-hosting on Oracle Cloud's "Always Free" ARM VM (genuinely free forever, no cold starts, but requires the owner to personally handle OS updates, uptime, backups, and TLS — real ongoing ops burden not worth it for this project's traffic level).
 
