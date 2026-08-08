@@ -2,9 +2,9 @@ name: CI/CD
 
 on:
   push:
-    branches: ["dev", "main"]
+    branches: ["dev", "main", "elixir-migration"]
   pull_request:
-    branches: ["dev", "main"]
+    branches: ["dev", "main", "elixir-migration"]
   workflow_dispatch:
     inputs:
       deploy_target:
@@ -46,6 +46,49 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test --if-present
+
+  # New Elixir/Phoenix LiveView app under app/, built on the elixir-migration
+  # branch per the migration plan -- runs alongside (not replacing) the Java
+  # and React jobs above until Phase 7 cutover. See docs/ELIXIR_CODE_STYLE.md
+  # and docs/ELIXIR_TEST_MANIFESTO.md.
+  test-app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: poeflipfinder
+          POSTGRES_PASSWORD: poeflipfinder
+          POSTGRES_DB: poe_flip_finder_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U poeflipfinder"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28"
+          elixir-version: "1.18"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            app/deps
+            app/_build
+          key: ${{ runner.os }}-mix-${{ hashFiles('app/mix.lock') }}
+      - run: mix deps.get
+      # Day-one enforcement (docs/ELIXIR_CODE_STYLE.md): a boundary violation
+      # is a compiler warning by default -- --warnings-as-errors is what
+      # actually turns the Dependency Rule into a build failure, not just
+      # local-only prose.
+      - run: mix compile --warnings-as-errors
+      - run: mix credo --strict
+      - run: mix test
 
   # Deploy jobs run automatically on a push to main, or on demand from any
   # branch via workflow_dispatch (Actions tab -> Run workflow -> pick branch

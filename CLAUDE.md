@@ -11,6 +11,14 @@ Full doc index: [README.md](README.md).
 
 **Enforcement:** the moment a `pom.xml` exists in this repo, add the ArchUnit test described in [docs/CODE_STYLE.md § Clean Architecture](docs/CODE_STYLE.md#clean-architecture--layering-the-onion-with-names) (Day-one enforcement requirement) before writing any other backend code. Don't let the architecture rules be prose-only.
 
+## Tooling
+
+`gh` (GitHub CLI) is not on PATH in the default Windows shell (PowerShell/Git Bash) but is authenticated and available through WSL. When a `gh` command is needed (checking/changing the GitHub default branch, PRs, issues, etc.), run it via WSL (e.g. `wsl gh ...`) rather than reporting it as unavailable.
+
+## Branching
+
+`main` is this repository's mainline/default branch. A `master` branch also exists in history (currently pointing at the same commit as `main`) — treat it as legacy; never create, target, or base new work off a branch literally named `master`. Feature branches are cut from `main`, and PRs target `main`.
+
 ## Regression discipline
 
 Whenever a bug or gap is found and fixed — in this session or a future one — add a test (or, if genuinely untestable, a documented manual-verification step) that would have caught it, committed in the same change as the fix. This applies to backend and frontend equally. A fix without a regression test is a fix that can silently come back.
