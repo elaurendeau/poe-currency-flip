@@ -209,12 +209,19 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     seed_one_divination_card_opportunity!("Standard")
 
     {:ok, view, _html} = live(conn, "/")
-    html = render(view)
 
-    assert html =~ "Test Card"
-    assert html =~ "Test Reward"
-    assert html =~ "&#8594;"
-    assert html =~ "≈0.25c per card"
+    # Anchored on "≈0.25c per card" (this scenario's hand-verified detail
+    # string) rather than "Test Card" alone -- Exchange Spread independently
+    # produces its own single-item row off the same chaos-card snapshot, so
+    # matching on the card's name alone would ambiguously match two rows.
+    row_html =
+      view
+      |> element(".grid.row", "≈0.25c per card")
+      |> render()
+
+    assert row_html =~ "Test Card"
+    assert row_html =~ "Test Reward"
+    assert row_html =~ "class=\"arrow\""
   end
 
   # === Feature D: League Selector ===================================
