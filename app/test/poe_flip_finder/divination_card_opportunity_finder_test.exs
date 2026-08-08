@@ -80,8 +80,21 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     }
   end
 
-  defp card_currency, do: %Currency{external_id: "Metadata/Items/DivinationCards/DivinationCardTest", display_name: "Test Card", item_type: :divination_card}
-  defp reward_currency, do: %Currency{external_id: "Metadata/Items/Currency/CurrencyTestReward", display_name: "Test Reward", item_type: :currency}
+  defp card_currency do
+    %Currency{
+      external_id: "Metadata/Items/DivinationCards/DivinationCardTest",
+      display_name: "Test Card",
+      item_type: :divination_card
+    }
+  end
+
+  defp reward_currency do
+    %Currency{
+      external_id: "Metadata/Items/Currency/CurrencyTestReward",
+      display_name: "Test Reward",
+      item_type: :currency
+    }
+  end
 
   test "golden path: hand-verified buy + resale via chaos" do
     # Buy leg: flat 1:5 chaos:card ratio -> suggested_buy_price=4 (card per
@@ -141,12 +154,14 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
   test "resale leg: reward currency is Chaos itself needs no market lookup" do
     buy_snapshot = snapshot(@chaos, card_currency())
 
+    reward_as_chaos =
+      reward(%{
+        reward_currency: %Currency{external_id: nil, display_name: "Chaos Orb", item_type: :currency},
+        reward_quantity: 7
+      })
+
     [opportunity] =
-      DivinationCardOpportunityFinder.find(
-        [buy_snapshot],
-        [reward(%{reward_currency: %Currency{external_id: nil, display_name: "Chaos Orb", item_type: :currency}, reward_quantity: 7})],
-        @rate_210
-      )
+      DivinationCardOpportunityFinder.find([buy_snapshot], [reward_as_chaos], @rate_210)
 
     assert opportunity.sell == [%PoeFlipFinder.CurrencyAmount{currency: @chaos, quantity: 7}]
   end
@@ -154,12 +169,14 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
   test "resale leg: reward currency is Divine itself converts via chaos_per_divine" do
     buy_snapshot = snapshot(@chaos, card_currency())
 
+    reward_as_divine =
+      reward(%{
+        reward_currency: %Currency{external_id: nil, display_name: "Divine Orb", item_type: :currency},
+        reward_quantity: 2
+      })
+
     [opportunity] =
-      DivinationCardOpportunityFinder.find(
-        [buy_snapshot],
-        [reward(%{reward_currency: %Currency{external_id: nil, display_name: "Divine Orb", item_type: :currency}, reward_quantity: 2})],
-        @rate_210
-      )
+      DivinationCardOpportunityFinder.find([buy_snapshot], [reward_as_divine], @rate_210)
 
     assert opportunity.sell == [%PoeFlipFinder.CurrencyAmount{currency: @chaos, quantity: 420.0}]
   end
