@@ -46,18 +46,24 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     assert result.icon_url == nil
   end
 
-  test "returns nil for an item not in the catalog" do
+  test "falls back to a generic :misc entry, not nil, for an item not in the catalog" do
     catalog = GggItemIconGateway.normalize(fixture())
 
     # Verified real example (docs/DATA_SOURCES.md § Item Icons): this item
-    # genuinely has no catalog entry in any group.
+    # genuinely has no catalog entry in any group. A real market entry
+    # must never be dropped just because this decorative catalog has
+    # nothing for it -- see GggItemIconGateway's moduledoc "This module
+    # never returns nil for a real market entry".
     result =
       GggItemIconGateway.lookup_item(
         "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral",
         catalog
       )
 
-    assert result == nil
+    assert result.category == :misc
+    assert result.display_name == "Breach Upgrade Unique General"
+    assert result.icon_url == nil
+    assert result.external_id == "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral"
   end
 
   test "resolves an Essence by falling back to a suffix match" do
@@ -91,11 +97,14 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
 
     # The fixture's "Misc" group has a 3-character basename ("Tal") that
     # this real path's basename ends in -- proves the minimum suffix
-    # length actually suppresses a match that would otherwise succeed, not
-    # just that unrelated items stay unmatched.
+    # length actually suppresses a match that would otherwise succeed
+    # (which would fall through to the generic :misc fallback, not this
+    # more-specific would-be match), not just that unrelated items land
+    # in the fallback too.
     result = GggItemIconGateway.lookup_item("Metadata/Items/Currency/CurrencyFooBarTal", catalog)
 
-    assert result == nil
+    assert result.category == :misc
+    assert result.display_name == "Foo Bar Tal"
   end
 
   test "resolves a Tattoo via its known naming pattern -- GGG's static catalog has no entry matching any real tattoo's basename at all (every one of ~90 distinct tattoos shares one generic catalog icon)" do

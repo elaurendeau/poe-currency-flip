@@ -42,6 +42,22 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   (`lookup_by_known_naming_pattern/2`), independent of the catalog
   entirely, with a derived (not GGG-authoritative) display name.
 
+  **This module never returns `nil` for a real market entry.** It used to
+  -- an unmatched item fell through to `nil`, and `Ingestion.resolve_currency/2`
+  silently dropped the entire market pair, which is exactly how the two
+  families above went unnoticed: real, currently-traded items, invisible
+  from a missing decoration, not a missing trade. GGG's Currency Exchange
+  feed is the ground truth for what's actually tradeable; this catalog is
+  only ever supplementary decoration for it, so a catalog miss now always
+  falls through to `fallback_currency/3` -- a generic, best-effort
+  `:misc`-categorized entry with a humanized basename as its display
+  name -- rather than dropping the item. The `ItemIconGateway` behaviour
+  itself still allows `nil` (a genuinely malformed/empty external_id, or
+  a different implementation entirely), and `Ingestion`'s
+  skip-and-continue handling for that case stays in place as real,
+  tested resilience infrastructure -- this module just stops being the
+  thing that triggers it for an otherwise-ordinary item.
+
   The parsed catalog is cached in `:persistent_term` after first load --
   it's ~200KB of effectively-immutable data read very frequently (once per
   never-before-seen item during ingestion), the textbook fit for
@@ -82,9 +98,31 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
 
   defp lookup_currency(external_id, basename, by_image_basename) do
     case Map.get(by_image_basename, basename) || suffix_match(basename, by_image_basename) do
-      nil -> lookup_by_known_naming_pattern(external_id, basename)
+      nil -> resolve_uncataloged_currency(external_id, basename)
       entry -> currency_from_catalog_entry(external_id, entry)
     end
+  end
+
+  # A real market entry (GGG's Currency Exchange feed itself is the ground
+  # truth for what's actually tradeable) must never be dropped just
+  # because this supplementary icon/name catalog has nothing for it --
+  # see moduledoc "Some groups aren't in the catalog at all, under any
+  # name". The known-family patterns give a proper category and a decent
+  # name; anything else still resolves, generically, rather than vanishing
+  # from ingestion the way both families above did before this existed.
+  defp resolve_uncataloged_currency(external_id, basename) do
+    lookup_by_known_naming_pattern(external_id, basename) ||
+      fallback_currency(external_id, basename, :misc)
+  end
+
+  defp fallback_currency(external_id, basename, category) do
+    %Currency{
+      id: nil,
+      external_id: external_id,
+      display_name: humanize_basename(basename),
+      icon_url: nil,
+      category: category
+    }
   end
 
   defp currency_from_catalog_entry(external_id, entry) do
@@ -97,9 +135,9 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     }
   end
 
-  # See moduledoc "Some groups aren't in the catalog at all, under any
-  # name" -- without this, Ingestion.resolve_currency/2 treats every
-  # Tattoo/Runegraft market pair as unresolvable and silently drops it.
+  # A generic fallback (below) would work for Tattoos/Runegrafts too, but
+  # these two known, common families get a real category and a much
+  # better name instead of landing in :misc with a raw humanized basename.
   defp lookup_by_known_naming_pattern(external_id, basename) do
     tattoo_currency(external_id, basename) || runegraft_currency(external_id, basename)
   end
@@ -126,7 +164,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
         %Currency{
           id: nil,
           external_id: external_id,
-          display_name: "Runegraft of #{humanize_camel_case(descriptor)}",
+          display_name: "Runegraft of #{humanize_basename(descriptor)}",
           icon_url: nil,
           category: :runegrafts
         }
@@ -136,7 +174,15 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     end
   end
 
-  defp humanize_camel_case(text), do: String.replace(text, ~r/(?<=[a-z])(?=[A-Z])/, " ")
+  # Best-effort, not authoritative: PascalCase/camelCase split into words,
+  # with a leading "Currency" dropped since it's redundant on almost every
+  # basename that has one -- used whenever no catalog entry, and no known
+  # naming pattern, can supply a real display name.
+  defp humanize_basename(basename) do
+    basename
+    |> String.replace(~r/^Currency(?=[A-Z])/, "")
+    |> String.replace(~r/(?<=[a-z0-9])(?=[A-Z])/, " ")
+  end
 
   # Tries progressively shorter suffixes of the real basename, so the first
   # hit is the longest (most specific, least collision-prone) catalog
@@ -158,7 +204,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
 
     case Map.get(cards_by_canonical_name, canonicalize(card_name)) do
       nil ->
-        nil
+        fallback_currency(external_id, card_name, :cards)
 
       entry ->
         %Currency{
