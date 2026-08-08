@@ -169,8 +169,16 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     assert render(view) =~ "Select a league to get started."
 
-    html = view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    # The fetch runs via start_async, not inline in handle_event -- render_click
+    # returns as soon as the event handler itself returns, which is BEFORE the
+    # async task resolves, so this is the spinner state, not the final one
+    # (docs/PRD.md's data-freshness UX: a refresh in flight must be visibly
+    # spinning, not silent until it completes).
+    click_html = view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    assert click_html =~ "league-refresh-button__icon--spinning"
 
+    html = render_async(view, 2000)
+    refute html =~ "league-refresh-button__icon--spinning"
     assert has_element?(view, "option[selected]", "Allflame")
     assert html =~ "Standard"
   end
@@ -184,7 +192,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     end)
 
     {:ok, view, _html} = live(conn, "/")
-    html = view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    html = render_async(view, 2000)
 
     assert html =~ "Failed to load leagues"
   end
@@ -221,8 +230,11 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     assert render(view) =~ "Never refreshed"
 
-    html = view |> element("button[aria-label='Refresh market data']") |> render_click()
+    click_html = view |> element("button[aria-label='Refresh market data']") |> render_click()
+    assert click_html =~ "league-refresh-button__icon--spinning"
 
+    html = render_async(view, 2000)
+    refute html =~ "league-refresh-button__icon--spinning"
     refute html =~ "Never refreshed"
     refute html =~ "Failed to load market data freshness"
 
@@ -238,7 +250,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     Bypass.expect(bypass, fn conn -> Plug.Conn.resp(conn, 500, "internal error") end)
 
     {:ok, view, _html} = live(conn, "/")
-    html = view |> element("button[aria-label='Refresh market data']") |> render_click()
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
 
     assert html =~ "Failed to load market data freshness"
   end

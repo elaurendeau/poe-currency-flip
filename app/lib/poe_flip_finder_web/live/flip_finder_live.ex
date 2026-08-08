@@ -86,58 +86,23 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   def handle_event("refresh_leagues", _params, socket) do
+    # Runs the fetch in a Task via start_async, not inline: handle_event only
+    # ever reaches the client once it returns, so doing the (potentially
+    # multi-second) GGG call synchronously here meant leagues_refreshing:
+    # true and its eventual reversal both landed in the SAME diff -- the
+    # spinner CSS class existed but the client never had a frame in which
+    # it was actually applied. Splitting the assign from the work across
+    # this boundary is what makes the spinner visible at all.
     socket = assign(socket, :leagues_refreshing, true)
-
-    socket =
-      case Leagues.refresh_league_list() do
-        {:ok, leagues} ->
-          selected = resolve_selected_league(leagues, socket.assigns.selected_league)
-
-          socket
-          |> assign(
-            leagues: leagues,
-            selected_league: selected,
-            leagues_refreshing: false,
-            leagues_error: false
-          )
-          |> load_opportunities()
-
-        {:error, _reason} ->
-          assign(socket, leagues_refreshing: false, leagues_error: true)
-      end
-
-    {:noreply, socket}
+    {:noreply, start_async(socket, :refresh_leagues, &Leagues.refresh_league_list/0)}
   end
 
   def handle_event("refresh_ingestion", _params, socket) do
     socket = assign(socket, :ingestion_refreshing, true)
+    cap_policy = catchup_cap_policy()
 
-    socket =
-      case Ingestion.run_ingestion_catchup(catchup_cap_policy()) do
-        {:ok, result} ->
-          # The refresh response carries last_processed_change_id but not
-          # active_generation_refreshed_at -- re-fetch freshness for the
-          # authoritative commit timestamp rather than approximating it.
-          freshness = Ingestion.get_ingestion_freshness()
-
-          socket
-          |> assign(
-            last_refresh_result: result,
-            freshness: freshness,
-            ingestion_refreshing: false,
-            freshness_error: false
-          )
-          # docs/PRD.md § 7.6: clicking refresh must also refresh the
-          # displayed opportunities, not just this timestamp -- otherwise
-          # the table can keep showing rows computed from the previous
-          # generation after the timestamp has already moved forward.
-          |> load_opportunities()
-
-        {:error, _reason} ->
-          assign(socket, ingestion_refreshing: false, freshness_error: true)
-      end
-
-    {:noreply, socket}
+    {:noreply,
+     start_async(socket, :refresh_ingestion, fn -> Ingestion.run_ingestion_catchup(cap_policy) end)}
   end
 
   def handle_event("toggle_technique", %{"technique" => technique}, socket) do
@@ -266,6 +231,66 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       end
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_async(:refresh_leagues, {:ok, result}, socket) do
+    socket =
+      case result do
+        {:ok, leagues} ->
+          selected = resolve_selected_league(leagues, socket.assigns.selected_league)
+
+          socket
+          |> assign(
+            leagues: leagues,
+            selected_league: selected,
+            leagues_refreshing: false,
+            leagues_error: false
+          )
+          |> load_opportunities()
+
+        {:error, _reason} ->
+          assign(socket, leagues_refreshing: false, leagues_error: true)
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:refresh_leagues, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, leagues_refreshing: false, leagues_error: true)}
+  end
+
+  def handle_async(:refresh_ingestion, {:ok, result}, socket) do
+    socket =
+      case result do
+        {:ok, result} ->
+          # The refresh response carries last_processed_change_id but not
+          # active_generation_refreshed_at -- re-fetch freshness for the
+          # authoritative commit timestamp rather than approximating it.
+          freshness = Ingestion.get_ingestion_freshness()
+
+          socket
+          |> assign(
+            last_refresh_result: result,
+            freshness: freshness,
+            ingestion_refreshing: false,
+            freshness_error: false
+          )
+          # docs/PRD.md § 7.6: clicking refresh must also refresh the
+          # displayed opportunities, not just this timestamp -- otherwise
+          # the table can keep showing rows computed from the previous
+          # generation after the timestamp has already moved forward.
+          |> load_opportunities()
+
+        {:error, _reason} ->
+          assign(socket, ingestion_refreshing: false, freshness_error: true)
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_async(:refresh_ingestion, {:exit, _reason}, socket) do
+    {:noreply, assign(socket, ingestion_refreshing: false, freshness_error: true)}
   end
 
   defp load_opportunities(socket) do
