@@ -98,6 +98,34 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     assert result == nil
   end
 
+  test "resolves a Tattoo via its known naming pattern -- GGG's static catalog has no entry matching any real tattoo's basename at all (every one of ~90 distinct tattoos shares one generic catalog icon)" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-08 (Allflame league) -- docs/DATA_SOURCES.md § Item Icons.
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/Currency/AncestralTattooArohongui3",
+        catalog
+      )
+
+    assert result.category == :ancestor
+    assert result.display_name == "Tattoo of the Arohongui (Tier 3)"
+    assert result.icon_url == nil
+  end
+
+  test "resolves a Runegraft via its known naming pattern -- GGG's static catalog only has the pre-rework 'VillageRuneN' internal names, not the current ones the live feed uses" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-08 (Allflame league) -- docs/DATA_SOURCES.md § Item Icons.
+    result = GggItemIconGateway.lookup_item("Metadata/Items/Currency/RunegraftSuffering", catalog)
+
+    assert result.category == :runegrafts
+    assert result.display_name == "Runegraft of Suffering"
+    assert result.icon_url == nil
+  end
+
   defp fixture do
     Path.join([__DIR__, "..", "..", "fixtures", "ggg_item_icons", "catalog.json"])
     |> File.read!()

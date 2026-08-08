@@ -31,6 +31,17 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   sample, and `@min_suffix_match_length` guards against a short catalog
   basename coincidentally matching an unrelated item.
 
+  **Some groups aren't in the catalog at all, under any name.** Verified
+  against a live hour of Currency Exchange data 2026-08-08: every real
+  Tattoo variant (~90 distinct items) shares one generic catalog icon
+  across all of them, and every Runegraft's catalog entry is still keyed
+  to its pre-rework internal name -- neither exact nor suffix basename
+  matching can bridge that gap (re-fetching the catalog fresh from GGG's
+  CDN confirmed it isn't a stale-bundle problem either). These two
+  families get a narrow, pattern-based fallback instead
+  (`lookup_by_known_naming_pattern/2`), independent of the catalog
+  entirely, with a derived (not GGG-authoritative) display name.
+
   The parsed catalog is cached in `:persistent_term` after first load --
   it's ~200KB of effectively-immutable data read very frequently (once per
   never-before-seen item during ingestion), the textbook fit for
@@ -45,6 +56,8 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   @catalog_resource_path "reference-data/item-icons-catalog.json"
   @min_suffix_match_length 4
   @persistent_term_key {__MODULE__, :catalog}
+  @tattoo_pattern ~r/^AncestralTattoo([A-Z][a-zA-Z]*?)(\d+)$/
+  @runegraft_pattern ~r/^Runegraft([A-Z][a-zA-Z]*)$/
 
   @type catalog :: %{by_image_basename: map(), cards_by_canonical_name: map()}
 
@@ -69,19 +82,61 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
 
   defp lookup_currency(external_id, basename, by_image_basename) do
     case Map.get(by_image_basename, basename) || suffix_match(basename, by_image_basename) do
-      nil ->
-        nil
+      nil -> lookup_by_known_naming_pattern(external_id, basename)
+      entry -> currency_from_catalog_entry(external_id, entry)
+    end
+  end
 
-      entry ->
+  defp currency_from_catalog_entry(external_id, entry) do
+    %Currency{
+      id: nil,
+      external_id: external_id,
+      display_name: entry["text"],
+      icon_url: to_absolute_icon_url(entry["image"]),
+      category: entry["__category"]
+    }
+  end
+
+  # See moduledoc "Some groups aren't in the catalog at all, under any
+  # name" -- without this, Ingestion.resolve_currency/2 treats every
+  # Tattoo/Runegraft market pair as unresolvable and silently drops it.
+  defp lookup_by_known_naming_pattern(external_id, basename) do
+    tattoo_currency(external_id, basename) || runegraft_currency(external_id, basename)
+  end
+
+  defp tattoo_currency(external_id, basename) do
+    case Regex.run(@tattoo_pattern, basename) do
+      [_, family, tier] ->
         %Currency{
           id: nil,
           external_id: external_id,
-          display_name: entry["text"],
-          icon_url: to_absolute_icon_url(entry["image"]),
-          category: entry["__category"]
+          display_name: "Tattoo of the #{family} (Tier #{tier})",
+          icon_url: nil,
+          category: :ancestor
         }
+
+      nil ->
+        nil
     end
   end
+
+  defp runegraft_currency(external_id, basename) do
+    case Regex.run(@runegraft_pattern, basename) do
+      [_, descriptor] ->
+        %Currency{
+          id: nil,
+          external_id: external_id,
+          display_name: "Runegraft of #{humanize_camel_case(descriptor)}",
+          icon_url: nil,
+          category: :runegrafts
+        }
+
+      nil ->
+        nil
+    end
+  end
+
+  defp humanize_camel_case(text), do: String.replace(text, ~r/(?<=[a-z])(?=[A-Z])/, " ")
 
   # Tries progressively shorter suffixes of the real basename, so the first
   # hit is the longest (most specific, least collision-prone) catalog
