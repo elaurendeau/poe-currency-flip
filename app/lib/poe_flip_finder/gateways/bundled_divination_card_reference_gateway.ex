@@ -54,7 +54,7 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGateway do
 
   defp to_entity(entry) do
     %DivinationCardReward{
-      card: placeholder_currency(entry["cardName"], :divination_card),
+      card: placeholder_currency(entry["cardName"], :cards),
       stack_size: entry["stackSize"],
       reward_currency: placeholder_reward_currency(entry["rewardCurrencyName"]),
       reward_quantity: entry["rewardQuantity"] || 0,
@@ -65,13 +65,13 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGateway do
   defp placeholder_reward_currency(nil), do: nil
   defp placeholder_reward_currency(name), do: placeholder_currency(name, :currency)
 
-  defp placeholder_currency(name, item_type) do
+  defp placeholder_currency(name, category) do
     %Currency{
       id: nil,
       external_id: nil,
       display_name: name,
       icon_url: nil,
-      item_type: item_type
+      category: category
     }
   end
 end

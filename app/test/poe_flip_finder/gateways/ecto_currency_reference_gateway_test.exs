@@ -17,7 +17,7 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGatewayTest do
       |> Ecto.Changeset.change(
         external_id: "Metadata/Items/Currency/CurrencyPortal",
         display_name: "Portal Scroll",
-        item_type: :currency
+        category: :currency
       )
       |> Repo.insert()
 
@@ -40,7 +40,7 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGatewayTest do
       external_id: "Metadata/Items/Currency/CurrencyPortal",
       display_name: "Portal Scroll",
       icon_url: "https://www.pathofexile.com/gen/image/x.png",
-      item_type: :currency
+      category: :currency
     })
 
     result =

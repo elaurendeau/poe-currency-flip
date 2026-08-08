@@ -21,7 +21,7 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGatewayTest do
     assert reward.reward_quantity == 5
     assert reward.predictable == true
     assert reward.card.external_id == nil
-    assert reward.card.item_type == :divination_card
+    assert reward.card.category == :cards
   end
 
   test "keeps a non-predictable (gamble) card rather than omitting it, per PRD.md § 7.3" do
@@ -48,10 +48,10 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGatewayTest do
     [reward] = BundledDivinationCardReferenceGateway.normalize(raw)
 
     assert reward.card.display_name == "The Nurse"
-    assert reward.card.item_type == :divination_card
+    assert reward.card.category == :cards
     assert reward.stack_size == 4
     assert reward.reward_currency.display_name == "Orb of Alchemy"
-    assert reward.reward_currency.item_type == :currency
+    assert reward.reward_currency.category == :currency
     assert reward.reward_quantity == 3
     assert reward.predictable == true
   end

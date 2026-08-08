@@ -6,7 +6,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
   gets computed, only what's shown and in what order.
   """
 
-  alias PoeFlipFinder.FlipOpportunity
+  alias PoeFlipFinder.{Currency, FlipOpportunity}
 
   @type sort_column :: :margin | :profit | :volume
   @type sort_direction :: :asc | :desc
@@ -43,6 +43,23 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
     Enum.filter(opportunities, &Map.get(enabled_techniques, &1.technique, false))
   end
 
+  @doc """
+  A row's category is the last leg of its Via chain -- for every technique
+  except Divination Card, Via has exactly one leg, so that's unambiguous.
+  Divination Card's Via is `[card, reward]`; the card itself is always
+  "Cards" and thus useless as a filter dimension, so the category that
+  matters is the reward it gives when turned in -- `List.last/1` picks that
+  reward without needing a technique-specific branch.
+  """
+  @spec filter_by_category([FlipOpportunity.t()], %{optional(Currency.category()) => boolean()}) ::
+          [FlipOpportunity.t()]
+  def filter_by_category(opportunities, enabled_categories) do
+    Enum.filter(opportunities, fn opportunity ->
+      category = opportunity.via |> List.last() |> Map.fetch!(:currency) |> Map.fetch!(:category)
+      Map.get(enabled_categories, category, false)
+    end)
+  end
+
   @spec filter_by_thresholds([FlipOpportunity.t()], thresholds()) :: [FlipOpportunity.t()]
   def filter_by_thresholds(opportunities, thresholds) do
     Enum.filter(opportunities, fn opportunity ->
@@ -71,17 +88,19 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
 
   @type display_options :: %{
           enabled_techniques: %{optional(FlipOpportunity.technique()) => boolean()},
+          enabled_categories: %{optional(Currency.category()) => boolean()},
           thresholds: thresholds(),
           sort_column: sort_column(),
           sort_direction: sort_direction(),
           favorite_route_keys: MapSet.t(String.t())
         }
 
-  @doc "A favorite that no longer passes the technique/threshold filters simply disappears from both groups -- no placeholder, per docs/PRD.md § 7.10."
+  @doc "A favorite that no longer passes the technique/category/threshold filters simply disappears from both groups -- no placeholder, per docs/PRD.md § 7.10."
   @spec build_display_groups([FlipOpportunity.t()], display_options()) :: display_groups()
   def build_display_groups(opportunities, options) do
     opportunities
     |> filter_by_technique(options.enabled_techniques)
+    |> filter_by_category(options.enabled_categories)
     |> filter_by_thresholds(options.thresholds)
     |> sort_opportunities(options.sort_column, options.sort_direction)
     |> partition_favorites(options.favorite_route_keys)

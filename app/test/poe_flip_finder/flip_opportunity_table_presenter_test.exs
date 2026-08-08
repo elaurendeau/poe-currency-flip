@@ -5,13 +5,13 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
 
   # Ported 1:1 from flipOpportunityTablePresenter.test.ts.
 
-  defp currency_amount(external_id, display_name, quantity) do
+  defp currency_amount(external_id, display_name, quantity, category \\ :currency) do
     %CurrencyAmount{
       currency: %Currency{
         id: nil,
         external_id: external_id,
         display_name: display_name,
-        item_type: :currency
+        category: category
       },
       quantity: quantity
     }
@@ -41,6 +41,34 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
     divination_card: true,
     bulk_buy: true
   }
+
+  @all_categories [
+    :cards,
+    :fragments,
+    :ancestor,
+    :essences,
+    :currency,
+    :beasts,
+    :map_key,
+    :heist,
+    :runegrafts,
+    :delve,
+    :sanctum,
+    :maps_unique,
+    :delirium_orbs,
+    :oils,
+    :catalysts,
+    :ducats,
+    :maps_special,
+    :allflame_embers,
+    :keepers,
+    :enshrouding_crystals,
+    :legacy,
+    :expedition,
+    :misc
+  ]
+
+  @all_categories_enabled Map.new(@all_categories, &{&1, true})
 
   describe "get_route_key/1" do
     test "is identical for two opportunities with the same technique and currencies" do
@@ -80,6 +108,68 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
         })
 
       assert result == [spread]
+    end
+  end
+
+  describe "filter_by_category/2" do
+    test "keeps every opportunity when every category is enabled (default)" do
+      currency =
+        opportunity(%{via: [currency_amount("wisdom", "Scroll of Wisdom", 1, :currency)]})
+
+      oil = opportunity(%{via: [currency_amount("oil", "Golden Oil", 1, :oils)]})
+
+      result =
+        FlipOpportunityTablePresenter.filter_by_category([currency, oil], @all_categories_enabled)
+
+      assert result == [currency, oil]
+    end
+
+    test "hides opportunities whose Via category is disabled" do
+      currency =
+        opportunity(%{via: [currency_amount("wisdom", "Scroll of Wisdom", 1, :currency)]})
+
+      oil = opportunity(%{via: [currency_amount("oil", "Golden Oil", 1, :oils)]})
+
+      result =
+        FlipOpportunityTablePresenter.filter_by_category(
+          [currency, oil],
+          %{@all_categories_enabled | oils: false}
+        )
+
+      assert result == [currency]
+    end
+
+    test "a Divination Card opportunity is categorized by the reward it gives, not the card itself" do
+      # Via is [card, reward] for :divination_card (see
+      # DivinationCardOpportunityFinder) -- the card leg is always :cards
+      # and would be a useless filter dimension, so the category that must
+      # drive filtering is the reward (the second/last Via leg).
+      card_for_oil =
+        opportunity(%{
+          technique: :divination_card,
+          via: [
+            currency_amount("card", "The Doctor", 5, :cards),
+            currency_amount("oil", "Golden Oil", 1, :oils)
+          ]
+        })
+
+      # Disabling :cards (the card's own category) must NOT hide this row --
+      # only disabling the reward's category (:oils) should.
+      result_cards_disabled =
+        FlipOpportunityTablePresenter.filter_by_category(
+          [card_for_oil],
+          %{@all_categories_enabled | cards: false}
+        )
+
+      assert result_cards_disabled == [card_for_oil]
+
+      result_oils_disabled =
+        FlipOpportunityTablePresenter.filter_by_category(
+          [card_for_oil],
+          %{@all_categories_enabled | oils: false}
+        )
+
+      assert result_oils_disabled == []
     end
   end
 
@@ -210,6 +300,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
           [kept_favorite, filtered_out_favorite, non_favorite],
           %{
             enabled_techniques: %{@all_enabled | bulk_buy: false},
+            enabled_categories: @all_categories_enabled,
             thresholds: %{},
             sort_column: :margin,
             sort_direction: :desc,

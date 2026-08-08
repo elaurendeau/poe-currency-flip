@@ -39,12 +39,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, bypass: bypass}
   end
 
-  defp insert_currency!(external_id, display_name \\ nil, item_type \\ :currency) do
+  defp insert_currency!(external_id, display_name \\ nil, category \\ :currency) do
     %Schema.Currency{}
     |> Ecto.Changeset.change(
       external_id: external_id,
       display_name: display_name || external_id,
-      item_type: item_type
+      category: category
     )
     |> PoeFlipFinder.Repo.insert!()
   end
@@ -124,7 +124,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       insert_currency!(
         "Metadata/Items/DivinationCards/DivinationCardChaoticDisposition",
         "Chaotic Disposition",
-        :divination_card
+        :cards
       )
 
     # Divination Card needs the Chaos<->Divine reference rate to compute
@@ -440,6 +440,89 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert count_rows(html) == 1
   end
 
+  # === Feature M: Currency Category Filter =============================
+
+  test "the category drawer is hidden until the hamburger toggle opens it, with every category selected by default",
+       %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, ".category-drawer")
+
+    html = view |> element("button.category-menu-toggle") |> render_click()
+
+    assert has_element?(view, ".category-drawer")
+    # 23 categories, all selected by default (docs/PRD.md § 7.13).
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+    assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
+  end
+
+  test "toggle_category hides and reshows matching rows without affecting other categories", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    view |> element("button.category-menu-toggle") |> render_click()
+
+    # The seeded opportunity's Via leg is Wisdom, category :currency.
+    html = view |> element("[phx-value-category='currency']") |> render_click()
+    assert count_rows(html) == 0
+    refute has_element?(view, "[phx-value-category='currency'].category-item--selected")
+
+    html = view |> element("[phx-value-category='currency']") |> render_click()
+    assert count_rows(html) == 1
+    assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
+  end
+
+  test "a Divination Card row is filtered by its reward's category, not the card's own category",
+       %{conn: conn} do
+    seed_one_divination_card_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    # "≈0.25c per card" uniquely identifies the divination_card row (see the
+    # Feature C test above) -- this scenario's snapshot data also produces
+    # an unrelated exchange_spread row off the same chaos-card pair, so
+    # asserting on the total row count would be fragile here.
+    assert has_element?(view, ".grid.row", "≈0.25c per card")
+
+    view |> element("button.category-menu-toggle") |> render_click()
+
+    # The card itself is category :cards, but its reward here is Chaos Orb
+    # (:currency) -- disabling :cards must NOT hide the divination_card row.
+    view |> element("[phx-value-category='cards']") |> render_click()
+    assert has_element?(view, ".grid.row", "≈0.25c per card")
+
+    # Disabling :currency (the reward's real category) must hide it.
+    view |> element("[phx-value-category='currency']") |> render_click()
+    refute has_element?(view, ".grid.row", "≈0.25c per card")
+  end
+
+  test "toggling a category persists the updated preference", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    view |> element("button.category-menu-toggle") |> render_click()
+    view |> element("[phx-value-category='oils']") |> render_click()
+
+    assert_push_event(view, "persist_display_preferences", %{
+      enabled_categories: %{currency: true, oils: false}
+    })
+  end
+
+  test "display_preferences_loaded applies a saved category filter", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    html =
+      render_click(view, "display_preferences_loaded", %{
+        "enabled_categories" => %{"currency" => false}
+      })
+
+    assert count_rows(html) == 0
+  end
+
   # === Feature I: Column Sorting & Threshold Filters ==================
 
   test "set_threshold filters out rows below the minimum, on the correct column", %{conn: conn} do
@@ -545,6 +628,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     html =
       render_click(view, "display_preferences_loaded", %{
         "enabled_techniques" => "not-a-map",
+        "enabled_categories" => "not-a-map",
         "sort_column" => "not-a-real-column",
         "sort_direction" => 12_345,
         "thresholds" => ["also", "not", "a", "map"]
@@ -553,6 +637,9 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert html =~ "PoE Flip Finder"
     assert has_element?(view, "span.col-label.active", "Margin")
     assert has_element?(view, "input[aria-label='Exchange spread'][checked]")
+    # every category still defaults to enabled -- confirmed via the row
+    # count rather than the (hidden-by-default) drawer's own markup.
+    assert count_rows(html) == 1
   end
 
   test "display_preferences_loaded with a partially-valid payload applies only the valid fields",
@@ -562,16 +649,22 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     render_click(view, "display_preferences_loaded", %{
       "enabled_techniques" => %{"bulk_buy" => false, "unknown_future_technique" => false},
+      "enabled_categories" => %{"oils" => false, "unknown_future_category" => false},
       "sort_column" => "volume",
       "thresholds" => %{"margin" => "not-a-number", "profit" => 12}
     })
 
-    # sort_column applies; the unrecognized technique key is ignored rather
-    # than crashing; bulk_buy's real, valid entry still applies; the
-    # unparseable margin threshold is dropped, the valid profit one isn't.
+    # sort_column applies; the unrecognized technique/category keys are
+    # ignored rather than crashing; bulk_buy's and oils's real, valid
+    # entries still apply; the unparseable margin threshold is dropped, the
+    # valid profit one isn't.
     assert has_element?(view, "span.col-label.active", "Volume")
     refute has_element?(view, "input[aria-label='Bulk buy'][checked]")
     assert has_element?(view, "input[aria-label='Vendor recipe'][checked]")
+
+    view |> element("button.category-menu-toggle") |> render_click()
+    refute has_element?(view, "[phx-value-category='oils'].category-item--selected")
+    assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
   end
 
   # === Feature J: Favorites ============================================

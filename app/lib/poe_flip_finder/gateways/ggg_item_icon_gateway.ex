@@ -78,7 +78,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
           external_id: external_id,
           display_name: entry["text"],
           icon_url: to_absolute_icon_url(entry["image"]),
-          item_type: :currency
+          category: entry["__category"]
         }
     end
   end
@@ -111,7 +111,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
           external_id: external_id,
           display_name: entry["text"],
           icon_url: nil,
-          item_type: :divination_card
+          category: entry["__category"]
         }
     end
   end
@@ -148,6 +148,8 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   end
 
   defp add_entry(acc, group, entry) do
+    entry = Map.put(entry, "__category", category_for_group(group["id"]))
+
     case entry["image"] do
       nil -> maybe_add_card(acc, group, entry)
       image -> put_in(acc, [:by_image_basename, basename_of_image(image)], entry)
@@ -158,6 +160,41 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     do: put_in(acc, [:cards_by_canonical_name, canonicalize(entry["text"])], entry)
 
   defp maybe_add_card(acc, _group, _entry), do: acc
+
+  # Maps the catalog's own raw group ids (docs/DATA_SOURCES.md § Item Icons)
+  # to PoeFlipFinder.Currency.category() atoms. An id this map doesn't know
+  # about (a future catalog refresh introducing a new group) falls back to
+  # :misc rather than crashing currency resolution -- the same "never crash
+  # on unrecognized external data" instinct as this codebase's other
+  # defensive-fallback parsing (e.g. flip_finder_live.ex's
+  # parse_enabled_techniques/2).
+  @category_by_group_id %{
+    "Cards" => :cards,
+    "Fragments" => :fragments,
+    "Ancestor" => :ancestor,
+    "Essences" => :essences,
+    "Currency" => :currency,
+    "Beasts" => :beasts,
+    "MapKey" => :map_key,
+    "Heist" => :heist,
+    "Runegrafts" => :runegrafts,
+    "Delve" => :delve,
+    "Sanctum" => :sanctum,
+    "MapsUnique" => :maps_unique,
+    "DeliriumOrbs" => :delirium_orbs,
+    "Oils" => :oils,
+    "Catalysts" => :catalysts,
+    "Ducats" => :ducats,
+    "MapsSpecial" => :maps_special,
+    "AllflameEmbers" => :allflame_embers,
+    "Keepers" => :keepers,
+    "EnshroudingCrystals" => :enshrouding_crystals,
+    "Legacy" => :legacy,
+    "Expedition" => :expedition,
+    "Misc" => :misc
+  }
+
+  defp category_for_group(group_id), do: Map.get(@category_by_group_id, group_id, :misc)
 
   defp basename_of(external_id), do: external_id |> String.split("/") |> List.last()
 

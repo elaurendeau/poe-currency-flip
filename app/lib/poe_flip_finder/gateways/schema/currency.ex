@@ -7,6 +7,32 @@ defmodule PoeFlipFinder.Gateways.Schema.Currency do
     field :external_id, :string
     field :display_name, :string
     field :icon_url, :string
-    field :item_type, Ecto.Enum, values: [:currency, :divination_card]
+
+    field :category, Ecto.Enum,
+      values: [
+        :cards,
+        :fragments,
+        :ancestor,
+        :essences,
+        :currency,
+        :beasts,
+        :map_key,
+        :heist,
+        :runegrafts,
+        :delve,
+        :sanctum,
+        :maps_unique,
+        :delirium_orbs,
+        :oils,
+        :catalysts,
+        :ducats,
+        :maps_special,
+        :allflame_embers,
+        :keepers,
+        :enshrouding_crystals,
+        :legacy,
+        :expedition,
+        :misc
+      ]
   end
 end

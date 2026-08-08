@@ -14,7 +14,7 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGatewayTest do
     |> Ecto.Changeset.change(
       external_id: external_id,
       display_name: external_id,
-      item_type: :currency
+      category: :currency
     )
     |> Repo.insert!()
   end
@@ -44,13 +44,13 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGatewayTest do
         id: currency_a_schema.id,
         external_id: currency_a_schema.external_id,
         display_name: currency_a_schema.display_name,
-        item_type: :currency
+        category: :currency
       },
       currency_b: %Currency{
         id: currency_b_schema.id,
         external_id: currency_b_schema.external_id,
         display_name: currency_b_schema.display_name,
-        item_type: :currency
+        category: :currency
       },
       # Second precision, matching what DateTime.from_unix!/1 (what
       # GggExchangeSourceGateway actually produces) always has -- see

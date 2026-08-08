@@ -14,7 +14,11 @@ currency
   external_id        unique — GGG's raw item path (e.g. "Metadata/Items/Currency/CurrencyPortal")
   display_name       e.g. "Portal Scroll"
   icon_url           from DATA_SOURCES.md § Item Icons
-  item_type          enum: CURRENCY | DIVINATION_CARD
+  category           enum, one per group in the bundled Item Icons catalog (DATA_SOURCES.md § Item Icons):
+                      CARDS | FRAGMENTS | ANCESTOR | ESSENCES | CURRENCY | BEASTS | MAP_KEY | HEIST |
+                      RUNEGRAFTS | DELVE | SANCTUM | MAPS_UNIQUE | DELIRIUM_ORBS | OILS | CATALYSTS |
+                      DUCATS | MAPS_SPECIAL | ALLFLAME_EMBERS | KEEPERS | ENSHROUDING_CRYSTALS |
+                      LEGACY | EXPEDITION | MISC
 
 vendor_recipe
   id                 PK

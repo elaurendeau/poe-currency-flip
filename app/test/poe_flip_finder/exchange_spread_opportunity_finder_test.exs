@@ -24,25 +24,25 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
     id: 1,
     external_id: "Metadata/Items/Currency/CurrencyRerollRare",
     display_name: "Chaos Orb",
-    item_type: :currency
+    category: :currency
   }
   @wisdom %Currency{
     id: 2,
     external_id: "Metadata/Items/Currency/CurrencyIdentification",
     display_name: "Scroll of Wisdom",
-    item_type: :currency
+    category: :currency
   }
   @divine %Currency{
     id: 3,
     external_id: "Metadata/Items/Currency/CurrencyModValues",
     display_name: "Divine Orb",
-    item_type: :currency
+    category: :currency
   }
   @portal %Currency{
     id: 4,
     external_id: "Metadata/Items/Currency/CurrencyPortal",
     display_name: "Portal Scroll",
-    item_type: :currency
+    category: :currency
   }
 
   @rate_210 %DivineChaosRate{

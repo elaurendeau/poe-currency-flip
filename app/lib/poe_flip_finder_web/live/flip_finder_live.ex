@@ -51,6 +51,11 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         divination_card: true,
         bulk_buy: true
       })
+      |> assign(
+        :enabled_categories,
+        Map.new(category_options(), fn {category, _label} -> {category, true} end)
+      )
+      |> assign(:category_menu_open, false)
       # Matches the mockup's default state: Margin column active, sorted descending.
       |> assign(:sort_column, :margin)
       |> assign(:sort_direction, :desc)
@@ -144,6 +149,21 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     {:noreply, persist_display_preferences(socket)}
   end
 
+  def handle_event("toggle_category_menu", _params, socket) do
+    {:noreply, assign(socket, :category_menu_open, not socket.assigns.category_menu_open)}
+  end
+
+  def handle_event("close_category_menu", _params, socket) do
+    {:noreply, assign(socket, :category_menu_open, false)}
+  end
+
+  def handle_event("toggle_category", %{"category" => category}, socket) do
+    category_atom = String.to_existing_atom(category)
+    enabled = Map.update!(socket.assigns.enabled_categories, category_atom, &(not &1))
+    socket = assign(socket, :enabled_categories, enabled)
+    {:noreply, persist_display_preferences(socket)}
+  end
+
   def handle_event("toggle_sort", %{"column" => column}, socket) do
     column_atom = String.to_existing_atom(column)
 
@@ -188,6 +208,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
      assign(socket,
        enabled_techniques:
          parse_enabled_techniques(params["enabled_techniques"], socket.assigns.enabled_techniques),
+       enabled_categories:
+         parse_enabled_categories(params["enabled_categories"], socket.assigns.enabled_categories),
        sort_column:
          parse_atom_in(params["sort_column"], @sort_columns, socket.assigns.sort_column),
        sort_direction:
@@ -433,6 +455,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   defp persist_display_preferences(socket) do
     push_event(socket, "persist_display_preferences", %{
       enabled_techniques: socket.assigns.enabled_techniques,
+      enabled_categories: socket.assigns.enabled_categories,
       sort_column: socket.assigns.sort_column,
       sort_direction: socket.assigns.sort_direction,
       thresholds: socket.assigns.thresholds
@@ -449,6 +472,17 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp parse_enabled_techniques(_invalid, default), do: default
+
+  defp parse_enabled_categories(value, default) when is_map(value) do
+    Map.new(category_options(), fn {category, _label} ->
+      case Map.fetch(value, Atom.to_string(category)) do
+        {:ok, enabled} when is_boolean(enabled) -> {category, enabled}
+        _ -> {category, Map.get(default, category, true)}
+      end
+    end)
+  end
+
+  defp parse_enabled_categories(_invalid, default), do: default
 
   defp parse_atom_in(value, allowed, default) when is_binary(value) do
     Enum.find(allowed, default, fn atom -> Atom.to_string(atom) == value end)
@@ -481,7 +515,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp clear_status_banner(socket) do
-    assign(socket, status_banner: nil, status_banner_token: socket.assigns.status_banner_token + 1)
+    assign(socket,
+      status_banner: nil,
+      status_banner_token: socket.assigns.status_banner_token + 1
+    )
   end
 
   # docs/PRD.md § 7.6: three distinct completion outcomes for an ingestion
@@ -544,6 +581,57 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       {:divination_card, "Divination card", "divination-card-icon"},
       {:bulk_buy, "Bulk buy", nil}
     ]
+  end
+
+  # The Currency Category Filter drawer (docs/PRD.md § 7.13): one row per
+  # group in the bundled Item Icons catalog (docs/DATA_SOURCES.md § Item
+  # Icons), ordered by that catalog's own entry count, descending -- both
+  # the menu order and the default `enabled_categories` map iterate this
+  # same list, so there is exactly one place that knows the full category
+  # set and its order.
+  defp category_options do
+    [
+      {:cards, "Cards"},
+      {:fragments, "Fragments, Scarabs & Mapping"},
+      {:ancestor, "Tattoos & Omens"},
+      {:essences, "Essences"},
+      {:currency, "Currency"},
+      {:beasts, "Beasts"},
+      {:map_key, "Maps"},
+      {:heist, "Heist Contracts & Blueprints"},
+      {:runegrafts, "Runegrafts"},
+      {:delve, "Fossils & Resonators"},
+      {:sanctum, "Sanctum Tomes & Relics"},
+      {:maps_unique, "Unique Maps"},
+      {:delirium_orbs, "Delirium Orbs"},
+      {:oils, "Oils & Extractor"},
+      {:catalysts, "Catalysts"},
+      {:ducats, "Ducats"},
+      {:maps_special, "Shaper, Conqueror & Elder Maps"},
+      {:allflame_embers, "Allflame Embers"},
+      {:keepers, "Foulborn Currency & Wombgifts"},
+      {:enshrouding_crystals, "Enshrouding Crystals"},
+      {:legacy, "Legacy Items"},
+      {:expedition, "Expedition Currency"},
+      {:misc, "Misc"}
+    ]
+  end
+
+  defp hamburger_icon(assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+    """
   end
 
   attr :spinning, :boolean, required: true
@@ -620,6 +708,217 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       aria-hidden="true"
     >
       <path d="M3 9l9-5 9 5-9 5-9-5z" /><path d="M3 9v6l9 5 9-5V9" /><path d="M12 14v6" />
+    </svg>
+    """
+  end
+
+  attr :category, :atom, required: true
+
+  # One simple stroke-based line icon per category in the drawer (docs/PRD.md
+  # § 7.13), same 24x24/stroke-only visual language as technique_icon/1
+  # above -- generic line pictograms per category, not per-item artwork.
+  defp category_icon(%{category: :cards} = assigns) do
+    ~H"""
+    <.divination_card_icon />
+    """
+  end
+
+  defp category_icon(%{category: :fragments} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M12 2 4 12l8 10 8-10z" /><line x1="12" y1="2" x2="12" y2="22" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :ancestor} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M20 4c-5 0-14 3-14 12 0 2 1 4 3 4 9 0 12-9 12-14 0-1 0-2-1-2z" />
+      <line x1="4" y1="20" x2="12" y2="12" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :essences} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3" />
+      <line x1="8" y1="15" x2="16" y2="15" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :currency} = assigns) do
+    ~H"""
+    <.stroke_icon><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /></.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :beasts} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="7" cy="8" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="17" cy="8" r="2" />
+      <path d="M8 15c0-3 2-4 4-4s4 1 4 4-2 5-4 5-4-2-4-5z" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :map_key} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z" />
+      <circle cx="12" cy="9" r="2.5" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :heist} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <rect x="3" y="8" width="18" height="12" rx="2" />
+      <path d="M8 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="3" y1="13" x2="21" y2="13" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :runegrafts} = assigns) do
+    ~H"""
+    <.stroke_icon><path d="M12 2 21 7v10l-9 5-9-5V7z" /></.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :delve} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M6 10a2 2 0 1 0-3.5 1.3L7 15.8a2 2 0 1 0 2.8-2.8zM18 14a2 2 0 1 0 3.5-1.3L17 8.2a2 2 0 1 0-2.8 2.8z" />
+      <line x1="8.5" y1="12.5" x2="15.5" y2="11.5" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :sanctum} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M4 5c3-1 6-1 8 0s5-1 8 0v14c-3-1-6-1-8 0s-5-1-8 0z" />
+      <line x1="12" y1="5" x2="12" y2="19" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :maps_unique} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M12 2 3 9l9 13 9-13z" /><line x1="3" y1="9" x2="21" y2="9" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :delirium_orbs} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M8 12a4 4 0 1 1 8 0v4a4 4 0 0 1-8 0z" />
+      <circle cx="10.5" cy="12" r="0.6" /><circle cx="13.5" cy="12" r="0.6" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :oils} = assigns) do
+    ~H"""
+    <.stroke_icon><path d="M12 3s7 8 7 13a7 7 0 1 1-14 0c0-5 7-13 7-13z" /></.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :catalysts} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="12" cy="12" r="2" />
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" />
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)" />
+      <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :ducats} = assigns) do
+    ~H"""
+    <.stroke_icon><circle cx="12" cy="15" r="5" /><path d="M9 11 6 3M15 11l3-8" /></.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :maps_special} = assigns) do
+    ~H"""
+    <.stroke_icon><path d="M4 18h16l-1-9-4 4-3-6-3 6-4-4z" /></.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :allflame_embers} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M12 2c1 4-4 5-4 9a4 4 0 0 0 8 0c0-1-1-2-1-2 1 2 3 2 3 5a6 6 0 0 1-12 0C6 8 12 8 12 2z" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :keepers} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="12" cy="10" r="7" />
+      <circle cx="9" cy="10" r="0.8" /><circle cx="15" cy="10" r="0.8" />
+      <path d="M9 17v3M15 17v3M10 14h4" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :enshrouding_crystals} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <path d="M8 2h8l4 7-8 13L4 9z" /><path d="M4 9h16M9 2l-1 7 4 13 4-13-1-7" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :legacy} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="12" cy="13" r="8" /><polyline points="12 9 12 13 15 15" />
+      <path d="M4.5 6 3 3M8 3l-1 4" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :expedition} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="12" cy="12" r="9" /><polygon points="14.5 9.5 10 10 9.5 14.5 14 14 14.5 9.5" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :misc} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1.2" fill="currentColor" stroke="none" />
+    </.stroke_icon>
+    """
+  end
+
+  slot :inner_block, required: true
+
+  defp stroke_icon(assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      {render_slot(@inner_block)}
     </svg>
     """
   end
@@ -786,7 +1085,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # Divination cards have no real icon from GGG's Item Icons data (their
   # icon_url is always nil -- see docs/DATA_SOURCES.md), so they always
   # render the generic card-suit glyph instead, per TECH_STACK.md.
-  defp currency_icon(%{amount: %{currency: %{item_type: :divination_card}}} = assigns) do
+  defp currency_icon(%{amount: %{currency: %{category: :cards}}} = assigns) do
     ~H"""
     <.divination_card_icon />
     """

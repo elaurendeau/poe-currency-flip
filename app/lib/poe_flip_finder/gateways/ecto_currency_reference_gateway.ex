@@ -32,7 +32,7 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGateway do
           external_id: resolved.external_id,
           display_name: resolved.display_name,
           icon_url: resolved.icon_url,
-          item_type: resolved.item_type
+          category: resolved.category
         )
         |> Repo.insert!()
         |> to_entity()
@@ -53,7 +53,7 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       icon_url: schema.icon_url,
-      item_type: schema.item_type
+      category: schema.category
     }
   end
 end

@@ -21,12 +21,12 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
   defp chaos_external_id, do: BaseCurrencyIds.chaos_external_id()
   defp divine_external_id, do: BaseCurrencyIds.divine_external_id()
 
-  defp insert_currency!(external_id, display_name \\ nil, item_type \\ :currency) do
+  defp insert_currency!(external_id, display_name \\ nil, category \\ :currency) do
     %Schema.Currency{}
     |> Ecto.Changeset.change(
       external_id: external_id,
       display_name: display_name || external_id,
-      item_type: item_type
+      category: category
     )
     |> Repo.insert!()
   end
@@ -242,13 +242,23 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
   end
 
   test "merges divination card into the list, sourced from a stubbed reference gateway" do
-    Application.put_env(:poe_flip_finder, :divination_card_reference_gateway, StubDivinationCardReferenceGateway)
-    on_exit(fn -> Application.delete_env(:poe_flip_finder, :divination_card_reference_gateway) end)
+    Application.put_env(
+      :poe_flip_finder,
+      :divination_card_reference_gateway,
+      StubDivinationCardReferenceGateway
+    )
+
+    on_exit(fn ->
+      Application.delete_env(:poe_flip_finder, :divination_card_reference_gateway)
+    end)
 
     league = insert_league!("Standard")
     chaos = insert_currency!(chaos_external_id())
     divine = insert_currency!(divine_external_id())
-    card = insert_currency!("Metadata/Items/DivinationCards/DivinationCardTest", "Test Card", :divination_card)
+
+    card =
+      insert_currency!("Metadata/Items/DivinationCards/DivinationCardTest", "Test Card", :cards)
+
     reward = insert_currency!("Metadata/Items/Currency/CurrencyTestReward", "Test Reward")
 
     insert_snapshot!(%{
@@ -286,9 +296,13 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
 
     StubDivinationCardReferenceGateway.stub([
       %DivinationCardReward{
-        card: %Currency{external_id: nil, display_name: "Test Card", item_type: :divination_card},
+        card: %Currency{external_id: nil, display_name: "Test Card", category: :cards},
         stack_size: 8,
-        reward_currency: %Currency{external_id: nil, display_name: "Test Reward", item_type: :currency},
+        reward_currency: %Currency{
+          external_id: nil,
+          display_name: "Test Reward",
+          category: :currency
+        },
         reward_quantity: 5,
         predictable: true
       }

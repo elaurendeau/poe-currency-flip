@@ -28,13 +28,13 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     id: 1,
     external_id: BaseCurrencyIds.chaos_external_id(),
     display_name: "Chaos Orb",
-    item_type: :currency
+    category: :currency
   }
   @divine %Currency{
     id: 2,
     external_id: BaseCurrencyIds.divine_external_id(),
     display_name: "Divine Orb",
-    item_type: :currency
+    category: :currency
   }
   @rate_210 %DivineChaosRate{
     chaos_currency: @chaos,
@@ -44,9 +44,13 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
 
   defp reward(overrides) do
     defaults = %{
-      card: %Currency{external_id: nil, display_name: "Test Card", item_type: :divination_card},
+      card: %Currency{external_id: nil, display_name: "Test Card", category: :cards},
       stack_size: 8,
-      reward_currency: %Currency{external_id: nil, display_name: "Test Reward", item_type: :currency},
+      reward_currency: %Currency{
+        external_id: nil,
+        display_name: "Test Reward",
+        category: :currency
+      },
       reward_quantity: 5,
       predictable: true
     }
@@ -84,7 +88,7 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     %Currency{
       external_id: "Metadata/Items/DivinationCards/DivinationCardTest",
       display_name: "Test Card",
-      item_type: :divination_card
+      category: :cards
     }
   end
 
@@ -92,7 +96,7 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     %Currency{
       external_id: "Metadata/Items/Currency/CurrencyTestReward",
       display_name: "Test Reward",
-      item_type: :currency
+      category: :currency
     }
   end
 
@@ -106,7 +110,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     resale_snapshot = snapshot(@chaos, reward_currency(), ratios: {1, 2, 1, 2})
 
     [opportunity] =
-      DivinationCardOpportunityFinder.find([buy_snapshot, resale_snapshot], [reward(%{})], @rate_210)
+      DivinationCardOpportunityFinder.find(
+        [buy_snapshot, resale_snapshot],
+        [reward(%{})],
+        @rate_210
+      )
 
     assert opportunity.technique == :divination_card
     assert opportunity.start == [%PoeFlipFinder.CurrencyAmount{currency: @chaos, quantity: 2.0}]
@@ -132,7 +140,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     buy_snapshot = snapshot(@chaos, card_currency())
     resale_snapshot = snapshot(@chaos, reward_currency(), ratios: {1, 2, 1, 2})
 
-    assert DivinationCardOpportunityFinder.find([buy_snapshot, resale_snapshot], [reward(%{})], nil) == []
+    assert DivinationCardOpportunityFinder.find(
+             [buy_snapshot, resale_snapshot],
+             [reward(%{})],
+             nil
+           ) == []
   end
 
   test "buy leg falls back to Divine when no Chaos market exists for the card" do
@@ -140,7 +152,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     resale_snapshot = snapshot(@chaos, reward_currency(), ratios: {1, 2, 1, 2})
 
     [opportunity] =
-      DivinationCardOpportunityFinder.find([buy_snapshot, resale_snapshot], [reward(%{})], @rate_210)
+      DivinationCardOpportunityFinder.find(
+        [buy_snapshot, resale_snapshot],
+        [reward(%{})],
+        @rate_210
+      )
 
     assert [%PoeFlipFinder.CurrencyAmount{currency: @divine}] = opportunity.start
   end
@@ -156,7 +172,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
 
     reward_as_chaos =
       reward(%{
-        reward_currency: %Currency{external_id: nil, display_name: "Chaos Orb", item_type: :currency},
+        reward_currency: %Currency{
+          external_id: nil,
+          display_name: "Chaos Orb",
+          category: :currency
+        },
         reward_quantity: 7
       })
 
@@ -171,7 +191,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
 
     reward_as_divine =
       reward(%{
-        reward_currency: %Currency{external_id: nil, display_name: "Divine Orb", item_type: :currency},
+        reward_currency: %Currency{
+          external_id: nil,
+          display_name: "Divine Orb",
+          category: :currency
+        },
         reward_quantity: 2
       })
 
@@ -208,7 +232,9 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinderTest do
     # 1/200 = 0.005, floors to 0, suggested_buy_price goes negative -> nil,
     # not viable. Without the fallback this card would be silently dropped
     # despite having a real, tradeable market.
-    expensive_card = snapshot(@chaos, card_currency(), ratios: {200, 1, 200, 1}, stocks: {1, 1, 20, 30})
+    expensive_card =
+      snapshot(@chaos, card_currency(), ratios: {200, 1, 200, 1}, stocks: {1, 1, 20, 30})
+
     resale_snapshot = snapshot(@chaos, reward_currency(), ratios: {1, 2, 1, 2})
 
     [opportunity] =

@@ -9,7 +9,7 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGatewayTest do
     |> Ecto.Changeset.change(
       external_id: external_id,
       display_name: external_id,
-      item_type: :currency
+      category: :currency
     )
     |> Repo.insert!()
   end

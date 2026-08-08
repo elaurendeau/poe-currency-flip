@@ -27,7 +27,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     result = GggItemIconGateway.lookup_item("Metadata/Items/Currency/CurrencyPortal", catalog)
 
     assert result.display_name == "Portal Scroll"
-    assert result.item_type == :currency
+    assert result.category == :currency
     assert String.starts_with?(result.icon_url, "https://www.pathofexile.com/gen/image/")
     assert result.external_id == "Metadata/Items/Currency/CurrencyPortal"
   end
@@ -42,7 +42,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
       )
 
     assert result.display_name == "The Apothecary"
-    assert result.item_type == :divination_card
+    assert result.category == :cards
     assert result.icon_url == nil
   end
 
@@ -71,7 +71,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
       GggItemIconGateway.lookup_item("Metadata/Items/Currency/CurrencyEssenceHatred5", catalog)
 
     assert result.display_name == "Screaming Essence of Hatred"
-    assert result.item_type == :currency
+    assert result.category == :essences
   end
 
   test "resolves Maven's Writ by falling back to a suffix match" do

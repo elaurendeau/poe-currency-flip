@@ -29,8 +29,8 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
   @now ~U[2026-08-06 12:00:00Z]
   @current_hour div(DateTime.to_unix(@now), 3600) * 3600
 
-  @currency_a %Currency{id: 1, external_id: "A", display_name: "Currency A", item_type: :currency}
-  @currency_b %Currency{id: 2, external_id: "B", display_name: "Currency B", item_type: :currency}
+  @currency_a %Currency{id: 1, external_id: "A", display_name: "Currency A", category: :currency}
+  @currency_b %Currency{id: 2, external_id: "B", display_name: "Currency B", category: :currency}
   @league %League{
     id: 1,
     external_id: "Standard",

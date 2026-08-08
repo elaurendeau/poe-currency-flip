@@ -64,11 +64,73 @@
   .up { color:#5fd07a; }
   .mid { color:#e8a33d; }
   .sub { color:#6b7480; font-size:11px; margin-top:4px; font-family:Consolas,monospace; }
+
+  /* Category filter drawer -- hidden by default, opened via the hamburger
+     button top-left in the header. Rows are clickable "selected lines", not
+     checkboxes -- an active row gets an accent left-border + tinted
+     background + brighter text/icon, the same "selected state" language
+     already used elsewhere in this mockup (.row.fav, .col-label.active). */
+  .hamburger-btn { display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:none; color:#c7cdd3; border:none; cursor:pointer; }
+  .hamburger-btn:hover { color:#f2f4f6; }
+  .topbar-left { gap:10px; }
+
+  .category-drawer-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:20; display:none; }
+  .category-drawer-backdrop.open { display:block; }
+
+  .category-drawer { position:fixed; top:0; left:0; bottom:0; width:260px; background:#14171b; border-right:0.5px solid #262c33; box-shadow:4px 0 16px rgba(0,0,0,0.4); z-index:21; display:flex; flex-direction:column; transform:translateX(-100%); transition:transform 0.18s ease; }
+  .category-drawer.open { transform:translateX(0); }
+
+  .category-drawer-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:0.5px solid #262c33; color:#e6e9ec; font-size:13px; font-weight:600; }
+  .category-drawer-close { display:flex; align-items:center; justify-content:center; width:22px; height:22px; color:#8a92a0; cursor:pointer; border-radius:4px; }
+  .category-drawer-close:hover { background:#20252b; color:#c7cdd3; }
+
+  .category-drawer-list { overflow-y:auto; padding:6px; display:flex; flex-direction:column; gap:2px; }
+  .category-item { display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:6px; font-size:12.5px; color:#6b7480; cursor:pointer; }
+  .category-item i { font-size:15px; color:#6b7480; width:16px; text-align:center; }
+  .category-item:hover { background:#1a1e23; }
+  .category-item.selected { background:rgba(232,163,61,0.10); color:#e6e9ec; }
+  .category-item.selected i { color:#e8a33d; }
+  .category-item .count { margin-left:auto; font-family:Consolas,monospace; font-size:10px; color:#525a63; }
 </style>
 </head>
 <body>
+<div class="category-drawer-backdrop" id="categoryBackdrop"></div>
+<div class="category-drawer" id="categoryDrawer">
+  <div class="category-drawer-header">
+    Item Categories
+    <span class="category-drawer-close" id="categoryClose"><i class="ti ti-x" aria-hidden="true"></i></span>
+  </div>
+  <div class="category-drawer-list">
+    <div class="category-item selected"><i class="ti ti-cards" aria-hidden="true"></i>Cards<span class="count">468</span></div>
+    <div class="category-item selected"><i class="ti ti-map" aria-hidden="true"></i>Fragments, Scarabs &amp; Mapping<span class="count">245</span></div>
+    <div class="category-item selected"><i class="ti ti-feather" aria-hidden="true"></i>Tattoos &amp; Omens<span class="count">114</span></div>
+    <div class="category-item selected"><i class="ti ti-flask" aria-hidden="true"></i>Essences<span class="count">105</span></div>
+    <div class="category-item selected"><i class="ti ti-coin" aria-hidden="true"></i>Currency<span class="count">103</span></div>
+    <div class="category-item selected"><i class="ti ti-paw" aria-hidden="true"></i>Beasts<span class="count">79</span></div>
+    <div class="category-item selected"><i class="ti ti-map-2" aria-hidden="true"></i>Maps<span class="count">58</span></div>
+    <div class="category-item selected"><i class="ti ti-briefcase" aria-hidden="true"></i>Heist Contracts &amp; Blueprints<span class="count">46</span></div>
+    <div class="category-item selected"><i class="ti ti-hexagon" aria-hidden="true"></i>Runegrafts<span class="count">31</span></div>
+    <div class="category-item selected"><i class="ti ti-bone" aria-hidden="true"></i>Fossils &amp; Resonators<span class="count">30</span></div>
+    <div class="category-item selected"><i class="ti ti-book" aria-hidden="true"></i>Sanctum Tomes &amp; Relics<span class="count">27</span></div>
+    <div class="category-item selected"><i class="ti ti-diamond" aria-hidden="true"></i>Unique Maps<span class="count">27</span></div>
+    <div class="category-item selected"><i class="ti ti-ghost" aria-hidden="true"></i>Delirium Orbs<span class="count">20</span></div>
+    <div class="category-item selected"><i class="ti ti-droplet" aria-hidden="true"></i>Oils &amp; Extractor<span class="count">17</span></div>
+    <div class="category-item selected"><i class="ti ti-atom" aria-hidden="true"></i>Catalysts<span class="count">13</span></div>
+    <div class="category-item selected"><i class="ti ti-medal" aria-hidden="true"></i>Ducats<span class="count">11</span></div>
+    <div class="category-item selected"><i class="ti ti-crown" aria-hidden="true"></i>Shaper, Conqueror &amp; Elder Maps<span class="count">11</span></div>
+    <div class="category-item selected"><i class="ti ti-flame" aria-hidden="true"></i>Allflame Embers<span class="count">8</span></div>
+    <div class="category-item selected"><i class="ti ti-skull" aria-hidden="true"></i>Foulborn Currency &amp; Wombgifts<span class="count">7</span></div>
+    <div class="category-item selected"><i class="ti ti-crystal-ball" aria-hidden="true"></i>Enshrouding Crystals<span class="count">5</span></div>
+    <div class="category-item selected"><i class="ti ti-history" aria-hidden="true"></i>Legacy Items<span class="count">5</span></div>
+    <div class="category-item selected"><i class="ti ti-compass" aria-hidden="true"></i>Expedition Currency<span class="count">4</span></div>
+    <div class="category-item selected"><i class="ti ti-dots" aria-hidden="true"></i>Misc<span class="count">0</span></div>
+  </div>
+</div>
 <div class="topbar">
-  <div class="topbar-left">Flip finder</div>
+  <div class="topbar-left">
+    <div class="hamburger-btn" id="categoryToggle" title="Item categories"><i class="ti ti-menu-2" aria-hidden="true"></i></div>
+    Flip finder
+  </div>
   <div class="topbar-center"><span class="stamp">2026-08-05 14:32:07.418</span></div>
   <div class="topbar-right">
     <span class="data-label">Data</span>
@@ -227,6 +289,33 @@
     if (!targetRow) return;
     targetRow.classList.toggle('fav');
     menu.style.display = 'none';
+  });
+
+  // Category drawer: hidden by default, opened via the header hamburger
+  // button; each row is a clickable "selected line" toggle (not a
+  // checkbox) -- clicking it just flips .selected for this static demo.
+  const drawer = document.getElementById('categoryDrawer');
+  const backdrop = document.getElementById('categoryBackdrop');
+
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+
+  document.getElementById('categoryToggle').addEventListener('click', e => {
+    e.stopPropagation();
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  document.getElementById('categoryClose').addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  document.querySelectorAll('.category-item').forEach(item => {
+    item.addEventListener('click', () => item.classList.toggle('selected'));
   });
 
   document.addEventListener('click', () => {

@@ -14,19 +14,19 @@ defmodule PoeFlipFinder.DivineChaosRateTest do
     id: 1,
     external_id: "Metadata/Items/Currency/CurrencyRerollRare",
     display_name: "Chaos Orb",
-    item_type: :currency
+    category: :currency
   }
   @divine %Currency{
     id: 2,
     external_id: "Metadata/Items/Currency/CurrencyModValues",
     display_name: "Divine Orb",
-    item_type: :currency
+    category: :currency
   }
   @wisdom %Currency{
     id: 3,
     external_id: "Metadata/Items/Currency/CurrencyIdentification",
     display_name: "Scroll of Wisdom",
-    item_type: :currency
+    category: :currency
   }
 
   defp snapshot(

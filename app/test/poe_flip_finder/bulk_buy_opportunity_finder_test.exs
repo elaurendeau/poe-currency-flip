@@ -28,25 +28,25 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     id: 1,
     external_id: "Metadata/Items/Currency/CurrencyRerollRare",
     display_name: "Chaos Orb",
-    item_type: :currency
+    category: :currency
   }
   @divine %Currency{
     id: 2,
     external_id: "Metadata/Items/Currency/CurrencyModValues",
     display_name: "Divine Orb",
-    item_type: :currency
+    category: :currency
   }
   @deck %Currency{
     id: 3,
     external_id: "Metadata/Items/DivinationCards/DivinationCardStackedDeck",
     display_name: "Stacked Deck",
-    item_type: :divination_card
+    category: :cards
   }
   @wisdom %Currency{
     id: 4,
     external_id: "Metadata/Items/Currency/CurrencyIdentification",
     display_name: "Scroll of Wisdom",
-    item_type: :currency
+    category: :currency
   }
 
   @rate_210 %DivineChaosRate{

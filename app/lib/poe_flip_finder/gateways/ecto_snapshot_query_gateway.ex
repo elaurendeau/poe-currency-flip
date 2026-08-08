@@ -97,7 +97,7 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       icon_url: schema.icon_url,
-      item_type: schema.item_type
+      category: schema.category
     }
   end
 end

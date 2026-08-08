@@ -102,13 +102,19 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
   # Prefers a Chaos-side market for the card; falls back to Divine.
   defp resolve_buy_leg(card_name, snapshots, rate) do
     with :error <-
-           find_leg(card_name, snapshots, BaseCurrencyIds.chaos_external_id(), rate.chaos_currency) do
+           find_leg(
+             card_name,
+             snapshots,
+             BaseCurrencyIds.chaos_external_id(),
+             rate.chaos_currency
+           ) do
       find_leg(card_name, snapshots, BaseCurrencyIds.divine_external_id(), rate.divine_currency)
     end
   end
 
   defp find_leg(card_name, snapshots, base_external_id, base_currency) do
-    with {snapshot, card_currency} <- find_snapshot_for(card_name, snapshots, base_external_id) || :error,
+    with {snapshot, card_currency} <-
+           find_snapshot_for(card_name, snapshots, base_external_id) || :error,
          {:ok, quote, price_is_per_card} <-
            resolve_oriented_quote(
              snapshot,
@@ -173,8 +179,15 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
   # `chaos_per_base_unit` converts the base currency's own market-rate
   # proceeds into Chaos -- 1.0 when the base already is Chaos, `chaos_per_divine`
   # when the base is Divine.
-  defp resale_through_market(reward_name, reward_quantity, snapshots, base_external_id, chaos_per_base_unit) do
-    with {snapshot, reward_currency} <- find_snapshot_for(reward_name, snapshots, base_external_id) || :error,
+  defp resale_through_market(
+         reward_name,
+         reward_quantity,
+         snapshots,
+         base_external_id,
+         chaos_per_base_unit
+       ) do
+    with {snapshot, reward_currency} <-
+           find_snapshot_for(reward_name, snapshots, base_external_id) || :error,
          {:ok, quote, inverted?} <-
            resolve_oriented_quote(
              snapshot,
@@ -187,8 +200,11 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
     end
   end
 
-  defp resale_base_amount(quote, reward_quantity, false), do: reward_quantity / quote.market_sell_price
-  defp resale_base_amount(quote, reward_quantity, true), do: reward_quantity * quote.market_sell_price
+  defp resale_base_amount(quote, reward_quantity, false),
+    do: reward_quantity / quote.market_sell_price
+
+  defp resale_base_amount(quote, reward_quantity, true),
+    do: reward_quantity * quote.market_sell_price
 
   defp find_snapshot_for(name, snapshots, base_external_id) do
     Enum.find_value(snapshots, fn snapshot ->

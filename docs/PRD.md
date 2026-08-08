@@ -209,6 +209,19 @@ A small floating utility, independent of the flip-finding features above, for wo
 
 **Visual reference:** [docs/mockups/ratio-calculator-reference.html](mockups/ratio-calculator-reference.html) — the floating launcher/bubble placement, field stacking, and suggestion list are authoritative there.
 
+### 7.13 Feature M — Currency Category Filter
+
+A left-side drawer, hidden by default, letting the user narrow the table to specific *kinds* of item — Currency, Fragments, Oils, Cards, Essences, and every other group GGG's own Item Icons catalog classifies items into ([DATA_SOURCES.md § Item Icons](DATA_SOURCES.md#item-icons)) — independent of Feature H's per-technique filter.
+
+**Requirements:**
+- Opened via a 3-line hamburger toggle in the top-left of the header; the drawer itself is hidden until opened, and closes via its own close control, an outside click, or the hamburger again.
+- One row per category, ordered by how many items that catalog group has (most items first) — not alphabetical, and not the catalog's own listing order.
+- Each row is a clickable **selected line** with a leading icon and the category's label — not a checkbox — that highlights when active; clicking it toggles that category on/off.
+- All categories checked by default — same opt-out convention as Feature H, so the default view shows everything.
+- **A row's category is determined by the last leg of its Via chain.** For every technique except Divination Card, Via has exactly one leg, so this is unambiguous. For Divination Card, Via is a two-step chain (the card, then its turn-in reward) — the category that matters is the **reward the card gives when turned in**, not the card itself (which is always the "Cards" category and thus not a meaningful filter dimension on its own).
+- A purely client-side display filter over the already-fetched result set, combining with Features H and I over the same rows — same rationale as Feature H (small data volumes, keeps this entirely in the frontend layer).
+- **Persisted client-side (browser storage), surviving a full page reload** — same mechanism, per-browser scope, and first-visit/corrupted-storage fallback (all categories enabled) as Features H/I (§ 7.8/7.9).
+
 ## 8. Success Criteria
 
 - The three views each return correct, sortable results that match manual in-game verification for a sample of flips.
