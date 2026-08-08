@@ -8,15 +8,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias PoeFlipFinder.{
-    BaseCurrencyIds,
-    Currency,
-    DivinationCardReward,
-    FlipOpportunities,
-    FlipOpportunityTablePresenter,
-    StubDivinationCardReferenceGateway
-  }
-
+  alias PoeFlipFinder.{BaseCurrencyIds, FlipOpportunities, FlipOpportunityTablePresenter}
   alias PoeFlipFinder.Gateways.{GggExchangeSourceGateway, GggLeagueGateway, Schema}
 
   # Outside-in Phoenix.LiveViewTest coverage per docs/PRD.md's Feature A-L,
@@ -113,33 +105,31 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     league
   end
 
-  # Seeds one divination-card opportunity via a stubbed reference gateway
-  # (docs/PRD.md § 7.3) -- its `via` is a two-step chain (card, then
-  # reward), unlike every other technique's single-item via, per
+  # Seeds one divination-card opportunity using a real entry from the
+  # bundled reference catalog (docs/PRD.md § 7.3) rather than a stubbed
+  # gateway -- BundledDivinationCardReferenceGateway caches via
+  # :persistent_term, which (unlike a Process-dictionary-based stub) is
+  # visible from the LiveView's own process, not just this test process.
+  # "Chaotic Disposition" (stackSize 1, reward 5x Chaos Orb, predictable)
+  # needs no separate resale-leg snapshot: its reward *is* Chaos, resolved
+  # directly. Its `via` is still a two-step chain (card, then reward),
+  # unlike every other technique's single-item via, per
   # docs/mockups/flip-row-reference.html's own Divination Card example row.
   defp seed_one_divination_card_opportunity!(league_external_id) do
-    Application.put_env(:poe_flip_finder, :divination_card_reference_gateway, StubDivinationCardReferenceGateway)
-    on_exit(fn -> Application.delete_env(:poe_flip_finder, :divination_card_reference_gateway) end)
-
     league = insert_league!(league_external_id, is_current: true)
-    chaos = insert_currency!(BaseCurrencyIds.chaos_external_id())
-    divine = insert_currency!(BaseCurrencyIds.divine_external_id())
+    chaos = insert_currency!(BaseCurrencyIds.chaos_external_id(), "Chaos Orb")
+    divine = insert_currency!(BaseCurrencyIds.divine_external_id(), "Divine Orb")
 
     card =
       insert_currency!(
-        "Metadata/Items/DivinationCards/DivinationCardTest",
-        "Test Card",
+        "Metadata/Items/DivinationCards/DivinationCardChaoticDisposition",
+        "Chaotic Disposition",
         :divination_card
       )
 
-    reward = insert_currency!("Metadata/Items/Currency/CurrencyTestReward", "Test Reward")
-
     # Divination Card needs the Chaos<->Divine reference rate to compute
     # anything at all (DivineChaosRate.resolve returning nil short-circuits
-    # DivinationCardOpportunityFinder to []) -- without this snapshot the
-    # only rows produced were incidental Exchange Spread pairs off the two
-    # snapshots below, which happen to also contain "Test Card"/"Test
-    # Reward" text but never the two-item via chain this test is for.
+    # DivinationCardOpportunityFinder to []).
     insert_snapshot!(%{
       generation_id: 1,
       league_id: league.id,
@@ -151,6 +141,10 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       highest_ratio_b: 1.0
     })
 
+    # Flat 1:5 chaos:card ratio -> suggested_buy_price=4 (card per chaos).
+    # cost_in_base = stack_size(1)/4 = 0.25 chaos -- same hand-verified
+    # "≈0.25c per card" detail as DivinationCardOpportunityFinderTest's
+    # golden path.
     insert_snapshot!(%{
       generation_id: 1,
       league_id: league.id,
@@ -161,27 +155,6 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       highest_ratio_a: 1.0,
       highest_ratio_b: 5.0
     })
-
-    insert_snapshot!(%{
-      generation_id: 1,
-      league_id: league.id,
-      currency_a_id: chaos.id,
-      currency_b_id: reward.id,
-      lowest_ratio_a: 1.0,
-      lowest_ratio_b: 2.0,
-      highest_ratio_a: 1.0,
-      highest_ratio_b: 2.0
-    })
-
-    StubDivinationCardReferenceGateway.stub([
-      %DivinationCardReward{
-        card: %Currency{external_id: nil, display_name: "Test Card", item_type: :divination_card},
-        stack_size: 8,
-        reward_currency: %Currency{external_id: nil, display_name: "Test Reward", item_type: :currency},
-        reward_quantity: 5,
-        predictable: true
-      }
-    ])
 
     activate_generation!(1)
     league
@@ -219,8 +192,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       |> element(".grid.row", "≈0.25c per card")
       |> render()
 
-    assert row_html =~ "Test Card"
-    assert row_html =~ "Test Reward"
+    assert row_html =~ "Chaotic Disposition"
+    assert row_html =~ "Chaos Orb"
     assert row_html =~ "class=\"arrow\""
   end
 
