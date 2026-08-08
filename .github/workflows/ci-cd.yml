@@ -68,4 +68,4 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'app')
     runs-on: ubuntu-latest
     steps:
-      - run: curl -fsS -X POST "${{ secrets.RENDER_APP_DEPLOY_HOOK_URL }}"
+      - run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

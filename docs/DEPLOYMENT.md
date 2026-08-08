@@ -53,7 +53,7 @@ To stop: Ctrl-C the `mix phx.server` process, then `docker compose down`.
 ## CI/CD — [.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml)
 
 - `test-app` — runs on every push and PR to `dev` or `main`: `mix compile --warnings-as-errors` (the `boundary` library turns a layering violation into a build failure, not just a local warning), `mix credo --strict`, `mix test`. This is the safety net before anything reaches `main`.
-- `deploy-app` — runs automatically on a push to `main`, or on demand from **any** branch via the Actions tab (`Run workflow` → pick a branch → `deploy_target: app`) — either way, only if `test-app` succeeded (`needs: test-app`). There's only one Render site — a second one per branch isn't worth the upkeep for a solo project at this stage — so a manual deploy from a non-`main` branch ships that branch's code to the same production site. Useful for a hotfix or previewing a feature without merging first, but treat it with the same weight as a merge to `main`. The deploy job is a single `curl -X POST` to a Render **deploy hook** URL, stored as a GitHub Actions secret (`RENDER_APP_DEPLOY_HOOK_URL`).
+- `deploy-app` — runs automatically on a push to `main`, or on demand from **any** branch via the Actions tab (`Run workflow` → pick a branch → `deploy_target: app`) — either way, only if `test-app` succeeded (`needs: test-app`). There's only one Render site — a second one per branch isn't worth the upkeep for a solo project at this stage — so a manual deploy from a non-`main` branch ships that branch's code to the same production site. Useful for a hotfix or previewing a feature without merging first, but treat it with the same weight as a merge to `main`. The deploy job is a single `curl -X POST` to a Render **deploy hook** URL, stored as a GitHub Actions secret (`RENDER_DEPLOY_HOOK_URL`).
 
 **Why not just let Render auto-deploy on push (its own native behavior)?** Because that runs independently of CI — a commit that fails tests would still reach production, since Render doesn't know or care what GitHub Actions decided. Gating the deploy job on the test job via `needs` closes that gap: a failing test can never result in a deploy. This means **Render's own git-triggered auto-deploy must be turned off** in its dashboard (covered in the walkthrough below) — the GitHub Actions deploy hook call is the *only* path to a deploy, not one of two.
 
@@ -81,7 +81,7 @@ This only needs to happen once per environment. Both platforms are free-tier, pe
 8. Deploy once manually to confirm it works. On first boot, `bin/migrate` will run the app's Ecto migrations against the fresh Neon database automatically.
 
 ### 3. Wire the deploy hook into GitHub Actions
-1. In this repo's GitHub Settings → Secrets and variables → Actions, add a repository secret: `RENDER_APP_DEPLOY_HOOK_URL`, using the URL copied in step 2 above.
+1. In this repo's GitHub Settings → Secrets and variables → Actions, add a repository secret: `RENDER_DEPLOY_HOOK_URL`, using the URL copied in step 2 above.
 2. That's it — [ci-cd.yml](../.github/workflows/ci-cd.yml)'s `deploy-app` job already references this secret name.
 
 After this one-time setup, every merge to `main` runs the tests, and only on success, deploys via the hook above — a broken build never reaches production.
