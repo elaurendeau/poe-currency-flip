@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+# Single-token entrypoint for platforms whose "override command" field
+# doesn't reliably parse shell operators like `&&` (confirmed against
+# Render: `sh -c "bin/migrate && bin/server"` in its Docker Command field
+# failed with `sh: 1: bin/migrate && bin/server: not found` -- the whole
+# string reached dash as one literal, unsplit word). A dedicated script
+# file sidesteps needing any shell syntax in that field at all.
+
+cd -P -- "$(dirname -- "$0")"
+./migrate
+exec ./server
