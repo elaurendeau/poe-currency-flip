@@ -1,7 +1,7 @@
 # PRD: PoE Currency Exchange Flip Finder
 
 **Owner:** tapoox
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-07
 
 **Related docs:** [ARCHITECTURE.md](ARCHITECTURE.md) (resilience & system design) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema) · [CODE_STYLE.md](CODE_STYLE.md) (Java code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
@@ -173,6 +173,25 @@ A small full-width bar at the bottom of the page, mirroring the header bar's sty
 - Exists to answer "is this actually the new code?" directly from the page itself, rather than guessing from Render/Vercel's deploy-hook timing — this project's deploys are asynchronous (a deploy hook firing doesn't mean the rebuild has finished), which has caused real confusion earlier in development (a screenshot taken moments after triggering a deploy showed stale output purely because Render/Vercel hadn't finished rebuilding yet).
 - If git metadata isn't available in the build environment (e.g. no `.git` directory present), the bar shows "unknown" for the hash rather than failing the build.
 - Timestamp format matches Feature F's freshness stamp (§ 7.6): absolute local time, `YYYY-MM-DD HH:MM:SS.mmm` — not a vague relative time.
+
+### 7.12 Feature L — Ratio Calculator
+
+A small floating utility, independent of the flip-finding features above, for working out whole-number trade ratios. Not tied to live market data — a standalone helper for a common manual task: PoE bulk trade listings require whole-number price ratios (e.g. an Exchange listing must state something like "31:2", not "15.5:1"), so a player who knows the decimal rate they want needs the smallest — or a nearby — whole-number pair that matches it.
+
+**Requirements:**
+- Presented as a floating launcher button anchored to the bottom-left corner of the viewport; clicking it pops a small panel open above the button, and clicking again (or its own close control) pops it closed. Does not require navigating away from the main flip table.
+- Three fields: **Ratio** (top, full width) accepting free-form input like `15.5:1`, `15.5/1`, `31:2`, or a bare number (implicitly `:1`); **Left** and **Right** (below, side by side, separated by a colon) holding a whole-number pair.
+- Entering a valid ratio fills Left/Right with the smallest whole-number pair that matches it exactly (e.g. `15.5:1` → `31:2`), derived from the ratio's own decimal precision rather than a divided-out float, so it's exact rather than an approximation.
+- Editing either Left or Right directly recalculates the other to the nearest whole number that keeps the entered ratio (e.g. changing Left to `145` sets Right to `9`, since 145/15.5 ≈ 9.35).
+- Whichever field the user just edited is treated as the fixed anchor for that recalculation and for both suggestion lists below it.
+- **When the resulting pair doesn't hit the ratio exactly, two sections appear below the fields instead of a single approximate value:**
+  - **"Closest matches"** — always exactly two rows: the anchor paired with the counterpart rounded down and with it rounded up (e.g. for target 15.5 and anchor Left=145: `≈16.11:1 → 145:9` and `≈14.5:1 → 145:10`). Never just whichever direction happens to round nearest — both directions are shown, since either can be the one the player actually wants to list at.
+  - **"Other whole-ratio options"** — up to two further suggestions for the pair at the nearest whole-number *ratios* above and below the target itself (e.g. `16:1 → 145:9` and `15:1 → 145:10`), letting the user pick a rounder target ratio instead of the exact one. Omitted when the target ratio is itself already a whole number.
+  - Both sections are omitted entirely whenever the achieved ratio matches the target exactly.
+- An invalid or empty ratio (non-numeric, zero, negative, malformed separator) disables the Left/Right fields and shows an inline error instead of stale or nonsensical values.
+- Entirely client-side; no backend involvement and no persistence — the calculator resets each page load.
+
+**Visual reference:** [docs/mockups/ratio-calculator-reference.html](mockups/ratio-calculator-reference.html) — the floating launcher/bubble placement, field stacking, and suggestion list are authoritative there.
 
 ## 8. Success Criteria
 

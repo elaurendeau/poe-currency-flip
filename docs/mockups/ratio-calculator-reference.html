@@ -1,0 +1,284 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ratio calculator mockup</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.44.0/tabler-icons.min.css">
+<style>
+  body { background:#0c0e10; margin:0; font-family: 'Segoe UI', sans-serif; height:100vh; overflow:hidden; }
+  .topbar { width:100%; box-sizing:border-box; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; background:#14171b; border-bottom:0.5px solid #262c33; padding:10px 20px; }
+  .topbar-left { display:flex; align-items:center; gap:8px; color:#e6e9ec; font-weight:500; font-size:14px; }
+  .topbar-center { justify-self:center; font-size:12px; color:#8a92a0; }
+  .topbar-right { display:flex; align-items:center; gap:10px; justify-self:end; }
+  .league { display:flex; align-items:center; gap:6px; background:#20252b; color:#c7cdd3; font-size:12px; padding:6px 10px; border-radius:6px; border:0.5px solid #2c333b; }
+
+  .content { padding:24px; opacity:0.55; }
+  .panel { background:#14171b; border-radius:12px; padding:16px 18px; max-width:700px; margin:0 auto; }
+  .filter-bar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:0 4px 12px; border-bottom:0.5px solid #262c33; margin-bottom:10px; font-size:12px; color:#c7cdd3; }
+  .grid { display:grid; grid-template-columns:80px 1fr 80px 70px 80px 70px; gap:10px; align-items:center; }
+  .header-row { padding:0 4px 8px; font-size:11px; color:#6b7480; border-bottom:0.5px solid #262c33; }
+  .row { padding:10px 4px; border-bottom:1px solid #1e2329; color:#c7cdd3; font-size:12px; }
+  .margin { text-align:right; font-family:Consolas,monospace; font-size:13px; color:#5fd07a; }
+
+  .caption { position:fixed; top:16px; left:50%; transform:translateX(-50%); font-size:12px; color:#8a92a0; background:#14171b; border:0.5px solid #2c333b; border-radius:6px; padding:6px 12px; z-index:20; }
+
+  /* --- Floating ratio-calculator widget --- */
+  .rc-launcher { position:fixed; left:20px; bottom:20px; width:48px; height:48px; border-radius:50%; background:#e8a33d; color:#14171b; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.4); border:none; cursor:pointer; font-size:20px; z-index:30; }
+  .rc-launcher:hover { filter:brightness(1.08); }
+
+  .rc-bubble { position:fixed; left:20px; bottom:80px; width:280px; background:#14171b; border:0.5px solid #2c333b; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); z-index:30; overflow:hidden; transform-origin:bottom left; transition:transform 0.15s ease, opacity 0.15s ease; }
+  .rc-bubble.closed { transform:scale(0.9); opacity:0; pointer-events:none; }
+
+  .rc-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:0.5px solid #262c33; background:#181c22; }
+  .rc-title { font-size:13px; font-weight:600; color:#f2f4f6; }
+  .rc-close { background:none; border:none; color:#6b7480; cursor:pointer; font-size:16px; line-height:1; padding:2px; }
+  .rc-close:hover { color:#c7cdd3; }
+
+  .rc-body { padding:12px; }
+  .rc-help { margin:0 0 12px; font-size:11px; color:#6b7480; }
+  .rc-field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; }
+  .rc-label { font-size:11px; color:#8a92a0; }
+  .rc-input { width:100%; box-sizing:border-box; background:#1a1e23; border:0.5px solid #2c333b; border-radius:6px; color:#f2f4f6; font-family:Consolas,monospace; font-size:13px; padding:7px 9px; }
+  .rc-input:focus { outline:none; border-color:#e8a33d; }
+  .rc-input.error { border-color:#e8a33d; }
+
+  .rc-pair-row { display:flex; align-items:flex-end; gap:8px; }
+  .rc-pair-row .rc-field { flex:1; margin-bottom:0; }
+  .rc-sep { padding-bottom:9px; color:#6b7480; font-size:14px; font-family:Consolas,monospace; }
+
+  .rc-hint { margin:12px 0 0; font-size:11px; color:#6b7480; font-family:Consolas,monospace; }
+  .rc-hint .value { color:#e8a33d; }
+  .rc-error-text { margin:12px 0 0; font-size:11px; color:#e8a33d; }
+
+  .rc-suggestions { margin:8px 0 0; padding-top:8px; border-top:0.5px solid #262c33; }
+  .rc-suggestions-label { font-size:10px; color:#525a63; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:4px; }
+  .rc-suggestion { display:flex; justify-content:space-between; font-size:11px; font-family:Consolas,monospace; color:#8a92a0; padding:2px 0; }
+  .rc-suggestion .ratio { color:#6b7480; }
+  .rc-suggestion .pair { color:#c7cdd3; }
+</style>
+</head>
+<body>
+
+<div class="caption">Click the floating button, bottom-left, to pop the calculator open/closed</div>
+
+<div class="topbar">
+  <div class="topbar-left">Flip finder</div>
+  <div class="topbar-center"><span>2026-08-07 09:12:03.118</span></div>
+  <div class="topbar-right">
+    <div class="league">Allflame &#9662;</div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="panel">
+    <div class="filter-bar">Vendor recipe &middot; Exchange spread &middot; Divination card &middot; Bulk buy</div>
+    <div class="grid header-row">
+      <span style="text-align:center">Start</span><span>Via</span><span style="text-align:center">Sell</span><span>Margin</span><span>Profit</span><span>Volume</span>
+    </div>
+    <div class="grid row"><div>1 Chaos</div><div>365 Wisdom Scroll</div><div>&asymp;1.96 Chaos</div><div class="margin">+96%</div><div>+0.96c</div><div>1.2k</div></div>
+    <div class="grid row"><div>1 Divine</div><div>45 Stacked Deck</div><div>224 Chaos</div><div class="margin">+7%</div><div>+14c</div><div>54</div></div>
+  </div>
+</div>
+
+<button class="rc-launcher" id="rcLauncher" title="Ratio calculator" aria-label="Open ratio calculator">
+  <i class="ti ti-calculator" aria-hidden="true"></i>
+</button>
+
+<div class="rc-bubble closed" id="rcBubble">
+  <div class="rc-header">
+    <span class="rc-title">Ratio Calculator</span>
+    <button class="rc-close" id="rcClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="rc-body">
+    <p class="rc-help">Enter a ratio, then edit either number to find the closest whole-number match.</p>
+
+    <div class="rc-field">
+      <span class="rc-label">Ratio</span>
+      <input class="rc-input" id="rcRatio" value="15.5:1">
+    </div>
+
+    <div class="rc-pair-row">
+      <div class="rc-field">
+        <span class="rc-label">Left</span>
+        <input class="rc-input" id="rcLeft" value="31">
+      </div>
+      <div class="rc-sep">:</div>
+      <div class="rc-field">
+        <span class="rc-label">Right</span>
+        <input class="rc-input" id="rcRight" value="2">
+      </div>
+    </div>
+
+    <p class="rc-hint" id="rcHint">&asymp; <span class="value">15.5</span>:1 &mdash; exact match</p>
+    <div class="rc-suggestions" id="rcClosest" style="display:none">
+      <div class="rc-suggestions-label">Closest matches</div>
+      <div id="rcClosestList"></div>
+    </div>
+    <div class="rc-suggestions" id="rcSuggestions" style="display:none">
+      <div class="rc-suggestions-label">Other whole-ratio options</div>
+      <div id="rcSuggestionList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Mirrors frontend/src/presenters/ratioCalculatorPresenter.ts so this
+  // mockup demonstrates the real interaction, not just static states.
+  function gcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { [a, b] = [b, a % b]; }
+    return a || 1;
+  }
+  function decimalPlacesOf(text) {
+    if (!text.includes('.')) return 0;
+    return text.split('.')[1].replace(/0+$/, '').length;
+  }
+  function splitRatioText(raw) {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const parts = trimmed.split(/[:/]/).map(p => p.trim());
+    if (parts.length > 2 || parts.some(p => p === '')) return null;
+    const leftText = parts[0];
+    const rightText = parts.length === 2 ? parts[1] : '1';
+    const leftNum = Number(leftText), rightNum = Number(rightText);
+    if (!Number.isFinite(leftNum) || !Number.isFinite(rightNum) || leftNum <= 0 || rightNum <= 0) return null;
+    return { leftText, rightText };
+  }
+  function ratioValue(raw) {
+    const parts = splitRatioText(raw);
+    if (!parts) return null;
+    return Number(parts.leftText) / Number(parts.rightText);
+  }
+  function simplestIntegerRatio(raw) {
+    const parts = splitRatioText(raw);
+    if (!parts) return null;
+    const decimalPlaces = Math.max(decimalPlacesOf(parts.leftText), decimalPlacesOf(parts.rightText));
+    const scale = 10 ** decimalPlaces;
+    const scaledLeft = Math.round(Number(parts.leftText) * scale);
+    const scaledRight = Math.round(Number(parts.rightText) * scale);
+    const divisor = gcd(scaledLeft, scaledRight);
+    return { left: scaledLeft / divisor, right: scaledRight / divisor };
+  }
+  function formatAchieved(left, right) {
+    if (!Number.isFinite(left) || !Number.isFinite(right) || right === 0) return null;
+    return String(Math.round((left / right) * 100) / 100);
+  }
+  function closestRatioMatches(ratio, anchor, anchorValue) {
+    const quotient = anchor === 'left' ? anchorValue / ratio : anchorValue * ratio;
+    const counterparts = [Math.floor(quotient), Math.ceil(quotient)].filter(
+      (value, index, all) => value > 0 && all.indexOf(value) === index,
+    );
+    return counterparts.map((counterpart) => {
+      const left = anchor === 'left' ? anchorValue : counterpart;
+      const right = anchor === 'left' ? counterpart : anchorValue;
+      return { left, right, achievedRatio: formatAchieved(left, right) };
+    });
+  }
+
+  const launcher = document.getElementById('rcLauncher');
+  const bubble = document.getElementById('rcBubble');
+  const closeBtn = document.getElementById('rcClose');
+  const ratioInput = document.getElementById('rcRatio');
+  const leftInput = document.getElementById('rcLeft');
+  const rightInput = document.getElementById('rcRight');
+  const hint = document.getElementById('rcHint');
+  const closest = document.getElementById('rcClosest');
+  const closestList = document.getElementById('rcClosestList');
+  const suggestions = document.getElementById('rcSuggestions');
+  const suggestionList = document.getElementById('rcSuggestionList');
+
+  let anchor = 'left'; // which box the user last typed into -- the other box is derived from it
+
+  function toggleBubble() { bubble.classList.toggle('closed'); }
+  launcher.addEventListener('click', toggleBubble);
+  closeBtn.addEventListener('click', toggleBubble);
+
+  function renderClosest(ratio, anchorValue) {
+    const matches = closestRatioMatches(ratio, anchor, anchorValue);
+    if (matches.length === 0) {
+      closest.style.display = 'none';
+      return;
+    }
+    closestList.innerHTML = matches.map((match) =>
+      '<div class="rc-suggestion"><span class="ratio">&asymp;' + match.achievedRatio + ':1</span><span class="pair">' +
+        match.left + ':' + match.right + '</span></div>',
+    ).join('');
+    closest.style.display = '';
+  }
+
+  function renderSuggestions(ratio, anchorValue) {
+    const floorRatio = Math.floor(ratio);
+    const ceilRatio = Math.ceil(ratio);
+    if (floorRatio === ceilRatio) {
+      suggestions.style.display = 'none';
+      return;
+    }
+    suggestionList.innerHTML = [ceilRatio, floorRatio].map((candidate) => {
+      const otherValue = anchor === 'left'
+        ? Math.round(anchorValue / candidate)
+        : Math.round(candidate * anchorValue);
+      const pair = anchor === 'left' ? (anchorValue + ':' + otherValue) : (otherValue + ':' + anchorValue);
+      return '<div class="rc-suggestion"><span class="ratio">' + candidate + ':1</span><span class="pair">' + pair + '</span></div>';
+    }).join('');
+    suggestions.style.display = '';
+  }
+
+  function refreshHint() {
+    const ratio = ratioValue(ratioInput.value);
+    const isValid = ratio !== null;
+    leftInput.disabled = !isValid;
+    rightInput.disabled = !isValid;
+    ratioInput.classList.toggle('error', !isValid && ratioInput.value.trim() !== '');
+
+    if (!isValid) {
+      hint.textContent = ratioInput.value.trim() === '' ? '' : 'Enter a ratio like 15.5:1';
+      hint.className = ratioInput.value.trim() === '' ? 'rc-hint' : 'rc-error-text';
+      closest.style.display = 'none';
+      suggestions.style.display = 'none';
+      return;
+    }
+    const achieved = formatAchieved(Number(leftInput.value), Number(rightInput.value));
+    const isExact = achieved !== null && achieved == ratio;
+    hint.className = 'rc-hint';
+    hint.innerHTML = isExact ? '&asymp; <span class="value">' + achieved + '</span>:1 &mdash; exact match' : '';
+
+    if (isExact) {
+      closest.style.display = 'none';
+      suggestions.style.display = 'none';
+    } else {
+      const anchorValue = Number(anchor === 'left' ? leftInput.value : rightInput.value);
+      renderClosest(ratio, anchorValue);
+      renderSuggestions(ratio, anchorValue);
+    }
+  }
+
+  ratioInput.addEventListener('input', () => {
+    const simplest = simplestIntegerRatio(ratioInput.value);
+    if (simplest) {
+      leftInput.value = simplest.left;
+      rightInput.value = simplest.right;
+    }
+    anchor = 'left';
+    refreshHint();
+  });
+  leftInput.addEventListener('input', () => {
+    const ratio = ratioValue(ratioInput.value);
+    if (ratio !== null && leftInput.value.trim() !== '') {
+      rightInput.value = Math.round(Number(leftInput.value) / ratio);
+    }
+    anchor = 'left';
+    refreshHint();
+  });
+  rightInput.addEventListener('input', () => {
+    const ratio = ratioValue(ratioInput.value);
+    if (ratio !== null && rightInput.value.trim() !== '') {
+      leftInput.value = Math.round(Number(rightInput.value) * ratio);
+    }
+    anchor = 'right';
+    refreshHint();
+  });
+
+  bubble.classList.remove('closed'); // start open so the reviewer sees it immediately
+</script>
+</body>
+</html>

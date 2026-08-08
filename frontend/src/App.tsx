@@ -5,10 +5,12 @@ import { FlipTechniqueFilterBar } from './components/FlipTechniqueFilterBar';
 import { IngestionRefreshButton } from './components/IngestionRefreshButton';
 import { LeagueRefreshButton } from './components/LeagueRefreshButton';
 import { LeagueSelector } from './components/LeagueSelector';
+import { RatioCalculator } from './components/RatioCalculator';
 import { useFavoriteRoutes } from './hooks/useFavoriteRoutes';
 import { useFlipOpportunities } from './hooks/useFlipOpportunities';
 import { useIngestionFreshness } from './hooks/useIngestionFreshness';
 import { useLeagueSelection } from './hooks/useLeagueSelection';
+import { useRatioCalculator } from './hooks/useRatioCalculator';
 import { useSortAndThresholds } from './hooks/useSortAndThresholds';
 import { useTechniqueFilters } from './hooks/useTechniqueFilters';
 import { buildDisplayGroups, getRouteKey } from './presenters/flipOpportunityTablePresenter';
@@ -32,6 +34,22 @@ function App() {
   const { enabledTechniques, toggleTechnique } = useTechniqueFilters();
   const { sortColumn, sortDirection, toggleSort, thresholds, setThreshold } = useSortAndThresholds();
   const { favoriteRouteKeys, toggleFavorite } = useFavoriteRoutes();
+  const {
+    isOpen: isRatioCalculatorOpen,
+    toggleOpen: toggleRatioCalculatorOpen,
+    close: closeRatioCalculator,
+    ratioText,
+    setRatioText,
+    leftText: ratioLeftText,
+    setLeftText: setRatioLeftText,
+    rightText: ratioRightText,
+    setRightText: setRatioRightText,
+    isRatioValid,
+    achievedRatio,
+    isExactMatch: isRatioExactMatch,
+    closestMatches: ratioClosestMatches,
+    suggestions: ratioSuggestions,
+  } = useRatioCalculator();
 
   const { favorites, others } = buildDisplayGroups(opportunities, {
     enabledTechniques,
@@ -86,6 +104,22 @@ function App() {
         )}
       </main>
       <BuildInfoBar />
+      <RatioCalculator
+        isOpen={isRatioCalculatorOpen}
+        onToggleOpen={toggleRatioCalculatorOpen}
+        onClose={closeRatioCalculator}
+        ratioText={ratioText}
+        onRatioTextChange={setRatioText}
+        leftText={ratioLeftText}
+        onLeftTextChange={setRatioLeftText}
+        rightText={ratioRightText}
+        onRightTextChange={setRatioRightText}
+        isRatioValid={isRatioValid}
+        achievedRatio={achievedRatio}
+        isExactMatch={isRatioExactMatch}
+        closestMatches={ratioClosestMatches}
+        suggestions={ratioSuggestions}
+      />
     </div>
   );
 }
