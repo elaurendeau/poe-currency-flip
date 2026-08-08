@@ -76,14 +76,18 @@ Notes:
 
 ## Divination Card Turn-In Rewards
 
-**Source:** [PoE Wiki](https://www.poewiki.net/wiki/Divination_card) (divination card pages/category).
+**Source:** [PoE Wiki — List of divination cards](https://www.poewiki.net/wiki/List_of_divination_cards) (the single consolidated table, not the individual per-card pages).
 **Auth:** None (public wiki).
-**Last verified:** Not yet — source identified, not yet scraped/captured or classified.
+**Last verified:** 2026-08-08 — captured and classified against the full 451-card drop-enabled list.
 
 Notes:
 
-- No API; static game data.
-- Requires a one-time classification pass: fixed/predictable currency reward (in scope per [PRD.md § 7.3](PRD.md#73-feature-c--divination-card-flip-finder)) vs. gamble/random-item reward (excluded).
+- No API; static game data, captured into `backend/src/main/resources/reference-data/divination-card-rewards.json` (same bundled-resource treatment as the Item Icons catalog above — see `BundledDivinationCardReferenceGateway`).
+- **Use the single "List of divination cards" page, not per-card pages.** It's one table with every card's stack size and reward description, so a full pass is one page load instead of ~450. The individual card wiki pages exist but are not worth visiting for this.
+- **Matched by display name, not GGG's internal item path.** `Metadata/Items/...` externalIds aren't derivable from the wiki at all — they only ever appear in live Currency Exchange API responses. Instead, `DivinationCardOpportunityFinder` matches card and reward names against active market snapshots' `Currency.displayName()`, which the game's own Item Icons catalog (`item-icons-catalog.json`) already resolves consistently. **Before adding a card, grep its exact card name and reward currency name against `item-icons-catalog.json`'s `"text"` fields** — a name that doesn't appear there will never match a live snapshot and the entry will silently produce zero opportunities (not a crash, just dead weight).
+- **Only ~45 of the 451 drop-enabled cards are in scope.** The overwhelming majority reward a unique item, gear, a map, a gem, or a jewel — none of that is a "fixed currency amount" per [PRD.md § 7.3](PRD.md#73-feature-c--divination-card-flip-finder), so it's correctly excluded, not missed. Don't second-guess a low count without re-checking the source table first.
+- **Watch for "random subtype" rewards that read like a fixed currency but aren't.** A handful of cards describe their reward as a bare category — e.g. "Shrieking Essence", "Horned Scarab", "Quality Currency", "Fossil", "Oil" — with no specific variant named. The wiki's own item catalog only has the *specific* suffixed variants (`Shrieking Essence of Wrath`, `Horned Scarab of Bloodlines`, etc.), confirming the actual in-game reward is randomized among them. These are gamble cards in a fixed-currency disguise, not simple omissions — keep them in the JSON with `"isPredictable": false` (per `DivinationCardReward`'s own docstring) rather than silently dropping them, so the exclusion stays visible to the next person editing this file.
+- **Refresh procedure for a new league:** re-open the wiki list page in a real browser (same Anubis anti-bot block as below applies), diff it against the current `divination-card-rewards.json` for added/removed/changed cards (GGG occasionally rebalances card stack sizes or rewards), re-verify any new card/currency names against `item-icons-catalog.json` (refresh that catalog first if a brand-new currency type was introduced), and commit the updated JSON. No code changes needed unless the matching strategy itself changes.
 
 ## Gold Cost (not available)
 
