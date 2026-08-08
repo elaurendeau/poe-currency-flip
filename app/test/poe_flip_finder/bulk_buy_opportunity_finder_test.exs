@@ -55,18 +55,10 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     chaos_per_divine: 210.0
   }
 
-  defp snapshot(
-         currency_a,
-         currency_b,
-         lowest_ratio_a,
-         lowest_ratio_b,
-         highest_ratio_a,
-         highest_ratio_b,
-         lowest_stock_a,
-         highest_stock_a,
-         lowest_stock_b,
-         highest_stock_b
-       ) do
+  defp snapshot(currency_a, currency_b, ratios, stocks) do
+    {lowest_ratio_a, lowest_ratio_b, highest_ratio_a, highest_ratio_b} = ratios
+    {lowest_stock_a, highest_stock_a, lowest_stock_b, highest_stock_b} = stocks
+
     %ExchangeMarketSnapshot{
       id: 1,
       generation_id: 999,
@@ -94,10 +86,10 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # the exact shape of a real production bug: a wide in-hour spread (here
     # 8 vs 13) previously fed the optimistic 8 into a one-directional sell,
     # overstating how much a real seller could get.
-    chaos_leg = snapshot(@chaos, @deck, 1, 8, 1, 13, 100, 50, 1, 1)
+    chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
 
     # Divine-deck leg: price_at_lowest=1700, price_at_highest=1900 -> buy=1899, market_sell_price=floor(1900)=1900.
-    divine_leg = snapshot(@divine, @deck, 1, 1700, 1, 1900, 30, 80, 1, 1)
+    divine_leg = snapshot(@divine, @deck, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
     opportunities = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
 
@@ -149,8 +141,8 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # exactly the asymmetry UndercutQuote exists to expose: a naive "drop
     # both legs if either quote is unusable" would incorrectly return 0
     # opportunities here.
-    chaos_leg = snapshot(@chaos, @wisdom, 2, 2, 2, 3, 40, 70, 1, 1)
-    divine_leg = snapshot(@divine, @wisdom, 1, 50, 1, 80, 30, 80, 1, 1)
+    chaos_leg = snapshot(@chaos, @wisdom, {2, 2, 2, 3}, {40, 70, 1, 1})
+    divine_leg = snapshot(@divine, @wisdom, {1, 50, 1, 80}, {30, 80, 1, 1})
 
     opportunities = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
 
@@ -178,8 +170,8 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # chaos_to_divine via chaos_leg.suggested_buy_price being nil, and
     # divine_to_chaos via chaos_leg.market_sell_price being <= 0 -- rather
     # than exactly one surviving.
-    chaos_leg = snapshot(@chaos, @wisdom, 2, 1, 10, 3, 100, 50, 1, 1)
-    divine_leg = snapshot(@divine, @wisdom, 1, 1700, 1, 1900, 30, 80, 1, 1)
+    chaos_leg = snapshot(@chaos, @wisdom, {2, 1, 10, 3}, {100, 50, 1, 1})
+    divine_leg = snapshot(@divine, @wisdom, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210) == []
   end
@@ -189,35 +181,35 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # as its via amount, which feeds into a division against the direct
     # baseline -- an unguarded 0 there produces a crash even though no
     # field is a literal division by the zero itself.
-    chaos_leg = snapshot(@chaos, @deck, 1, 8, 1, 13, 100, 50, 1, 1)
-    divine_leg = snapshot(@divine, @deck, 2, 1, 10, 3, 100, 50, 1, 1)
+    chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
+    divine_leg = snapshot(@divine, @deck, {2, 1, 10, 3}, {100, 50, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210) == []
   end
 
   test "rate unavailable returns empty regardless of snapshots" do
-    chaos_leg = snapshot(@chaos, @deck, 1, 8, 1, 13, 100, 50, 1, 1)
-    divine_leg = snapshot(@divine, @deck, 1, 1700, 1, 1900, 30, 80, 1, 1)
+    chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
+    divine_leg = snapshot(@divine, @deck, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], nil) == []
   end
 
   test "no matching divine leg for the same intermediary is not a candidate" do
-    chaos_leg = snapshot(@chaos, @deck, 1, 8, 1, 13, 100, 50, 1, 1)
+    chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg], @rate_210) == []
   end
 
   test "only the chaos/divine reference pair itself excludes it as a candidate" do
-    chaos_divine = snapshot(@chaos, @divine, 210, 1, 210, 1, 50, 60, 50, 60)
+    chaos_divine = snapshot(@chaos, @divine, {210, 1, 210, 1}, {50, 60, 50, 60})
 
     assert BulkBuyOpportunityFinder.find([chaos_divine], @rate_210) == []
   end
 
   test "non-finite ratio on one leg drops that intermediary entirely" do
     # lowest_ratio_a=0
-    chaos_leg = snapshot(@chaos, @deck, 0, 8, 1, 13, 100, 50, 1, 1)
-    divine_leg = snapshot(@divine, @deck, 1, 1700, 1, 1900, 30, 80, 1, 1)
+    chaos_leg = snapshot(@chaos, @deck, {0, 8, 1, 13}, {100, 50, 1, 1})
+    divine_leg = snapshot(@divine, @deck, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210) == []
   end
