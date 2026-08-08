@@ -1,5 +1,5 @@
 ---
-description: Refresh the vendored GGG Item Icons catalog (backend/src/main/resources/reference-data/item-icons-catalog.json), then verify it end to end before anything is committed.
+description: Refresh the vendored GGG Item Icons catalog (app/priv/reference-data/item-icons-catalog.json), then verify it end to end before anything is committed.
 disable-model-invocation: true
 allowed-tools: Bash Read Grep
 ---
@@ -22,7 +22,7 @@ etc.) for the block described in `docs/DATA_SOURCES.md`.
 
 1. Run the refresh script from the repo root:
    ```
-   bash backend/scripts/refresh-item-icons-catalog.sh
+   bash app/scripts/refresh-item-icons-catalog.sh
    ```
    The script itself validates the response (HTTP 200, non-empty `result`
    array, ≥1000 entries, has `Currency` and `Cards` groups) and refuses to
@@ -32,24 +32,21 @@ etc.) for the block described in `docs/DATA_SOURCES.md`.
 
 2. Check what actually changed:
    ```
-   cd D:/tools/claude-code && git diff --stat backend/src/main/resources/reference-data/item-icons-catalog.json
+   cd D:/tools/claude-code && git diff --stat app/priv/reference-data/item-icons-catalog.json
    ```
    If there's no diff, the catalog was already current — report that and
    stop; there's nothing to verify or commit.
 
-3. If it did change, run the backend test suite (needs `JAVA_HOME` set —
-   check `backend/mvnw` works first; if `java`/`mvnw` aren't on PATH in
-   this environment, locate a JDK 21 install under
-   `C:\Program Files\Eclipse Adoptium\` or similar and export `JAVA_HOME`
-   before running):
+3. If it did change, run the item icon gateway test (via WSL, per this
+   repo's `mix`/Elixir tooling):
    ```
-   cd backend && ./mvnw -q test -Dtest=GggItemIconGatewayTest,GatewayConfigTest
+   wsl bash -lc "cd /mnt/d/tools/claude-code/app && mix test test/poe_flip_finder/gateways/ggg_item_icon_gateway_test.exs"
    ```
    Then the full suite:
    ```
-   ./mvnw -q test
+   wsl bash -lc "cd /mnt/d/tools/claude-code/app && mix test"
    ```
-   `GggItemIconGatewayTest` specifically resolves real known items
+   The item icon gateway test specifically resolves real known items
    (`CurrencyPortal`, a divination card, an item confirmed absent from the
    catalog) — a pass there means the new file still parses in the expected
    shape and known lookups still work, not just that the fetch succeeded.
@@ -59,7 +56,7 @@ etc.) for the block described in `docs/DATA_SOURCES.md`.
    a shape change the fixture-based tests wouldn't cover, e.g. a brand new
    league's currency that should now resolve:
    ```
-   grep -o '"CurrencyPortal"' backend/src/main/resources/reference-data/item-icons-catalog.json
+   grep -o '"CurrencyPortal"' app/priv/reference-data/item-icons-catalog.json
    ```
    (This is a loose sanity check, not a substitute for step 3.)
 
@@ -77,7 +74,7 @@ etc.) for the block described in `docs/DATA_SOURCES.md`.
 - JSON validation failure (missing `result`, too few entries, missing
   `Currency`/`Cards` groups): GGG's response shape may have changed —
   don't silently proceed; report this as a shape change requiring a look
-  at `GggItemIconGateway.normalize()`, not just a data refresh.
+  at `GggItemIconGateway`'s normalization logic, not just a data refresh.
 - Test failures after a successful refresh: don't try to "fix" the
   gateway code to match new data without understanding why a previously-
   passing assertion broke — report the specific failure and let the user
