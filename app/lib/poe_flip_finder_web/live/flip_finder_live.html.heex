@@ -70,6 +70,8 @@
     </div>
   </header>
 
+  <div :if={@status_banner} class="status-banner">{@status_banner}</div>
+
   <main class="app-main">
     <%= if @selected_league do %>
       <div class="panel">

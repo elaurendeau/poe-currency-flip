@@ -176,11 +176,16 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     # spinning, not silent until it completes).
     click_html = view |> element("button[aria-label='Refresh leagues']") |> render_click()
     assert click_html =~ "league-refresh-button__icon--spinning"
+    assert click_html =~ "Refreshing leagues…"
 
     html = render_async(view, 2000)
     refute html =~ "league-refresh-button__icon--spinning"
     assert has_element?(view, "option[selected]", "Allflame")
     assert html =~ "Standard"
+    # docs/PRD.md § 7.7: the temporary status banner confirms completion --
+    # separate from (and in addition to) the league selector itself updating.
+    refute html =~ "Refreshing leagues…"
+    assert html =~ "Leagues refreshed"
   end
 
   test "refresh_leagues surfaces a fetch failure instead of silently doing nothing", %{
@@ -196,6 +201,10 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     html = render_async(view, 2000)
 
     assert html =~ "Failed to load leagues"
+    # docs/PRD.md § 7.7: a failure is reported only via the existing
+    # persistent error state -- the temporary banner is cleared, not
+    # repurposed into a second place to look for the same failure.
+    refute html =~ "Refreshing leagues…"
   end
 
   # === Feature F/G: Data Freshness Banner + Manual Refresh (ingestion) =
@@ -232,15 +241,79 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     click_html = view |> element("button[aria-label='Refresh market data']") |> render_click()
     assert click_html =~ "league-refresh-button__icon--spinning"
+    assert click_html =~ "Refreshing market data…"
 
     html = render_async(view, 2000)
     refute html =~ "league-refresh-button__icon--spinning"
     refute html =~ "Never refreshed"
     refute html =~ "Failed to load market data freshness"
+    # docs/PRD.md § 7.6: one hour of real new data was processed here (the
+    # single fixture page, then the tip) -- the "found new data" outcome,
+    # not "already caught up" or "partial progress".
+    refute html =~ "Refreshing market data…"
+    assert html =~ "Found new data (1h processed)"
 
     state = PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
     assert state.last_processed_change_id == tip_change_id
     assert state.active_generation_id != 0
+  end
+
+  test "refresh_ingestion already at the tip shows the already-caught-up banner with an ETA", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # 10 minutes into the current bucket -- leaves ~50 minutes until the
+    # next one, comfortably clear of both the "under a minute" boundary and
+    # any minute-rollover flakiness from real test execution time.
+    tip_change_id = System.system_time(:second) - 600
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: tip_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      body = Jason.encode!(%{next_change_id: tip_change_id, markets: []})
+      Plug.Conn.resp(conn, 404, body)
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
+
+    # docs/PRD.md § 7.6: "already caught up" gets an explicit statement plus
+    # a computed ETA until new data will actually be available (derived from
+    # the real checkpoint's next-hour boundary), not a guess.
+    assert [_, minutes] = Regex.run(~r/Already caught up · next data in ~(\d+)m/, html)
+    assert String.to_integer(minutes) in 45..50
+  end
+
+  test "refresh_ingestion hitting the per-call hour cap shows the partial-progress banner", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    requested_change_id = 1_785_985_200
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: requested_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Application.put_env(:poe_flip_finder, :ingestion, max_hours_per_call: 1)
+    on_exit(fn -> Application.delete_env(:poe_flip_finder, :ingestion) end)
+
+    Bypass.expect_once(
+      bypass,
+      "GET",
+      "/api/currency-exchange/#{requested_change_id}",
+      fn conn -> Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json")) end
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = render_async(view, 2000)
+
+    assert html =~ "Partial progress (1h) — refresh again to continue"
   end
 
   test "refresh_ingestion surfaces a fetch failure as the freshness error state", %{
@@ -254,6 +327,9 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     html = render_async(view, 2000)
 
     assert html =~ "Failed to load market data freshness"
+    # docs/PRD.md § 7.6: same rule as leagues -- a failure only ever shows up
+    # via the persistent error state, never via the temporary banner.
+    refute html =~ "Refreshing market data…"
   end
 
   # === Feature H: Technique Filters ===================================

@@ -79,6 +79,17 @@ body {
   font-family: var(--mono);
 }
 
+.status-banner {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 6px 20px;
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
 /* Below: copied from docs/mockups/flip-row-reference.html verbatim per
    CLAUDE.md's "Frontend layout discipline" -- that file is the authoritative
    visual reference, not a rough guide to reinterpret. */

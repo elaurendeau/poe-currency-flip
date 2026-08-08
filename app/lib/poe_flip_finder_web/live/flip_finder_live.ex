@@ -19,6 +19,13 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @sort_columns [:margin, :profit, :volume]
   @sort_directions [:asc, :desc]
 
+  # docs/PRD.md § 7.6/7.7: the in-flight duration is a safety net, not the
+  # real dismiss timer -- normally superseded by a completion banner (set
+  # via the same set_status_banner/3 helper) well before it would fire.
+  @in_flight_banner_ms 60_000
+  @completion_banner_ms 6_000
+  @ingestion_bucket_seconds 3_600
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -33,6 +40,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:ingestion_refreshing, false)
       |> assign(:freshness_error, false)
       |> assign(:last_refresh_result, nil)
+      |> assign(:status_banner, nil)
+      |> assign(:status_banner_token, 0)
       |> assign(:opportunities, [])
       |> assign(:opportunities_loading, false)
       |> assign(:opportunities_error, false)
@@ -83,6 +92,17 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     {:noreply, assign(socket, freshness: freshness, freshness_loading: false)}
   end
 
+  def handle_info({:clear_status_banner, token}, socket) do
+    socket =
+      if socket.assigns.status_banner_token == token do
+        assign(socket, :status_banner, nil)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_event("select_league", %{"value" => external_id}, socket) do
     league = Enum.find(socket.assigns.leagues, &(&1.external_id == external_id))
@@ -97,12 +117,20 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     # spinner CSS class existed but the client never had a frame in which
     # it was actually applied. Splitting the assign from the work across
     # this boundary is what makes the spinner visible at all.
-    socket = assign(socket, :leagues_refreshing, true)
+    socket =
+      socket
+      |> assign(:leagues_refreshing, true)
+      |> set_status_banner("Refreshing leagues…", @in_flight_banner_ms)
+
     {:noreply, start_async(socket, :refresh_leagues, &Leagues.refresh_league_list/0)}
   end
 
   def handle_event("refresh_ingestion", _params, socket) do
-    socket = assign(socket, :ingestion_refreshing, true)
+    socket =
+      socket
+      |> assign(:ingestion_refreshing, true)
+      |> set_status_banner("Refreshing market data…", @in_flight_banner_ms)
+
     cap_policy = catchup_cap_policy()
 
     {:noreply,
@@ -276,16 +304,27 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
             leagues_error: false
           )
           |> load_opportunities()
+          |> set_status_banner("Leagues refreshed", @completion_banner_ms)
 
         {:error, _reason} ->
-          assign(socket, leagues_refreshing: false, leagues_error: true)
+          # docs/PRD.md § 7.7: a failure keeps leagues_error as the sole
+          # source of truth -- the banner is cleared, not repurposed to
+          # report the failure too.
+          socket
+          |> assign(leagues_refreshing: false, leagues_error: true)
+          |> clear_status_banner()
       end
 
     {:noreply, socket}
   end
 
   def handle_async(:refresh_leagues, {:exit, _reason}, socket) do
-    {:noreply, assign(socket, leagues_refreshing: false, leagues_error: true)}
+    socket =
+      socket
+      |> assign(leagues_refreshing: false, leagues_error: true)
+      |> clear_status_banner()
+
+    {:noreply, socket}
   end
 
   def handle_async(:refresh_ingestion, {:ok, result}, socket) do
@@ -309,16 +348,27 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
           # the table can keep showing rows computed from the previous
           # generation after the timestamp has already moved forward.
           |> load_opportunities()
+          |> set_status_banner(ingestion_completion_message(result), @completion_banner_ms)
 
         {:error, _reason} ->
-          assign(socket, ingestion_refreshing: false, freshness_error: true)
+          # docs/PRD.md § 7.6: a failure keeps freshness_error as the sole
+          # source of truth -- the banner is cleared, not repurposed to
+          # report the failure too.
+          socket
+          |> assign(ingestion_refreshing: false, freshness_error: true)
+          |> clear_status_banner()
       end
 
     {:noreply, socket}
   end
 
   def handle_async(:refresh_ingestion, {:exit, _reason}, socket) do
-    {:noreply, assign(socket, ingestion_refreshing: false, freshness_error: true)}
+    socket =
+      socket
+      |> assign(ingestion_refreshing: false, freshness_error: true)
+      |> clear_status_banner()
+
+    {:noreply, socket}
   end
 
   defp load_opportunities(socket) do
@@ -418,6 +468,51 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp parse_thresholds(_invalid), do: %{}
+
+  # docs/PRD.md § 7.6/7.7: token-based so a stale auto-dismiss timer from a
+  # superseded banner (e.g. the in-flight message's own safety-net timer,
+  # once the completion banner has already replaced it) becomes a no-op
+  # instead of clobbering whatever is showing by the time it fires.
+  defp set_status_banner(socket, message, duration_ms) do
+    token = socket.assigns.status_banner_token + 1
+    Process.send_after(self(), {:clear_status_banner, token}, duration_ms)
+
+    assign(socket, status_banner: message, status_banner_token: token)
+  end
+
+  defp clear_status_banner(socket) do
+    assign(socket, status_banner: nil, status_banner_token: socket.assigns.status_banner_token + 1)
+  end
+
+  # docs/PRD.md § 7.6: three distinct completion outcomes for an ingestion
+  # refresh -- new data found, already caught up (with a computed ETA for
+  # when new data will actually be available, not a guess), or partial
+  # progress (the per-call hour cap was hit; another click continues).
+  defp ingestion_completion_message(%{hours_processed: 0, fully_caught_up: true} = result) do
+    "Already caught up · next data in #{format_eta(result.last_processed_change_id)}"
+  end
+
+  defp ingestion_completion_message(%{fully_caught_up: true} = result) do
+    "Found new data (#{result.hours_processed}h processed)"
+  end
+
+  defp ingestion_completion_message(result) do
+    "Partial progress (#{result.hours_processed}h) — refresh again to continue"
+  end
+
+  # GGG's Currency Exchange change-stream is bucketed one hour at a time,
+  # and next_change_id is itself the literal hour-aligned Unix timestamp
+  # (docs/DATA_SOURCES.md) -- so "when will new data exist" is simply that
+  # checkpoint plus one bucket, compared against now, not a guess.
+  defp format_eta(last_processed_change_id) do
+    remaining_seconds =
+      max(last_processed_change_id + @ingestion_bucket_seconds - System.system_time(:second), 0)
+
+    case div(remaining_seconds, 60) do
+      0 -> "under a minute"
+      minutes -> "~#{minutes}m"
+    end
+  end
 
   defp catchup_cap_policy do
     config = Application.get_env(:poe_flip_finder, :ingestion, [])
