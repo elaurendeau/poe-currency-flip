@@ -73,6 +73,47 @@ class GggItemIconGatewayTest {
         assertThat(result).isEmpty();
     }
 
+    @Test
+    void lookupItem_resolvesAnEssence_byFallingBackToASuffixMatch() {
+        gateway.normalize(fixture());
+
+        // Real example verified against live Currency Exchange data
+        // 2026-08-07: the catalog's image basename for essences omits the
+        // "CurrencyEssence" prefix that the real item path keeps, so the
+        // exact-match lookup misses and must fall back to a suffix match.
+        Optional<Currency> result = gateway.lookupItem("Metadata/Items/Currency/CurrencyEssenceHatred5");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().displayName()).isEqualTo("Screaming Essence of Hatred");
+        assertThat(result.get().itemType()).isEqualTo(Currency.ItemType.CURRENCY);
+    }
+
+    @Test
+    void lookupItem_resolvesMavensWrit_byFallingBackToASuffixMatch() {
+        gateway.normalize(fixture());
+
+        // Real example verified 2026-08-07: catalog basename "MavenKey" vs.
+        // real basename "CurrencyMavenKey" -- only the "Currency" prefix is
+        // dropped here, unlike the longer prefix essences drop.
+        Optional<Currency> result = gateway.lookupItem("Metadata/Items/MapFragments/CurrencyMavenKey");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().displayName()).isEqualTo("The Maven's Writ");
+    }
+
+    @Test
+    void lookupItem_doesNotSuffixMatch_whenTheOnlyCandidateIsShorterThanTheMinimumLength() {
+        gateway.normalize(fixture());
+
+        // The fixture's "Misc" group has a 3-character basename ("Tal")
+        // that this real path's basename ends in -- proves
+        // MIN_SUFFIX_MATCH_LENGTH actually suppresses a match that would
+        // otherwise succeed, not just that unrelated items stay unmatched.
+        Optional<Currency> result = gateway.lookupItem("Metadata/Items/Currency/CurrencyFooBarTal");
+
+        assertThat(result).isEmpty();
+    }
+
     private String fixture() {
         try {
             Path path = Path.of("src/test/resources/fixtures/item-icons-response.json");

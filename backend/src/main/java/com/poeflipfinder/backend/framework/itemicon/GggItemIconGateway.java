@@ -33,11 +33,29 @@ import org.springframework.core.io.ClassPathResource;
  * items, or a normalized comparison against {@code text} for divination
  * cards (which have no {@code image} field at all). Both verified by direct
  * testing 2026-08-06; see docs/DATA_SOURCES.md § Item Icons.
+ *
+ * <p><b>Exact basename matching only covers some groups.</b> Verified
+ * against a real hour of live Currency Exchange data 2026-08-07: GGG's own
+ * catalog drops a leading part of the real item path's basename for some
+ * items -- every Essence entry's image basename omits the {@code
+ * CurrencyEssence} prefix (e.g. real path basename {@code
+ * CurrencyEssenceHatred5} vs. catalog basename {@code Hatred5}), and {@code
+ * The Maven's Writ} omits just {@code Currency} ({@code CurrencyMavenKey} vs.
+ * {@code MavenKey}) -- while common currencies like Chaos/Portal/Wisdom keep
+ * the full basename. There's no single prefix rule, so an exact-match miss
+ * falls back to the longest catalog basename that is a suffix of the real
+ * basename ({@link #suffixMatch(String)}). This is a heuristic fallback, not
+ * a verified contract like the exact match above -- it resolved 79
+ * previously-invisible items (mostly Essences, plus Maven/Uber-boss key
+ * fragments) with zero ambiguous matches in that sample, and
+ * MIN_SUFFIX_MATCH_LENGTH guards against a short catalog basename
+ * coincidentally matching an unrelated item.
  */
 public class GggItemIconGateway implements ItemIconGateway {
 
     private static final String DIVINATION_CARD_PREFIX = "DivinationCard";
     private static final String CATALOG_RESOURCE_PATH = "reference-data/item-icons-catalog.json";
+    private static final int MIN_SUFFIX_MATCH_LENGTH = 4;
 
     private final ObjectMapper objectMapper;
     private Map<String, RawEntry> entriesByImageBasename;
@@ -61,10 +79,26 @@ public class GggItemIconGateway implements ItemIconGateway {
     private Optional<Currency> lookupCurrency(String externalId, String basename) {
         RawEntry entry = entriesByImageBasename.get(basename);
         if (entry == null) {
+            entry = suffixMatch(basename);
+        }
+        if (entry == null) {
             return Optional.empty();
         }
         return Optional.of(new Currency(
                 null, externalId, entry.text(), toAbsoluteIconUrl(entry.image()), Currency.ItemType.CURRENCY));
+    }
+
+    // Tries progressively shorter suffixes of the real basename, so the
+    // first hit is the longest (most specific, least collision-prone)
+    // catalog basename that matches.
+    private RawEntry suffixMatch(String basename) {
+        for (int start = 1; start <= basename.length() - MIN_SUFFIX_MATCH_LENGTH; start++) {
+            RawEntry entry = entriesByImageBasename.get(basename.substring(start));
+            if (entry != null) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private Optional<Currency> lookupCard(String externalId, String basename) {

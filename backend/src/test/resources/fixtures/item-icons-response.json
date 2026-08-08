@@ -22,6 +22,39 @@
       ]
     },
     {
+      "id": "Fragments",
+      "label": "Fragments",
+      "entries": [
+        {
+          "id": "the-mavens-writ",
+          "text": "The Maven's Writ",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvTWFwRnJhZ21lbnRzL01hdmVuS2V5Iiwic2NhbGUiOjF9XQ/aaaaaaaaaa/MavenKey.png"
+        }
+      ]
+    },
+    {
+      "id": "Essences",
+      "label": "Essences",
+      "entries": [
+        {
+          "id": "screaming-essence-of-hatred",
+          "text": "Screaming Essence of Hatred",
+          "image": "/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvSGF0cmVkNSIsInNjYWxlIjoxfV0/bbbbbbbbbb/Hatred5.png"
+        }
+      ]
+    },
+    {
+      "id": "Misc",
+      "label": "Misc",
+      "entries": [
+        {
+          "id": "short-basename-fixture",
+          "text": "Should never match via suffix",
+          "image": "/gen/image/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/cccccccccc/Tal.png"
+        }
+      ]
+    },
+    {
       "id": "Cards",
       "label": "Cards",
       "entries": [
