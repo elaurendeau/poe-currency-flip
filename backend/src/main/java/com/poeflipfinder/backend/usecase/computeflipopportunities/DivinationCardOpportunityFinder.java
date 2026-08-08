@@ -22,10 +22,13 @@ import java.util.Optional;
  * reliable source for GGG's internal item paths, only human-readable names
  * captured from the PoE Wiki.
  *
- * <p>The buy leg is priced competitively ({@link UndercutQuote#suggestedBuyPrice()},
- * same convention as every other technique's entry leg), preferring a Chaos
- * market and falling back to Divine. The resale leg is priced at
- * {@link UndercutQuote#marketSellPrice()} -- <strong>never</strong> the
+ * <p>Both the buy leg (which base currency the card itself trades against)
+ * and the resale leg (which base currency the reward trades against) prefer
+ * a Chaos market and fall back to Divine independently -- the two legs are
+ * unrelated trades and one's base doesn't constrain the other's. The buy leg
+ * is priced competitively ({@link UndercutQuote#suggestedBuyPrice()}, same
+ * convention as every other technique's entry leg). The resale leg is priced
+ * at {@link UndercutQuote#marketSellPrice()} -- <strong>never</strong> the
  * round-trip-favorable {@code suggestedSellPrice()} -- since this is a
  * one-directional sell into existing demand, not a round-trip order, exactly
  * the same reasoning {@link BulkBuyOpportunityFinder} already applies to its
@@ -113,8 +116,14 @@ class DivinationCardOpportunityFinder {
      * conversion; Divine rewards use the same averaged reference rate Bulk
      * Buy and Exchange Spread already rely on for cross-currency profit
      * normalization; any other reward currency needs its own market against
-     * Chaos, priced at {@code marketSellPrice()} per this class's docstring.
-     * Null means the reward currency can't be priced -- drop the opportunity.
+     * Chaos or Divine, priced at {@code marketSellPrice()} per this class's
+     * docstring -- Chaos is tried first, Divine is a fallback (some
+     * currencies, especially higher-value ones, trade mainly against Divine
+     * rather than Chaos; without this fallback a card whose reward only has
+     * a live Divine market was silently dropped even though its buy leg
+     * resolved fine via the same Divine fallback the buy leg already has).
+     * Null means the reward currency can't be priced against either base --
+     * drop the opportunity.
      */
     private ResaleResult resaleValueInChaos(
             Currency rewardCurrency, int rewardQuantity, List<ExchangeMarketSnapshot> snapshots, DivineChaosRate rate) {
@@ -125,20 +134,34 @@ class DivinationCardOpportunityFinder {
         if (rewardName.equals(rate.divineCurrency().displayName())) {
             return new ResaleResult(rate.divineCurrency(), rewardQuantity * rate.chaosPerDivine());
         }
-        return resaleThroughChaosMarket(rewardName, rewardQuantity, snapshots);
+        ResaleResult viaChaos = resaleThroughMarket(
+                rewardName, rewardQuantity, snapshots, BaseCurrencyIds.CHAOS_EXTERNAL_ID, 1.0);
+        if (viaChaos != null) {
+            return viaChaos;
+        }
+        return resaleThroughMarket(
+                rewardName, rewardQuantity, snapshots, BaseCurrencyIds.DIVINE_EXTERNAL_ID, rate.chaosPerDivine());
     }
 
-    private ResaleResult resaleThroughChaosMarket(String rewardName, int rewardQuantity, List<ExchangeMarketSnapshot> snapshots) {
+    /**
+     * {@code chaosPerBaseUnit} converts the base currency's own market-rate
+     * proceeds into Chaos -- 1.0 when the base already is Chaos, {@code
+     * rate.chaosPerDivine()} when the base is Divine.
+     */
+    private ResaleResult resaleThroughMarket(
+            String rewardName, int rewardQuantity, List<ExchangeMarketSnapshot> snapshots,
+            String baseExternalId, double chaosPerBaseUnit) {
         for (ExchangeMarketSnapshot snapshot : snapshots) {
-            Currency other = otherCurrency(snapshot, BaseCurrencyIds.CHAOS_EXTERNAL_ID);
+            Currency other = otherCurrency(snapshot, baseExternalId);
             if (other == null || !rewardName.equals(other.displayName())) {
                 continue;
             }
-            Optional<UndercutQuote> quote = quoteAgainstBase(snapshot, BaseCurrencyIds.CHAOS_EXTERNAL_ID);
+            Optional<UndercutQuote> quote = quoteAgainstBase(snapshot, baseExternalId);
             if (quote.isEmpty() || quote.get().marketSellPrice() <= 0) {
                 return null;
             }
-            return new ResaleResult(other, rewardQuantity / quote.get().marketSellPrice());
+            double baseAmount = rewardQuantity / quote.get().marketSellPrice();
+            return new ResaleResult(other, baseAmount * chaosPerBaseUnit);
         }
         return null;
     }

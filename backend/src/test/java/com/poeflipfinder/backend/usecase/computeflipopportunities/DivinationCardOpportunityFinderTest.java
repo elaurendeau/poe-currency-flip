@@ -151,9 +151,49 @@ class DivinationCardOpportunityFinderTest {
     @Test
     void find_rewardCurrencyHasNoChaosMarketOfItsOwn_isDropped() {
         ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
-        DivinationCardReward coveted = reward(9, "Regal Orb", 5); // no chaos<->regal snapshot supplied
+        DivinationCardReward coveted = reward(9, "Regal Orb", 5); // no chaos/divine<->regal snapshot supplied
 
         assertThat(finder.find(List.of(chaosCardLeg), List.of(coveted), rate210)).isEmpty();
+    }
+
+    @Test
+    void find_rewardCurrencyHasNoChaosMarket_fallsBackToDivineMarket() {
+        // Regression: a reward currency that only trades against Divine (not
+        // Chaos) used to be silently dropped even though the card's own buy
+        // leg already has this exact Chaos-preferred/Divine-fallback pattern.
+        ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
+        // Divine-regal leg: priceAtLowest=2, priceAtHighest=3 -> marketSellPrice=floor(3)=3 (regal per divine).
+        ExchangeMarketSnapshot divineRegalLeg = snapshot(divine, regal, 1, 2, 1, 3, 10, 20, 5, 5);
+        DivinationCardReward coveted = reward(9, "Regal Orb", 5);
+
+        List<FlipOpportunity> opportunities =
+                finder.find(List.of(chaosCardLeg, divineRegalLeg), List.of(coveted), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        FlipOpportunity opportunity = opportunities.get(0);
+        double resaleDivine = 5.0 / 3; // marketSellPrice (3), NOT a competitive/undercut price
+        assertThat(opportunity.via().get(1).currency()).isEqualTo(regal);
+        assertThat(opportunity.via().get(1).quantity()).isEqualTo(5.0);
+        assertThat(opportunity.sell().get(0).currency()).isEqualTo(chaos);
+        assertThat(opportunity.sell().get(0).quantity()).isCloseTo(resaleDivine * 210.0, within(1e-6));
+    }
+
+    @Test
+    void find_rewardCurrencyHasBothChaosAndDivineMarkets_prefersChaos() {
+        // Deliberately different numbers on each leg so the two paths are
+        // distinguishable -- proves Chaos is tried first, not just that a
+        // fallback exists.
+        ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
+        ExchangeMarketSnapshot chaosRegalLeg = snapshot(chaos, regal, 1, 2, 1, 3, 10, 20, 5, 5); // marketSellPrice=3
+        ExchangeMarketSnapshot divineRegalLeg = snapshot(divine, regal, 1, 4, 1, 5, 10, 20, 5, 5); // marketSellPrice=5
+        DivinationCardReward coveted = reward(9, "Regal Orb", 5);
+
+        List<FlipOpportunity> opportunities =
+                finder.find(List.of(chaosCardLeg, chaosRegalLeg, divineRegalLeg), List.of(coveted), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        // Chaos path: 5/3 = 1.6667 Chaos. Divine path would give 5/5*210 = 210 Chaos -- clearly different.
+        assertThat(opportunities.get(0).sell().get(0).quantity()).isCloseTo(5.0 / 3, within(1e-6));
     }
 
     @Test
