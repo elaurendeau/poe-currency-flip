@@ -123,6 +123,22 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     assert result.icon_url == nil
   end
 
+  test "resolves an Omen via its known naming pattern -- same catalog group as Tattoos, same root cause: the catalog's Omen entries are still keyed to old 'VoodooOmensNColor' names" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-08 (Allflame league) -- docs/DATA_SOURCES.md § Item Icons.
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/Currency/AncestralOmenOnChanceMakeUnique",
+        catalog
+      )
+
+    assert result.category == :ancestor
+    assert result.display_name == "Omen of Chance Make Unique"
+    assert result.icon_url == nil
+  end
+
   test "resolves a Runegraft via its known naming pattern -- GGG's static catalog only has the pre-rework 'VillageRuneN' internal names, not the current ones the live feed uses" do
     catalog = GggItemIconGateway.normalize(fixture())
 

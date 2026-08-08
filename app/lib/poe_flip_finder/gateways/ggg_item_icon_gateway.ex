@@ -34,13 +34,18 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   **Some groups aren't in the catalog at all, under any name.** Verified
   against a live hour of Currency Exchange data 2026-08-08: every real
   Tattoo variant (~90 distinct items) shares one generic catalog icon
-  across all of them, and every Runegraft's catalog entry is still keyed
-  to its pre-rework internal name -- neither exact nor suffix basename
-  matching can bridge that gap (re-fetching the catalog fresh from GGG's
-  CDN confirmed it isn't a stale-bundle problem either). These two
-  families get a narrow, pattern-based fallback instead
-  (`lookup_by_known_naming_pattern/2`), independent of the catalog
-  entirely, with a derived (not GGG-authoritative) display name.
+  across all of them, and every Runegraft's and Omen's catalog entry is
+  still keyed to a pre-rework internal name ("VillageRuneN" /
+  "VoodooOmensNColor") -- neither exact nor suffix basename matching can
+  bridge that gap (re-fetching the catalog fresh from GGG's CDN confirmed
+  it isn't a stale-bundle problem either). These three families get a
+  narrow, pattern-based fallback instead (`lookup_by_known_naming_pattern/2`),
+  independent of the catalog entirely, with a derived (not
+  GGG-authoritative) display name. Checked the same live hour for a
+  fourth suspect, Oils -- found zero Oil trades anywhere, in any league,
+  across ~24h of real data, so that one's an actual liquidity gap, not a
+  matching bug (the catalog's Oil basenames are old, stable, unrenamed
+  ones that should match fine whenever a real trade exists).
 
   **This module never returns `nil` for a real market entry.** It used to
   -- an unmatched item fell through to `nil`, and `Ingestion.resolve_currency/2`
@@ -73,6 +78,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   @min_suffix_match_length 4
   @persistent_term_key {__MODULE__, :catalog}
   @tattoo_pattern ~r/^AncestralTattoo([A-Z][a-zA-Z]*?)(\d+)$/
+  @omen_pattern ~r/^AncestralOmen(.+)$/
   @runegraft_pattern ~r/^Runegraft([A-Z][a-zA-Z]*)$/
 
   @type catalog :: %{by_image_basename: map(), cards_by_canonical_name: map()}
@@ -135,11 +141,14 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     }
   end
 
-  # A generic fallback (below) would work for Tattoos/Runegrafts too, but
-  # these two known, common families get a real category and a much
-  # better name instead of landing in :misc with a raw humanized basename.
+  # A generic fallback (below) would work for these three families too,
+  # but they're known and common enough to earn a real category and a
+  # much better name instead of landing in :misc with a raw humanized
+  # basename.
   defp lookup_by_known_naming_pattern(external_id, basename) do
-    tattoo_currency(external_id, basename) || runegraft_currency(external_id, basename)
+    tattoo_currency(external_id, basename) ||
+      omen_currency(external_id, basename) ||
+      runegraft_currency(external_id, basename)
   end
 
   defp tattoo_currency(external_id, basename) do
@@ -157,6 +166,31 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
         nil
     end
   end
+
+  # Same catalog group as Tattoos ("Ancestor" / "Tattoos & Omens"), same
+  # root cause: the catalog's Omen entries are keyed to old internal names
+  # ("VoodooOmensNColor") that don't match any current real basename,
+  # verified against a live hour of Currency Exchange data 2026-08-08. The
+  # real basename encodes the omen's trigger+effect as "On<Descriptor>"
+  # (e.g. "OnChanceMakeUnique") -- the leading "On" is stripped before
+  # humanizing purely for readability, since every real example has it.
+  defp omen_currency(external_id, basename) do
+    case Regex.run(@omen_pattern, basename) do
+      [_, descriptor] ->
+        %Currency{
+          id: nil,
+          external_id: external_id,
+          display_name: "Omen of #{humanize_basename(strip_on_prefix(descriptor))}",
+          icon_url: nil,
+          category: :ancestor
+        }
+
+      nil ->
+        nil
+    end
+  end
+
+  defp strip_on_prefix(descriptor), do: String.replace(descriptor, ~r/^On(?=[A-Z])/, "")
 
   defp runegraft_currency(external_id, basename) do
     case Regex.run(@runegraft_pattern, basename) do
