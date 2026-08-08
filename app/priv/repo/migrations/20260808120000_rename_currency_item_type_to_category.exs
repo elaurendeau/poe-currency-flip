@@ -20,13 +20,21 @@ defmodule PoeFlipFinder.Repo.Migrations.RenameCurrencyItemTypeToCategory do
   def up do
     drop constraint(:currency, :item_type_must_be_known)
     rename table(:currency), :item_type, to: :category
+    flush()
+
+    # Backfill MUST run before the new check constraint is created, not
+    # after: Postgres validates a CHECK constraint against every existing
+    # row at creation time, and every real production row still holds an
+    # old-taxonomy value ('currency' / 'divination_card') at this point --
+    # 'divination_card' alone is never in @category_values, so creating the
+    # constraint first fails immediately against any production data (a
+    # local migration test against an empty freshly-created table never
+    # catches this, since there are no pre-existing rows to violate it).
+    backfill_categories()
 
     create constraint(:currency, :category_must_be_known,
              check: "category IN (#{Enum.map_join(@category_values, ", ", &"'#{&1}'")})"
            )
-
-    flush()
-    backfill_categories()
   end
 
   def down do
