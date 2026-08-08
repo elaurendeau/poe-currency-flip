@@ -51,8 +51,13 @@ public class GggExchangeSourceGateway implements ExchangeSourceGateway {
         }
     }
 
-    /** Package-visible so the contract test can exercise parsing without a live HTTP call. */
-    ExchangeChangeStreamPage normalize(String json, long requestedChangeId, boolean atTip) {
+    /**
+     * Public so contract and integration tests can exercise real parsing
+     * against a saved fixture without a live HTTP call -- including tests
+     * outside this package that need real-data-through-real-parsing, e.g.
+     * DivinationCardOpportunityFinderIntegrationTest.
+     */
+    public ExchangeChangeStreamPage normalize(String json, long requestedChangeId, boolean atTip) {
         RawPage rawPage = deserialize(json);
         Instant snapshotHour = Instant.ofEpochSecond(requestedChangeId);
         List<ExchangeMarketEntry> entries =

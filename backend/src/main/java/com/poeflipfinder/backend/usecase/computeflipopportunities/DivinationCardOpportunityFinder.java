@@ -33,6 +33,23 @@ import java.util.Optional;
  * one-directional sell into existing demand, not a round-trip order, exactly
  * the same reasoning {@link BulkBuyOpportunityFinder} already applies to its
  * own exit leg.
+ *
+ * <p><strong>Both legs also re-orient if the "other" side turns out to be
+ * worth more than 1 base unit.</strong> Quoting "card units per 1 Chaos"
+ * floors to 0 for a card worth, say, 200 Chaos, and the -1 competitive
+ * undercut then pushes it negative -- {@code suggestedBuyPrice()}/{@code
+ * marketSellPrice()} come back unusable and the whole opportunity was
+ * silently dropped, even for a card genuinely trading with real volume (a
+ * real production incident: The Sephirot, ~200c/card, confirmed via raw GGG
+ * data to have real volume and stock that this class nonetheless discarded).
+ * When that happens, both legs retry with the *other* currency as the base
+ * instead ("Chaos per 1 card" / "Chaos per 1 reward unit" -- a sane,
+ * floorable number), scaling by multiplication instead of division. This is
+ * the same underlying idea {@link BulkBuyOpportunityFinder} already uses
+ * (scale to end at exactly 1 of the expensive currency, not start at exactly
+ * 1 of the cheap one) but applied as a genuine auto-detected fallback rather
+ * than a hardcoded direction, since a card's value relative to Chaos/Divine
+ * isn't known ahead of time the way Bulk Buy's fixed Chaos/Divine pair is.
  */
 class DivinationCardOpportunityFinder {
 
@@ -60,7 +77,9 @@ class DivinationCardOpportunityFinder {
         }
 
         double stackSize = reward.stackSize();
-        double costInBase = stackSize / buyLeg.quote().suggestedBuyPrice().get();
+        double costInBase = buyLeg.priceIsPerCard()
+                ? stackSize * buyLeg.quote().suggestedBuyPrice().get()
+                : stackSize / buyLeg.quote().suggestedBuyPrice().get();
         double costChaos =
                 buyLeg.baseCurrency().equals(rate.chaosCurrency()) ? costInBase : costInBase * rate.chaosPerDivine();
 
@@ -102,11 +121,21 @@ class DivinationCardOpportunityFinder {
             if (other == null || !otherName.equals(other.displayName())) {
                 continue;
             }
-            Optional<UndercutQuote> quote = quoteAgainstBase(snapshot, baseExternalId);
-            if (quote.isEmpty() || quote.get().suggestedBuyPrice().isEmpty()) {
-                return null;
-            }
-            return new BuyLeg(baseCurrency, other, quote.get());
+            return resolveOrientedBuyQuote(snapshot, baseExternalId, baseCurrency, other);
+        }
+        return null;
+    }
+
+    /** See this class's docstring for why both orientations are tried. Null means neither is viable. */
+    private BuyLeg resolveOrientedBuyQuote(
+            ExchangeMarketSnapshot snapshot, String baseExternalId, Currency baseCurrency, Currency card) {
+        Optional<UndercutQuote> asBase = quoteAgainstBase(snapshot, baseExternalId);
+        if (asBase.isPresent() && asBase.get().suggestedBuyPrice().isPresent()) {
+            return new BuyLeg(baseCurrency, card, asBase.get(), false);
+        }
+        Optional<UndercutQuote> asCard = quoteAgainstBase(snapshot, card.externalId());
+        if (asCard.isPresent() && asCard.get().suggestedBuyPrice().isPresent()) {
+            return new BuyLeg(baseCurrency, card, asCard.get(), true);
         }
         return null;
     }
@@ -156,12 +185,24 @@ class DivinationCardOpportunityFinder {
             if (other == null || !rewardName.equals(other.displayName())) {
                 continue;
             }
-            Optional<UndercutQuote> quote = quoteAgainstBase(snapshot, baseExternalId);
-            if (quote.isEmpty() || quote.get().marketSellPrice() <= 0) {
-                return null;
-            }
-            double baseAmount = rewardQuantity / quote.get().marketSellPrice();
-            return new ResaleResult(other, baseAmount * chaosPerBaseUnit);
+            return resolveOrientedResaleQuote(snapshot, baseExternalId, other, rewardQuantity, chaosPerBaseUnit);
+        }
+        return null;
+    }
+
+    /** See this class's docstring for why both orientations are tried. Null means neither is viable. */
+    private ResaleResult resolveOrientedResaleQuote(
+            ExchangeMarketSnapshot snapshot, String baseExternalId, Currency reward,
+            int rewardQuantity, double chaosPerBaseUnit) {
+        Optional<UndercutQuote> asBase = quoteAgainstBase(snapshot, baseExternalId);
+        if (asBase.isPresent() && asBase.get().marketSellPrice() > 0) {
+            double baseAmount = rewardQuantity / asBase.get().marketSellPrice();
+            return new ResaleResult(reward, baseAmount * chaosPerBaseUnit);
+        }
+        Optional<UndercutQuote> asReward = quoteAgainstBase(snapshot, reward.externalId());
+        if (asReward.isPresent() && asReward.get().marketSellPrice() > 0) {
+            double baseAmount = rewardQuantity * asReward.get().marketSellPrice();
+            return new ResaleResult(reward, baseAmount * chaosPerBaseUnit);
         }
         return null;
     }
@@ -202,7 +243,8 @@ class DivinationCardOpportunityFinder {
         return "%.2f".formatted(value);
     }
 
-    private record BuyLeg(Currency baseCurrency, Currency cardCurrency, UndercutQuote quote) {
+    /** {@code priceIsPerCard}: true means {@code quote} is "base units per 1 card" (multiply); false means "card units per 1 base unit" (divide). */
+    private record BuyLeg(Currency baseCurrency, Currency cardCurrency, UndercutQuote quote, boolean priceIsPerCard) {
     }
 
     private record ResaleResult(Currency rewardCurrency, double chaosAmount) {

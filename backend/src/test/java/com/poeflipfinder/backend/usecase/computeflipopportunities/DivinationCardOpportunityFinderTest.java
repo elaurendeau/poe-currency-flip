@@ -215,12 +215,79 @@ class DivinationCardOpportunityFinderTest {
     }
 
     @Test
-    void find_rewardCurrencyMarketSellPriceCollapsesToZero_isDroppedSafelyNoCrash() {
-        // Same shape as the real Bulk Buy production bug: a wide in-hour spread
-        // (0.5 vs 0.3) floors marketSellPrice to exactly 0, which would divide
-        // rewardQuantity by zero if unguarded.
+    void find_expensiveCard_reorientsTheBuyLegInsteadOfDroppingIt() {
+        // Real production incident: The Sephirot genuinely trades at ~200
+        // Chaos/card with real volume and stock, but "card units per 1
+        // Chaos" floors to 0 and the -1 undercut goes negative, so the
+        // opportunity was silently dropped even though the market is real.
+        // Numbers below are the actual captured GGG data for that pair
+        // (card=A, chaos=B; lowest_ratio 1:217, highest_ratio 1:188).
+        ExchangeMarketSnapshot chaosCardLeg = snapshot(card, chaos, 1, 217, 1, 188, 3, 74, 28382, 110790);
+        DivinationCardReward sephirot = reward(11, "Divine Orb", 10);
+
+        List<FlipOpportunity> opportunities = finder.find(List.of(chaosCardLeg), List.of(sephirot), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        FlipOpportunity opportunity = opportunities.get(0);
+        // Re-oriented quote: 217/188 -> raw buy price 217 (the lower-priceAtLowest
+        // extreme wins here since 188/1 < 217/1), floored and undercut by -1 -> 216
+        // Chaos per card, competitive.
+        assertThat(opportunity.start().get(0).currency()).isEqualTo(chaos);
+        assertThat(opportunity.start().get(0).quantity()).isEqualTo(11.0 * 216);
+        assertThat(opportunity.via().get(0).currency()).isEqualTo(card);
+        assertThat(opportunity.via().get(0).quantity()).isEqualTo(11.0);
+        // Re-oriented quote picks the lower-priceAtLowest extreme (188/1 < 217/1),
+        // so buyLegStock comes from the *lowest* stock side, not highest.
+        assertThat(opportunity.volume()).isEqualTo(3);
+        assertThat(opportunity.detail()).isEqualTo("≈216c per card");
+    }
+
+    @Test
+    void find_expensiveRewardCurrency_reorientsTheResaleLegInsteadOfDroppingIt() {
+        // Mirror-image of the buy-leg case: a reward currency worth more
+        // than 1 Chaos each (e.g. House of Mirrors -> Mirror of Kalandra)
+        // used to make "reward units per 1 Chaos" floor to 0 too.
+        ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
+        ExchangeMarketSnapshot chaosRegalLeg = snapshot(chaos, regal, 217, 1, 188, 1, 28382, 110790, 3, 74);
+        DivinationCardReward coveted = reward(9, "Regal Orb", 5);
+
+        List<FlipOpportunity> opportunities =
+                finder.find(List.of(chaosCardLeg, chaosRegalLeg), List.of(coveted), rate210);
+
+        assertThat(opportunities).hasSize(1);
+        FlipOpportunity opportunity = opportunities.get(0);
+        assertThat(opportunity.via().get(1).currency()).isEqualTo(regal);
+        assertThat(opportunity.via().get(1).quantity()).isEqualTo(5.0);
+        // Re-oriented quote: 217 Chaos per 1 Regal (market rate, no undercut) * 5 = 1085.
+        assertThat(opportunity.sell().get(0).quantity()).isEqualTo(5.0 * 217);
+    }
+
+    @Test
+    void find_rewardCurrencySpreadCollapsesInOneDirection_reorientsRatherThanDropping() {
+        // Same shape as the real Bulk Buy production bug: a wide in-hour
+        // spread (0.5 vs 0.3) floors marketSellPrice to exactly 0 in the
+        // Chaos-per-regal direction -- but per this class's reorientation
+        // fix, that just means the reward is worth more than 1 Chaos, so the
+        // reoriented (regal-per-chaos) direction takes over instead of
+        // dropping the opportunity outright.
         ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
         ExchangeMarketSnapshot chaosRegalLeg = snapshot(chaos, regal, 2, 1, 10, 3, 100, 50, 1, 1);
+        DivinationCardReward coveted = reward(9, "Regal Orb", 5);
+
+        assertThat(finder.find(List.of(chaosCardLeg, chaosRegalLeg), List.of(coveted), rate210)).hasSize(1);
+    }
+
+    @Test
+    void find_rewardCurrencyRatioIsNonFinite_isDroppedSafelyNoCrash_inEitherOrientation() {
+        // Unlike a merely wide spread (recovered by reorientation above), a
+        // genuinely non-finite raw ratio (both sides 0 at the same extreme,
+        // e.g. corrupted/degenerate upstream data) makes priceAtLowest a NaN
+        // in *both* orientations -- UndercutQuote.resolve's own finite-check
+        // catches this before any floor/undercut math runs, so there's no
+        // orientation that can recover it. The guard's job is just to make
+        // sure that shows up as zero opportunities, never a crash.
+        ExchangeMarketSnapshot chaosCardLeg = snapshot(chaos, card, 1, 8, 1, 13, 100, 50, 1, 1);
+        ExchangeMarketSnapshot chaosRegalLeg = snapshot(chaos, regal, 0, 0, 10, 3, 100, 50, 1, 1);
         DivinationCardReward coveted = reward(9, "Regal Orb", 5);
 
         assertThat(finder.find(List.of(chaosCardLeg, chaosRegalLeg), List.of(coveted), rate210)).isEmpty();
