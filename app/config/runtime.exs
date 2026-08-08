@@ -31,7 +31,10 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :poe_flip_finder, PoeFlipFinder.Repo,
-    # ssl: true,
+    # Neon (this app's actual prod Postgres) rejects plaintext connections
+    # outright -- ERROR 28000 (invalid_authorization_specification)
+    # "connection is insecure" -- confirmed by an actual failed deploy.
+    ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
