@@ -1,5 +1,12 @@
 defmodule PoeFlipFinder.Gateways.GggLeagueGatewayTest do
-  use ExUnit.Case, async: true
+  # async: false -- PoeFlipFinder.LeaguesTest also configures this same
+  # module's base_url via Application.put_env, which is global process
+  # state, not test-isolated. Two async tests racing to set it to
+  # different Bypass ports intermittently sent a request to the wrong
+  # instance. Same class of gotcha as the singleton-DB-row deadlock in
+  # EctoSnapshotRepositoryGatewayTest -- shared mutable state outside the
+  # SQL Sandbox needs the same care.
+  use ExUnit.Case, async: false
 
   alias PoeFlipFinder.Gateways.GggLeagueGateway
 
