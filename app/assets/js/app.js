@@ -40,12 +40,38 @@ function loadFavoritesFromStorage() {
   }
 }
 
+// Technique filters, sort column/direction, and threshold values are also a
+// personal, per-browser preference (docs/PRD.md § 7.8/7.9) -- same
+// client-storage treatment as Favorites above, so they survive a full page
+// reload instead of resetting to the hardcoded defaults every time.
+const DISPLAY_PREFERENCES_STORAGE_KEY = "poe-flip-finder:display-preferences"
+
+function loadDisplayPreferencesFromStorage() {
+  try {
+    const raw = window.localStorage.getItem(DISPLAY_PREFERENCES_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 const Hooks = {
   FavoritesStorage: {
     mounted() {
       this.pushEvent("favorites_loaded", {route_keys: loadFavoritesFromStorage()})
       this.handleEvent("persist_favorites", ({route_keys}) => {
         window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(route_keys))
+      })
+    },
+  },
+
+  DisplayPreferencesStorage: {
+    mounted() {
+      this.pushEvent("display_preferences_loaded", loadDisplayPreferencesFromStorage())
+      this.handleEvent("persist_display_preferences", (prefs) => {
+        window.localStorage.setItem(DISPLAY_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs))
       })
     },
   },

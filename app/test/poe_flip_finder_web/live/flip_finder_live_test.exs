@@ -324,6 +324,97 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert has_element?(view, "span.col-label.active", "Profit")
   end
 
+  # === Features H/I: Persisted Display Preferences =====================
+  # docs/PRD.md § 7.8/7.9: technique filters, sort column/direction, and
+  # thresholds are a per-browser preference, same mechanism as Favorites.
+
+  test "toggling a technique, sorting, and setting a threshold each persist the updated preferences",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    view |> element("input[aria-label='Exchange spread']") |> render_click()
+
+    assert_push_event(view, "persist_display_preferences", %{
+      enabled_techniques: %{
+        vendor_recipe: true,
+        exchange_spread: false,
+        divination_card: true,
+        bulk_buy: true
+      },
+      sort_column: :margin,
+      sort_direction: :desc,
+      thresholds: %{}
+    })
+
+    view |> element("span.col-label", "Profit") |> render_click()
+    assert_push_event(view, "persist_display_preferences", %{sort_column: :profit} = _payload)
+
+    view
+    |> element("form[phx-value-column='volume']")
+    |> render_change(%{"column" => "volume", "value" => "50"})
+
+    assert_push_event(view, "persist_display_preferences", %{thresholds: %{volume: 50.0}} = _)
+  end
+
+  test "display_preferences_loaded applies a saved technique filter, sort, and threshold", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    html =
+      render_click(view, "display_preferences_loaded", %{
+        "enabled_techniques" => %{"exchange_spread" => false},
+        "sort_column" => "profit",
+        "sort_direction" => "asc",
+        "thresholds" => %{"margin" => 5}
+      })
+
+    # exchange_spread is the seeded opportunity's own technique -- disabling
+    # it via the loaded preference must filter the row out immediately.
+    assert count_rows(html) == 0
+    assert has_element?(view, "span.col-label.active", "Profit")
+  end
+
+  test "display_preferences_loaded with garbage input falls back to current defaults, not a crash",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    html =
+      render_click(view, "display_preferences_loaded", %{
+        "enabled_techniques" => "not-a-map",
+        "sort_column" => "not-a-real-column",
+        "sort_direction" => 12_345,
+        "thresholds" => ["also", "not", "a", "map"]
+      })
+
+    assert html =~ "PoE Flip Finder"
+    assert has_element?(view, "span.col-label.active", "Margin")
+    assert has_element?(view, "input[aria-label='Exchange spread'][checked]")
+  end
+
+  test "display_preferences_loaded with a partially-valid payload applies only the valid fields",
+       %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+
+    render_click(view, "display_preferences_loaded", %{
+      "enabled_techniques" => %{"bulk_buy" => false, "unknown_future_technique" => false},
+      "sort_column" => "volume",
+      "thresholds" => %{"margin" => "not-a-number", "profit" => 12}
+    })
+
+    # sort_column applies; the unrecognized technique key is ignored rather
+    # than crashing; bulk_buy's real, valid entry still applies; the
+    # unparseable margin threshold is dropped, the valid profit one isn't.
+    assert has_element?(view, "span.col-label.active", "Volume")
+    refute has_element?(view, "input[aria-label='Bulk buy'][checked]")
+    assert has_element?(view, "input[aria-label='Vendor recipe'][checked]")
+  end
+
   # === Feature J: Favorites ============================================
 
   test "favoriting a row via the context menu moves it into the favorites group and persists it",

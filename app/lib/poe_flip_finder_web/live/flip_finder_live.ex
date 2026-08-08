@@ -15,6 +15,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   alias PoeFlipFinder.{FlipOpportunities, Ingestion, Leagues, RatioCalculator}
   alias PoeFlipFinderWeb.BuildInfo
 
+  @techniques [:vendor_recipe, :exchange_spread, :divination_card, :bulk_buy]
+  @sort_columns [:margin, :profit, :volume]
+  @sort_directions [:asc, :desc]
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -108,7 +112,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   def handle_event("toggle_technique", %{"technique" => technique}, socket) do
     technique_atom = String.to_existing_atom(technique)
     enabled = Map.update!(socket.assigns.enabled_techniques, technique_atom, &(not &1))
-    {:noreply, assign(socket, :enabled_techniques, enabled)}
+    socket = assign(socket, :enabled_techniques, enabled)
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("toggle_sort", %{"column" => column}, socket) do
@@ -121,7 +126,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         {column_atom, :desc}
       end
 
-    {:noreply, assign(socket, sort_column: sort_column, sort_direction: sort_direction)}
+    socket = assign(socket, sort_column: sort_column, sort_direction: sort_direction)
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("set_threshold", %{"column" => column, "value" => value}, socket) do
@@ -133,11 +139,33 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         :error -> Map.delete(socket.assigns.thresholds, column_atom)
       end
 
-    {:noreply, assign(socket, :thresholds, thresholds)}
+    socket = assign(socket, :thresholds, thresholds)
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("favorites_loaded", %{"route_keys" => route_keys}, socket) do
     {:noreply, assign(socket, :favorite_route_keys, MapSet.new(route_keys))}
+  end
+
+  # docs/PRD.md § 7.8/7.9: technique filters, sort column/direction, and
+  # threshold values are a per-browser preference like Favorites -- this is
+  # the mount-time load, reported by the DisplayPreferencesStorage JS hook
+  # from localStorage. Every field is parsed defensively and independently
+  # (falling back to that field's own current default) since localStorage
+  # content is arbitrary client-controlled data -- corrupted JSON, a value
+  # from a future/incompatible version, or hand-edited garbage must never
+  # crash the mount, only fall back silently.
+  def handle_event("display_preferences_loaded", params, socket) do
+    {:noreply,
+     assign(socket,
+       enabled_techniques:
+         parse_enabled_techniques(params["enabled_techniques"], socket.assigns.enabled_techniques),
+       sort_column:
+         parse_atom_in(params["sort_column"], @sort_columns, socket.assigns.sort_column),
+       sort_direction:
+         parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
+       thresholds: parse_thresholds(params["thresholds"])
+     )}
   end
 
   def handle_event("local_timezone_offset", %{"utc_offset_minutes" => offset}, socket) do
@@ -347,6 +375,49 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       _ -> :error
     end
   end
+
+  # Pushes the current filter/sort/threshold state down to the
+  # DisplayPreferencesStorage JS hook to persist to localStorage -- called
+  # after every change to any of the three, mirroring how favorites persist
+  # on every toggle rather than only on unmount.
+  defp persist_display_preferences(socket) do
+    push_event(socket, "persist_display_preferences", %{
+      enabled_techniques: socket.assigns.enabled_techniques,
+      sort_column: socket.assigns.sort_column,
+      sort_direction: socket.assigns.sort_direction,
+      thresholds: socket.assigns.thresholds
+    })
+  end
+
+  defp parse_enabled_techniques(value, default) when is_map(value) do
+    Map.new(@techniques, fn technique ->
+      case Map.fetch(value, Atom.to_string(technique)) do
+        {:ok, enabled} when is_boolean(enabled) -> {technique, enabled}
+        _ -> {technique, Map.get(default, technique, true)}
+      end
+    end)
+  end
+
+  defp parse_enabled_techniques(_invalid, default), do: default
+
+  defp parse_atom_in(value, allowed, default) when is_binary(value) do
+    Enum.find(allowed, default, fn atom -> Atom.to_string(atom) == value end)
+  end
+
+  defp parse_atom_in(_invalid, _allowed, default), do: default
+
+  defp parse_thresholds(value) when is_map(value) do
+    Enum.reduce(@sort_columns, %{}, fn column, acc ->
+      with raw when not is_nil(raw) <- Map.get(value, Atom.to_string(column)),
+           {:ok, number} <- parse_finite_number(to_string(raw)) do
+        Map.put(acc, column, number)
+      else
+        _ -> acc
+      end
+    end)
+  end
+
+  defp parse_thresholds(_invalid), do: %{}
 
   defp catchup_cap_policy do
     config = Application.get_env(:poe_flip_finder, :ingestion, [])

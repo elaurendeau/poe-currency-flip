@@ -142,6 +142,7 @@ Checkboxes above the results table, one per flip-finding mechanism, letting the 
 - One checkbox per technique: Vendor Recipe (7.1), Exchange Spread (7.2), Divination Card (7.3), Triangular Arbitrage (7.5).
 - All checked by default — the default view shows everything; filtering is opt-out, not opt-in.
 - A purely client-side display filter over the already-fetched result set. It does not change what the backend computes — data volumes here are small enough (per [DATA_SOURCES.md](DATA_SOURCES.md)) that computing all four techniques on every refresh and filtering the display is simpler than a backend filter parameter, and keeps this feature entirely in the frontend layer.
+- **Persisted client-side (browser storage), surviving a full page reload** — same mechanism and per-browser scope as Favorites (§7.10): a personal preference, not synced across devices or sessions elsewhere. A first-ever visit (nothing saved yet) falls back to the all-checked default above.
 
 ### 7.9 Feature I — Column Sorting & Threshold Filters
 
@@ -151,6 +152,7 @@ Sortable Margin, Profit, and Volume columns, plus a minimum-threshold filter per
 - Clicking the Margin, Profit, or Volume column header sorts the table by that column, toggling ascending/descending on repeated clicks, with a visible indicator of the current sort column and direction.
 - Each of those three columns also gets a minimum-threshold numeric filter (e.g. "volume ≥ 50") so the user can narrow out low-value or illiquid opportunities.
 - Combines with Feature H — sorting, filtering, and technique checkboxes all apply to the same client-side result set together.
+- **Sort column/direction and threshold values are persisted client-side (browser storage), surviving a full page reload** — same mechanism and per-browser scope as Favorites (§7.10). A first-ever visit falls back to the defaults above (Margin, descending, no thresholds set).
 
 ### 7.10 Feature J — Favorites
 
