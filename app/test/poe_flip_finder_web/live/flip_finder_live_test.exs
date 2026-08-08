@@ -8,7 +8,15 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias PoeFlipFinder.{BaseCurrencyIds, FlipOpportunities, FlipOpportunityTablePresenter}
+  alias PoeFlipFinder.{
+    BaseCurrencyIds,
+    Currency,
+    DivinationCardReward,
+    FlipOpportunities,
+    FlipOpportunityTablePresenter,
+    StubDivinationCardReferenceGateway
+  }
+
   alias PoeFlipFinder.Gateways.{GggExchangeSourceGateway, GggLeagueGateway, Schema}
 
   # Outside-in Phoenix.LiveViewTest coverage per docs/PRD.md's Feature A-L,
@@ -39,12 +47,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, bypass: bypass}
   end
 
-  defp insert_currency!(external_id) do
+  defp insert_currency!(external_id, display_name \\ nil, item_type \\ :currency) do
     %Schema.Currency{}
     |> Ecto.Changeset.change(
       external_id: external_id,
-      display_name: external_id,
-      item_type: :currency
+      display_name: display_name || external_id,
+      item_type: item_type
     )
     |> PoeFlipFinder.Repo.insert!()
   end
@@ -105,6 +113,62 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     league
   end
 
+  # Seeds one divination-card opportunity via a stubbed reference gateway
+  # (docs/PRD.md § 7.3) -- its `via` is a two-step chain (card, then
+  # reward), unlike every other technique's single-item via, per
+  # docs/mockups/flip-row-reference.html's own Divination Card example row.
+  defp seed_one_divination_card_opportunity!(league_external_id) do
+    Application.put_env(:poe_flip_finder, :divination_card_reference_gateway, StubDivinationCardReferenceGateway)
+    on_exit(fn -> Application.delete_env(:poe_flip_finder, :divination_card_reference_gateway) end)
+
+    league = insert_league!(league_external_id, is_current: true)
+    chaos = insert_currency!(BaseCurrencyIds.chaos_external_id())
+
+    card =
+      insert_currency!(
+        "Metadata/Items/DivinationCards/DivinationCardTest",
+        "Test Card",
+        :divination_card
+      )
+
+    reward = insert_currency!("Metadata/Items/Currency/CurrencyTestReward", "Test Reward")
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: card.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 5.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 5.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: reward.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 2.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 2.0
+    })
+
+    StubDivinationCardReferenceGateway.stub([
+      %DivinationCardReward{
+        card: %Currency{external_id: nil, display_name: "Test Card", item_type: :divination_card},
+        stack_size: 8,
+        reward_currency: %Currency{external_id: nil, display_name: "Test Reward", item_type: :currency},
+        reward_quantity: 5,
+        predictable: true
+      }
+    ])
+
+    activate_generation!(1)
+    league
+  end
+
   defp leagues_fixture do
     Path.join([__DIR__, "..", "..", "fixtures", "ggg_leagues", "current_leagues.json"])
     |> File.read!()
@@ -112,6 +176,27 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   defp exchange_fixture(filename) do
     Path.join([__DIR__, "..", "..", "fixtures", "ggg_exchange", filename]) |> File.read!()
+  end
+
+  # === Feature C: Divination Card Flip Finder ========================
+
+  test "renders a divination card row's full via chain (card, then reward), not just the card",
+       %{conn: conn} do
+    # Regression test: the row template used to render only hd(@opportunity.via),
+    # which was correct while every technique had a single-item via list, but
+    # silently dropped the reward step once Divination Card's two-item via
+    # (card, then reward) started flowing through -- a real gap relative to
+    # docs/mockups/flip-row-reference.html's own Divination Card example row
+    # ("5 The Vanity -> 1 Regal Orb").
+    seed_one_divination_card_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    html = render(view)
+
+    assert html =~ "Test Card"
+    assert html =~ "Test Reward"
+    assert html =~ "&#8594;"
+    assert html =~ "≈0.25c per card"
   end
 
   # === Feature D: League Selector ===================================

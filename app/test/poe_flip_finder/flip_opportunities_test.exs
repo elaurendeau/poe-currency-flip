@@ -5,8 +5,9 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
   # one row deadlock against each other under the SQL Sandbox.
   use PoeFlipFinder.DataCase, async: false
 
-  alias PoeFlipFinder.{BaseCurrencyIds, FlipOpportunities}
+  alias PoeFlipFinder.{BaseCurrencyIds, Currency, DivinationCardReward, FlipOpportunities}
   alias PoeFlipFinder.Gateways.Schema
+  alias PoeFlipFinder.StubDivinationCardReferenceGateway
 
   # Context-level integration test per docs/ELIXIR_TEST_MANIFESTO.md: the
   # real Ecto-backed gateway against real DB rows, not a mock -- these are
@@ -20,12 +21,12 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
   defp chaos_external_id, do: BaseCurrencyIds.chaos_external_id()
   defp divine_external_id, do: BaseCurrencyIds.divine_external_id()
 
-  defp insert_currency!(external_id) do
+  defp insert_currency!(external_id, display_name \\ nil, item_type \\ :currency) do
     %Schema.Currency{}
     |> Ecto.Changeset.change(
       external_id: external_id,
-      display_name: external_id,
-      item_type: :currency
+      display_name: display_name || external_id,
+      item_type: item_type
     )
     |> Repo.insert!()
   end
@@ -238,5 +239,66 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
     opportunities = FlipOpportunities.compute_flip_opportunities("Standard")
 
     refute Enum.any?(opportunities, &(&1.technique == :bulk_buy))
+  end
+
+  test "merges divination card into the list, sourced from a stubbed reference gateway" do
+    Application.put_env(:poe_flip_finder, :divination_card_reference_gateway, StubDivinationCardReferenceGateway)
+    on_exit(fn -> Application.delete_env(:poe_flip_finder, :divination_card_reference_gateway) end)
+
+    league = insert_league!("Standard")
+    chaos = insert_currency!(chaos_external_id())
+    divine = insert_currency!(divine_external_id())
+    card = insert_currency!("Metadata/Items/DivinationCards/DivinationCardTest", "Test Card", :divination_card)
+    reward = insert_currency!("Metadata/Items/Currency/CurrencyTestReward", "Test Reward")
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: divine.id,
+      lowest_ratio_a: 210.0,
+      lowest_ratio_b: 1.0,
+      highest_ratio_a: 210.0,
+      highest_ratio_b: 1.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: card.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 5.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 5.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: reward.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 2.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 2.0
+    })
+
+    StubDivinationCardReferenceGateway.stub([
+      %DivinationCardReward{
+        card: %Currency{external_id: nil, display_name: "Test Card", item_type: :divination_card},
+        stack_size: 8,
+        reward_currency: %Currency{external_id: nil, display_name: "Test Reward", item_type: :currency},
+        reward_quantity: 5,
+        predictable: true
+      }
+    ])
+
+    activate_generation!(1)
+
+    opportunities = FlipOpportunities.compute_flip_opportunities("Standard")
+    techniques = Enum.map(opportunities, & &1.technique)
+
+    assert :divination_card in techniques
   end
 end

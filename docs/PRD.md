@@ -83,9 +83,14 @@ For each currency pair on the Exchange, compare the instant-fill rate against th
 Finds divination cards that can be bought (as a full stack) via the Currency Exchange, turned in, and sold back for a **predictable** profit.
 
 **Requirements:**
-- Only include cards whose turn-in reward is a **fixed currency amount** — explicitly exclude gamble-style cards (random unique/item rewards, chance-outcome cards like The Void, item-conversion cards, etc.).
+- Only include cards whose turn-in reward is a **fixed currency amount** — explicitly exclude gamble-style cards (random unique/item rewards, chance-outcome cards like The Void, item-conversion cards, etc.). A card excluded this way is kept in the reference data with its exclusion flagged, not omitted, so the decision stays visible ([DATA_SOURCES.md](DATA_SOURCES.md)).
 - Compute: cost to buy a full stack via the Exchange, reward received, resale value of that reward via the Exchange, and net margin.
 - Sortable by margin, absolute profit, and volume/availability of the card stack on the Exchange.
+- **The buy leg (acquiring the card stack) and the resale leg (selling the reward) each independently prefer a Chaos-side market for that leg's currency, falling back to a Divine-side market if no Chaos market exists.** The two legs are unrelated trades — the buy leg's currency choice doesn't constrain the resale leg's.
+- **The buy leg is priced competitively (the same undercut convention as § 7.2); the resale leg is priced at the plain market rate, never the round-trip-favorable rate.** Same reasoning as § 7.5's Bulk Buy sell leg: this is a one-directional sell into existing demand, not a round-trip order.
+- **Both legs re-orient if the "other" side turns out to be worth more than 1 base unit.** Quoting "card/reward units per 1 Chaos" floors to 0 for something worth e.g. 200 Chaos, silently discarding an opportunity with real volume and stock (a real production incident: a ~200c card discarded despite live tradeable markets). When that happens, the leg retries quoting "Chaos per 1 card/reward unit" instead — an auto-detected fallback per leg, not a hardcoded direction, since a card's value relative to Chaos/Divine isn't known ahead of time.
+- If no Chaos↔Divine reference rate is available at all, Divination Card produces no opportunities (same rule as § 7.5's Bulk Buy — nothing to convert profit into).
+- If either leg (buy or resale) can't be priced against Chaos or Divine at all, that card silently contributes no opportunity — not an error, not a zero-value row.
 
 ### 7.4 Feature D — League Selector
 

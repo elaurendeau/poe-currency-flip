@@ -741,11 +741,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       <.currency_cell amount={hd(@opportunity.start)} />
       <div>
         <div class="via-icons">
-          <span class="qty">
-            {PoeFlipFinder.FlipOpportunityPresenter.format_quantity(hd(@opportunity.via).quantity)}
-          </span>
-          <.currency_icon amount={hd(@opportunity.via)} />
-          {hd(@opportunity.via).currency.display_name}
+          <%= for {amount, index} <- Enum.with_index(@opportunity.via) do %>
+            <span :if={index > 0} class="arrow" aria-hidden="true">&#8594;</span>
+            <span class="qty">
+              {PoeFlipFinder.FlipOpportunityPresenter.format_quantity(amount.quantity)}
+            </span>
+            <.currency_icon amount={amount} />
+            {amount.currency.display_name}
+          <% end %>
         </div>
         <div class="sub">{@opportunity.detail}</div>
       </div>
