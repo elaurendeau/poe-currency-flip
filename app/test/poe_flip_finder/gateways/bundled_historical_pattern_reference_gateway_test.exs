@@ -50,7 +50,10 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
         "currencyName" => "Chromatic Orb",
         "category" => "currency",
         "leagueObservations" => [
-          %{"league" => "Necropolis", "days" => [%{"day" => 0, "chaos" => 0.09}, %{"day" => 1, "chaos" => 0.17}]}
+          %{
+            "league" => "Necropolis",
+            "days" => [%{"day" => 0, "chaos" => 0.09}, %{"day" => 1, "chaos" => 0.17}]
+          }
         ]
       }
     ]

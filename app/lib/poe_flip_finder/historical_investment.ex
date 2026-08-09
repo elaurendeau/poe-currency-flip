@@ -14,8 +14,8 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   half.
   """
 
-  alias PoeFlipFinder.HistoricalPricePattern.LeagueObservation
   alias PoeFlipFinder.{BaseCurrencyIds, Currency, DivineChaosRate, HistoricalPricePattern, League}
+  alias PoeFlipFinder.HistoricalPricePattern.LeagueObservation
 
   # Categories poe-antiquary has real data for but that never trade on the
   # Currency Exchange (docs/DATA_SOURCES.md § Historical League Price
@@ -87,7 +87,13 @@ defmodule PoeFlipFinder.HistoricalInvestment do
     end
   end
 
-  defp build_candidate(%HistoricalPricePattern{} = pattern, day, investment_amount, snapshots, rate) do
+  defp build_candidate(
+         %HistoricalPricePattern{} = pattern,
+         day,
+         investment_amount,
+         snapshots,
+         rate
+       ) do
     evidence =
       pattern.league_observations
       |> Enum.map(&evidence_for_day(&1, day, investment_amount))
@@ -174,13 +180,21 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   # uses: price of target, expressed in other's units, is
   # other_ratio / target_ratio. The *other* side of the pair must be Chaos
   # or Divine for this to be a meaningful chaos-equivalent point estimate.
-  defp chaos_equivalent(other_currency, target_lowest, target_highest, other_lowest, other_highest, rate) do
+  defp chaos_equivalent(
+         other_currency,
+         target_lowest,
+         target_highest,
+         other_lowest,
+         other_highest,
+         rate
+       ) do
     cond do
       other_currency.external_id == BaseCurrencyIds.chaos_external_id() ->
         average(other_lowest / target_lowest, other_highest / target_highest)
 
       other_currency.external_id == BaseCurrencyIds.divine_external_id() and not is_nil(rate) ->
-        average(other_lowest / target_lowest, other_highest / target_highest) * rate.chaos_per_divine
+        average(other_lowest / target_lowest, other_highest / target_highest) *
+          rate.chaos_per_divine
 
       true ->
         nil

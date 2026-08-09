@@ -129,7 +129,102 @@
         </div>
 
         <%= if @active_tab == :historical do %>
-          <p class="flip-table-message">Historical Investment — coming soon.</p>
+          <div class="historical-investment">
+            <div class="amount-row">
+              <label for="investment-amount">Investment amount</label>
+              <form phx-change="set_investment_amount" phx-submit="set_investment_amount">
+                <input
+                  id="investment-amount"
+                  class="ratio-calculator-input"
+                  type="number"
+                  step="any"
+                  value={@investment_amount}
+                  phx-debounce="150"
+                  name="value"
+                />
+              </form>
+              <span class="hint">
+                not scoped to {@selected_league.display_name} specifically — forward-looking evidence for any league start
+              </span>
+            </div>
+
+            <%= case @historical_candidates do %>
+              <% :unknown_league_start -> %>
+                <p class="flip-table-message">
+                  League start time unknown for {@selected_league.display_name} — refresh leagues to try again.
+                </p>
+              <% :no_league_selected -> %>
+                <p class="flip-table-message">Select a league to get started.</p>
+              <% {:ok, []} -> %>
+                <p class="flip-table-message">
+                  No historical pattern has real evidence for this point in the league yet.
+                </p>
+              <% {:ok, candidates} -> %>
+                <div class="league-day-badge">
+                  {@selected_league.display_name} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_day_badge(
+                    @league_day
+                  )}
+                </div>
+                <div class="historical-candidates">
+                  <div :for={candidate <- candidates} class="historical-candidate">
+                    <div class="candidate-head">
+                      <span class="candidate-name">
+                        {candidate.pattern.currency.display_name}
+                      </span>
+                      <span class="candidate-confidence">
+                        {candidate.confidence_rising} of {candidate.confidence_total} sampled leagues rose
+                      </span>
+                      <span class="candidate-live">
+                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_live_price(
+                          candidate.live_price
+                        )}
+                      </span>
+                    </div>
+                    <table class="evidence-table">
+                      <thead>
+                        <tr>
+                          <th>League</th>
+                          <th>Today</th>
+                          <th>Units</th>
+                          <th>Next day</th>
+                          <th>Gain</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr :for={ev <- candidate.league_evidence}>
+                          <td class="league-name">{ev.league}</td>
+                          <td>
+                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
+                              ev.day_chaos
+                            )}
+                          </td>
+                          <td>
+                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_units(ev.units)}
+                          </td>
+                          <td class={if ev.affordable, do: "up"}>
+                            <%= if ev.affordable do %>
+                              {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
+                                ev.projected_value_chaos
+                              )}
+                            <% else %>
+                              —
+                            <% end %>
+                          </td>
+                          <td class={if ev.gain_pct >= 0, do: "up", else: "down"}>
+                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_gain_pct(
+                              ev.gain_pct
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <p class="caveat">
+                  These are historical patterns, not predictions — an item that rose in one sampled league can be flat or fall in another (see the per-league breakdown above), and GGG's own rebalancing means next league can behave differently from every league sampled here.
+                </p>
+            <% end %>
+          </div>
         <% else %>
           <div :if={show_technique_filters?(@active_tab)} class="filter-bar">
             <label

@@ -278,6 +278,31 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert html =~ "Leagues refreshed"
   end
 
+  test "refresh_leagues also recomputes the Historical Investment tab, not just opportunities", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # Regression test: refresh_leagues's handle_async originally only
+    # called load_opportunities/1, not load_historical_candidates/1.
+    # selected_league itself was still updated correctly (a plain assign),
+    # but @historical_candidates/@league_day silently kept whatever they
+    # were computed against *before* the refresh (here: :no_league_selected,
+    # from mount with an empty DB) -- so the tab kept showing "Select a
+    # league to get started" even though a real league (with a real
+    # startAt from the GGG fixture) was now genuinely selected.
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 200, leagues_fixture())
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    render_async(view, 2000)
+
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    refute html =~ "Select a league to get started"
+  end
+
   test "refresh_leagues surfaces a fetch failure instead of silently doing nothing", %{
     conn: conn,
     bypass: bypass
@@ -434,7 +459,10 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     league = insert_league!(league_external_id, is_current: true)
     chaos = insert_currency!(BaseCurrencyIds.chaos_external_id(), "Chaos Orb")
     divine = insert_currency!(BaseCurrencyIds.divine_external_id(), "Divine Orb")
-    wisdom = insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Scroll of Wisdom")
+
+    wisdom =
+      insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Scroll of Wisdom")
+
     portal = insert_currency!("Metadata/Items/Currency/CurrencyPortal", "Portal Scroll")
 
     insert_snapshot!(%{
@@ -527,17 +555,81 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert render(view) =~ ~s(data-route-key="vendor_recipe|)
   end
 
-  test "the Historical Investment tab is disabled and shows a placeholder instead of a table", %{
-    conn: conn
-  } do
-    # A selected league is required for the panel (and its tab bar) to
-    # render at all -- see the "Select a league to get started" fallback.
-    insert_league!("Standard", is_current: true)
+  test "the Historical Investment tab shows day-relative ranked candidates from the real bundled data",
+       %{conn: conn} do
+    # "Necropolis" and start_at=now (day 0) line up with real entries in
+    # priv/reference-data/historical-investment-patterns.json -- this
+    # deliberately exercises the real bundled gateway end to end, not a
+    # stub, per docs/ELIXIR_TEST_MANIFESTO.md's outside-in default.
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
 
     {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, "button.tab-button--disabled", "Historical Investment")
 
-    assert has_element?(view, "button.tab-button--disabled", "Historical Investment")
-    assert has_element?(view, "button[disabled]", "Historical Investment")
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "Day 0"
+    assert html =~ "Exalted Orb"
+    # Real Necropolis day-0 (3c) -> day-1 (9c) evidence, at the 40c default.
+    assert html =~ "13 units"
+    assert html =~ "+200%"
+    # 4 sampled leagues have day-0/day-1 evidence for Exalted Orb; only
+    # Necropolis and Affliction actually rose (Ancestor/Crucible declined).
+    assert html =~ "2 of 4 sampled leagues rose"
+  end
+
+  test "typing an investment amount recomputes affordability for the Historical Investment tab",
+       %{
+         conn: conn
+       } do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    # 3c exactly affords 1 real Necropolis-day-0 Exalted Orb (3c each).
+    html =
+      view
+      |> form("form[phx-change='set_investment_amount']")
+      |> render_change(%{"value" => "3"})
+
+    assert html =~ "1 unit"
+    refute html =~ "13 units"
+  end
+
+  test "an amount too small for even 1 unit shows the explicit affordability state, not 0c", %{
+    conn: conn
+  } do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    html =
+      view
+      |> form("form[phx-change='set_investment_amount']")
+      |> render_change(%{"value" => "0.01"})
+
+    assert html =~ "not enough for 1"
+  end
+
+  test "a league with no captured start time shows the explicit unknown state, never a guessed day",
+       %{conn: conn} do
+    insert_league!("Standard", is_current: true, start_at: nil)
+
+    {:ok, view, _html} = live(conn, "/")
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "League start time unknown"
   end
 
   test "toggle_technique hides and reshows matching rows without affecting other techniques", %{

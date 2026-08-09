@@ -6,7 +6,15 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
 
   alias PoeFlipFinder.Gateways.Schema
   alias PoeFlipFinder.HistoricalPricePattern.{DayPrice, LeagueObservation}
-  alias PoeFlipFinder.{BaseCurrencyIds, Currency, HistoricalInvestment, HistoricalPricePattern, League}
+
+  alias PoeFlipFinder.{
+    BaseCurrencyIds,
+    Currency,
+    HistoricalInvestment,
+    HistoricalPricePattern,
+    League
+  }
+
   alias PoeFlipFinder.{StubClock, StubHistoricalPatternReferenceGateway}
 
   # Context-level integration test per docs/ELIXIR_TEST_MANIFESTO.md: the
@@ -103,13 +111,15 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
   defp observation(league, day_chaos_pairs) do
     %LeagueObservation{
       league: league,
-      day_prices: Enum.map(day_chaos_pairs, fn {day, chaos} -> %DayPrice{day: day, chaos: chaos * 1.0} end)
+      day_prices:
+        Enum.map(day_chaos_pairs, fn {day, chaos} -> %DayPrice{day: day, chaos: chaos * 1.0} end)
     }
   end
 
   describe "current_league_day/1" do
     test "computes the real elapsed day count from start_at" do
       StubClock.stub(~U[2026-08-09 12:00:00Z])
+
       league = %League{
         external_id: "Necropolis",
         display_name: "Necropolis",
@@ -135,6 +145,7 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
 
     test "is :unknown rather than a negative day, if start_at is somehow in the future" do
       StubClock.stub(~U[2026-08-07 00:00:00Z])
+
       league = %League{
         external_id: "Necropolis",
         display_name: "Necropolis",
@@ -161,7 +172,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         ])
       ])
 
-      {:ok, [top, second]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [top, second]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       assert top.pattern.currency.display_name == "Exalted Orb"
       [evidence] = top.league_evidence
@@ -186,7 +198,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         ])
       ])
 
-      {:ok, candidates} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, candidates} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       assert candidates == []
     end
@@ -201,7 +214,9 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         ])
       ])
 
-      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+
       [evidence] = candidate.league_evidence
 
       assert evidence.units == 0
@@ -223,7 +238,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         ])
       ])
 
-      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       assert candidate.confidence_total == 3
       # Ancestor's own observation dropped (8.8 -> 6), so only 2 of the 3 rose.
@@ -266,7 +282,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
       ])
 
-      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       # (1/4 + 1/3) / 2 = 0.2917 chaos per Exalted Orb at the quoted extremes.
       assert {:ok, live_price} = candidate.live_price
@@ -282,7 +299,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
       ])
 
-      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       assert candidate.live_price == :not_traded_this_refresh
     end
@@ -298,7 +316,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         ])
       ])
 
-      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
 
       assert candidate.live_price == :no_live_market
     end

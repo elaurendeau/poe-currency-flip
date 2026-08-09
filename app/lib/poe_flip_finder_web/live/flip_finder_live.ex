@@ -12,7 +12,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   use PoeFlipFinderWeb, :live_view
 
-  alias PoeFlipFinder.{FlipOpportunities, Ingestion, Leagues, RatioCalculator}
+  alias PoeFlipFinder.{
+    FlipOpportunities,
+    HistoricalInvestment,
+    Ingestion,
+    Leagues,
+    RatioCalculator
+  }
+
   alias PoeFlipFinderWeb.BuildInfo
 
   @techniques [:vendor_recipe, :exchange_spread, :divination_card, :bulk_buy]
@@ -46,6 +53,13 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:opportunities, [])
       |> assign(:opportunities_loading, false)
       |> assign(:opportunities_error, false)
+      # docs/PRD.md § 7.14 Feature N -- not scoped by enabled_techniques
+      # (Historical Investment has its own content, not a filtered
+      # table row set), recomputed whenever selected_league or
+      # investment_amount changes via load_historical_candidates/1.
+      |> assign(:investment_amount, 40.0)
+      |> assign(:historical_candidates, :no_league_selected)
+      |> assign(:league_day, :unknown)
       |> assign(:enabled_techniques, %{
         vendor_recipe: true,
         exchange_spread: true,
@@ -91,6 +105,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       socket
       |> assign(leagues: leagues, selected_league: selected, leagues_loading: false)
       |> load_opportunities()
+      |> load_historical_candidates()
 
     {:noreply, socket}
   end
@@ -114,7 +129,22 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @impl true
   def handle_event("select_league", %{"value" => external_id}, socket) do
     league = Enum.find(socket.assigns.leagues, &(&1.external_id == external_id))
-    {:noreply, socket |> assign(:selected_league, league) |> load_opportunities()}
+
+    {:noreply,
+     socket
+     |> assign(:selected_league, league)
+     |> load_opportunities()
+     |> load_historical_candidates()}
+  end
+
+  def handle_event("set_investment_amount", %{"value" => value}, socket) do
+    socket =
+      case parse_finite_number(value) do
+        {:ok, number} when number > 0 -> assign(socket, :investment_amount, number)
+        _ -> socket
+      end
+
+    {:noreply, socket |> load_historical_candidates() |> persist_display_preferences()}
   end
 
   def handle_event("refresh_leagues", _params, socket) do
@@ -251,8 +281,11 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
        sort_direction:
          parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
        thresholds: parse_thresholds(params["thresholds"]),
-       max_start_chaos: parse_max_start_chaos(params["max_start_chaos"])
-     )}
+       max_start_chaos: parse_max_start_chaos(params["max_start_chaos"]),
+       investment_amount:
+         parse_investment_amount(params["investment_amount"], socket.assigns.investment_amount)
+     )
+     |> load_historical_candidates()}
   end
 
   def handle_event("local_timezone_offset", %{"utc_offset_minutes" => offset}, socket) do
@@ -363,6 +396,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
             leagues_error: false
           )
           |> load_opportunities()
+          |> load_historical_candidates()
           |> set_status_banner("Leagues refreshed", @completion_banner_ms)
 
         {:error, _reason} ->
@@ -453,6 +487,27 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # Picks the current challenge league (is_current) if present, else the
   # first league in the list, else nil -- matches resolveDefaultLeagueId
   # from the React version's useLeagueSelection hook.
+  # docs/PRD.md § 7.14 -- distinct from load_opportunities/1's [] empty
+  # state: :no_league_selected and :unknown_league_start are rendered as
+  # different, explicit messages (no league picked yet, vs. a league that
+  # has never had a real GGG Leagues API sync capture its start time),
+  # never collapsed into a generic empty table.
+  defp load_historical_candidates(socket) do
+    case socket.assigns.selected_league do
+      nil ->
+        assign(socket, historical_candidates: :no_league_selected, league_day: :unknown)
+
+      league ->
+        candidates =
+          HistoricalInvestment.compute_candidates(league, socket.assigns.investment_amount)
+
+        assign(socket,
+          historical_candidates: candidates,
+          league_day: HistoricalInvestment.current_league_day(league)
+        )
+    end
+  end
+
   defp resolve_default_league(leagues) do
     Enum.find(leagues, & &1.is_current) || List.first(leagues)
   end
@@ -497,7 +552,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       sort_column: socket.assigns.sort_column,
       sort_direction: socket.assigns.sort_direction,
       thresholds: socket.assigns.thresholds,
-      max_start_chaos: socket.assigns.max_start_chaos
+      max_start_chaos: socket.assigns.max_start_chaos,
+      investment_amount: socket.assigns.investment_amount
     })
   end
 
@@ -550,6 +606,18 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp parse_max_start_chaos(_invalid), do: nil
+
+  # Falls back to whatever amount is already in effect, never to a hidden
+  # "0" default -- a corrupted/garbage stored value must never silently
+  # zero out the field per docs/PRD.md § 7.14.
+  defp parse_investment_amount(value, current) when is_binary(value) or is_number(value) do
+    case parse_finite_number(to_string(value)) do
+      {:ok, number} when number > 0 -> number
+      _ -> current
+    end
+  end
+
+  defp parse_investment_amount(_invalid, current), do: current
 
   # docs/PRD.md § 7.6/7.7: token-based so a stale auto-dismiss timer from a
   # superseded banner (e.g. the in-flight message's own safety-net timer,
@@ -633,9 +701,9 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   # The tab bar above the results table (docs/PRD.md § 7.8): each tab
   # groups a subset of techniques, with per-technique checkboxes still
-  # filtering within the active tab. "Historical Investment" has no
-  # backing computation yet -- it renders as an inert, disabled tab (see
-  # tab_disabled?/1) rather than a clickable one with nothing behind it.
+  # filtering within the active tab. "Historical Investment" (§ 7.14
+  # Feature N) has its own content, not a filtered table row set --
+  # rendered via a separate branch in the template, not tab_disabled?/1.
   defp tab_options do
     [
       {:grand_exchange, "Grand Exchange Flip"},
@@ -644,7 +712,6 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     ]
   end
 
-  defp tab_disabled?(:historical), do: true
   defp tab_disabled?(_tab), do: false
 
   defp techniques_for_tab(:grand_exchange), do: [:exchange_spread, :divination_card, :bulk_buy]
@@ -653,7 +720,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   defp technique_options_for_tab(tab) do
     allowed = techniques_for_tab(tab)
-    Enum.filter(technique_options(), fn {technique, _label, _icon_class} -> technique in allowed end)
+
+    Enum.filter(technique_options(), fn {technique, _label, _icon_class} ->
+      technique in allowed
+    end)
   end
 
   # A tab with only one technique has nothing to filter against itself --
