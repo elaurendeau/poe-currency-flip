@@ -129,7 +129,7 @@
         </div>
 
         <div class="grid header-row">
-          <span style="text-align: center">Start</span>
+          <.start_column_header max_start_chaos={@max_start_chaos} />
           <span>Via</span>
           <span style="text-align: center">Sell</span>
           <.sortable_column_header
@@ -163,6 +163,7 @@
             enabled_techniques: @enabled_techniques,
             enabled_categories: @enabled_categories,
             thresholds: @thresholds,
+            max_start_chaos: @max_start_chaos,
             sort_column: @sort_column,
             sort_direction: @sort_direction,
             favorite_route_keys: @favorite_route_keys

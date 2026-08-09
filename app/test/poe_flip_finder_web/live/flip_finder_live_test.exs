@@ -585,6 +585,30 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert count_rows(html) == 1
   end
 
+  test "set_max_start filters out rows whose Chaos-normalized start exceeds the cap", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    # The seeded pair starts at 1 Chaos -- a cap below that must exclude it.
+    html =
+      view
+      |> element("form[phx-change='set_max_start']")
+      |> render_change(%{"value" => "0.5"})
+
+    assert count_rows(html) == 0
+
+    html =
+      view
+      |> element("form[phx-change='set_max_start']")
+      |> render_change(%{"value" => ""})
+
+    assert count_rows(html) == 1
+  end
+
   test "toggle_sort on the active column flips direction; on a new column switches and defaults desc",
        %{conn: conn} do
     seed_one_opportunity!("Standard")
@@ -634,6 +658,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     |> render_change(%{"column" => "volume", "value" => "50"})
 
     assert_push_event(view, "persist_display_preferences", %{thresholds: %{volume: 50.0}} = _)
+
+    view
+    |> element("form[phx-change='set_max_start']")
+    |> render_change(%{"value" => "10"})
+
+    assert_push_event(view, "persist_display_preferences", %{max_start_chaos: 10.0} = _)
   end
 
   test "display_preferences_loaded applies a saved technique filter, sort, and threshold", %{
@@ -657,6 +687,19 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert has_element?(view, "span.col-label.active", "Profit")
   end
 
+  test "display_preferences_loaded applies a saved max_start_chaos", %{conn: conn} do
+    seed_one_opportunity!("Standard")
+    {:ok, view, _html} = live(conn, "/")
+    assert count_rows(render(view)) == 1
+
+    # The seeded pair starts at 1 Chaos -- a saved cap below that must
+    # filter it out on load, exactly like a live set_max_start would.
+    html =
+      render_click(view, "display_preferences_loaded", %{"max_start_chaos" => "0.5"})
+
+    assert count_rows(html) == 0
+  end
+
   test "display_preferences_loaded with garbage input falls back to current defaults, not a crash",
        %{conn: conn} do
     seed_one_opportunity!("Standard")
@@ -668,7 +711,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
         "enabled_categories" => "not-a-map",
         "sort_column" => "not-a-real-column",
         "sort_direction" => 12_345,
-        "thresholds" => ["also", "not", "a", "map"]
+        "thresholds" => ["also", "not", "a", "map"],
+        "max_start_chaos" => %{"not" => "a-number"}
       })
 
     assert html =~ "PoE Flip Finder"
@@ -676,6 +720,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert has_element?(view, "input[aria-label='Exchange spread'][checked]")
     # every category still defaults to enabled -- confirmed via the row
     # count rather than the (hidden-by-default) drawer's own markup.
+    # A garbage max_start_chaos falls back to nil (no cap), so the row
+    # isn't spuriously filtered out either.
     assert count_rows(html) == 1
   end
 

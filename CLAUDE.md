@@ -19,6 +19,14 @@ Full doc index: [README.md](README.md).
 
 `main` is this repository's mainline/default branch. A `master` branch also exists in history (currently pointing at the same commit as `main`) — treat it as legacy; never create, target, or base new work off a branch literally named `master`. Feature branches are cut from `main`, and PRs target `main`.
 
+## Diagnosis discipline
+
+When discussing whether something is a bug, or why data is missing/wrong/unexpected — especially anything sourced from GGG's live APIs — verify directly against the actual API response or the actual code path before asserting a cause. Don't present a plausible-sounding theory as a confirmed explanation; if it hasn't been checked, say that explicitly rather than letting it read as settled. GGG's live endpoints (Currency Exchange, League List, Item Icons) are reachable directly from this environment for exactly this kind of check — pulling a real response takes one `curl`, and there's rarely an excuse to skip it in favor of a guess.
+
+(Concretely, two real examples from the same investigation: (1) a "no Oil trades anywhere" conclusion was drawn from grepping raw API data for the literal word "Oil" — wrong methodology, since GGG can and does rename an item's internal ID out from under its display name, exactly as it had for Runegraft/Omen/Tattoo already found in that same session; the fix was pulling live data and testing the actual resolver, not pattern-guessing a search term. (2) told the user a missing Chaos-anchored flip row would likely appear after clicking "Refresh market data," reasoning from an untested assumption about ingestion lag — the real cause, found only after actually reading `UndercutQuote.resolve/6`, is a structural viability cutoff: a fixed 1-unit starting quote can't express buying a fractional unit of an item worth more than ~1 Chaos, so the row is rejected outright, not delayed — no amount of refreshing would ever have produced it.)
+
+This is the same "validate at the boundary, fail loudly" principle [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) already states for the app's own code, applied to diagnosis itself: a guess is not a fact, and real data is almost always one API call or one file read away.
+
 ## Regression discipline
 
 Whenever a bug or gap is found and fixed — in this session or a future one — add a test (or, if genuinely untestable, a documented manual-verification step) that would have caught it, committed in the same change as the fix. A fix without a regression test is a fix that can silently come back.

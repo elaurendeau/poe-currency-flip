@@ -60,6 +60,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:sort_column, :margin)
       |> assign(:sort_direction, :desc)
       |> assign(:thresholds, %{})
+      |> assign(:max_start_chaos, nil)
       |> assign(:favorite_route_keys, MapSet.new())
       |> assign(:context_menu, nil)
       |> assign(:ratio_calculator_open, false)
@@ -207,6 +208,17 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     {:noreply, persist_display_preferences(socket)}
   end
 
+  def handle_event("set_max_start", %{"value" => value}, socket) do
+    max_start_chaos =
+      case parse_finite_number(value) do
+        {:ok, number} -> number
+        :error -> nil
+      end
+
+    socket = assign(socket, :max_start_chaos, max_start_chaos)
+    {:noreply, persist_display_preferences(socket)}
+  end
+
   def handle_event("favorites_loaded", %{"route_keys" => route_keys}, socket) do
     {:noreply, assign(socket, :favorite_route_keys, MapSet.new(route_keys))}
   end
@@ -230,7 +242,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
          parse_atom_in(params["sort_column"], @sort_columns, socket.assigns.sort_column),
        sort_direction:
          parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
-       thresholds: parse_thresholds(params["thresholds"])
+       thresholds: parse_thresholds(params["thresholds"]),
+       max_start_chaos: parse_max_start_chaos(params["max_start_chaos"])
      )}
   end
 
@@ -474,7 +487,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       enabled_categories: socket.assigns.enabled_categories,
       sort_column: socket.assigns.sort_column,
       sort_direction: socket.assigns.sort_direction,
-      thresholds: socket.assigns.thresholds
+      thresholds: socket.assigns.thresholds,
+      max_start_chaos: socket.assigns.max_start_chaos
     })
   end
 
@@ -518,6 +532,15 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp parse_thresholds(_invalid), do: %{}
+
+  defp parse_max_start_chaos(value) when is_binary(value) or is_number(value) do
+    case parse_finite_number(to_string(value)) do
+      {:ok, number} -> number
+      :error -> nil
+    end
+  end
+
+  defp parse_max_start_chaos(_invalid), do: nil
 
   # docs/PRD.md § 7.6/7.7: token-based so a stale auto-dismiss timer from a
   # superseded banner (e.g. the in-flight message's own safety-net timer,
@@ -965,6 +988,31 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
           type="number"
           placeholder={@placeholder}
           value={@threshold_value}
+          phx-debounce="150"
+          name="value"
+        />
+      </form>
+    </div>
+    """
+  end
+
+  attr :max_start_chaos, :any, required: true
+
+  # Filter-only, not sortable -- Start isn't a sortable column, so this
+  # deliberately doesn't reuse sortable_column_header/1 above (no
+  # phx-click="toggle_sort", no sort arrow). Centered (col-head--center)
+  # to match Start's own centered cells, unlike Margin/Profit/Volume's
+  # right-aligned numbers.
+  defp start_column_header(assigns) do
+    ~H"""
+    <div class="col-head col-head--center">
+      <span style="text-align: center">Start</span>
+      <form phx-change="set_max_start" phx-submit="set_max_start">
+        <input
+          class="col-filter"
+          type="number"
+          placeholder="max c"
+          value={@max_start_chaos}
           phx-debounce="150"
           name="value"
         />

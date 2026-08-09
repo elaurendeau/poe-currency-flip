@@ -66,7 +66,7 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
 
   defp build_opportunity(reward, buy_leg, resale, rate) do
     cost_in_base = cost_in_base(buy_leg, reward.stack_size)
-    cost_chaos = to_chaos(cost_in_base, buy_leg.base_currency, rate)
+    cost_chaos = DivineChaosRate.to_chaos(rate, buy_leg.base_currency, cost_in_base)
     profit_chaos = resale.chaos_amount - cost_chaos
     margin_percent = profit_chaos / cost_chaos * 100
 
@@ -80,6 +80,7 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
       sell: [%CurrencyAmount{currency: rate.chaos_currency, quantity: resale.chaos_amount}],
       margin_percent: margin_percent,
       profit: %CurrencyAmount{currency: rate.chaos_currency, quantity: profit_chaos},
+      start_chaos_equivalent: cost_chaos,
       volume: buy_leg.quote.buy_leg_stock,
       detail: "≈#{format_ratio(cost_chaos / reward.stack_size)}c per card"
     }
@@ -90,14 +91,6 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
 
   defp cost_in_base(%{price_is_per_card: false} = leg, stack_size),
     do: stack_size / leg.quote.suggested_buy_price
-
-  defp to_chaos(amount, base_currency, rate) do
-    if base_currency.external_id == rate.chaos_currency.external_id do
-      amount
-    else
-      amount * rate.chaos_per_divine
-    end
-  end
 
   # Prefers a Chaos-side market for the card; falls back to Divine.
   defp resolve_buy_leg(card_name, snapshots, rate) do

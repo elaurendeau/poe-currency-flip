@@ -77,6 +77,21 @@ defmodule PoeFlipFinder.DivineChaosRate do
     }
   end
 
+  @doc """
+  Converts `quantity` of `currency` into its Chaos-equivalent using this
+  rate -- the one shared place for a conversion each opportunity finder
+  otherwise hand-rolls slightly differently for `profit` (always
+  Chaos-denominated, per TECH_STACK.md's row design). `currency` is
+  expected to already be this rate's own Chaos or Divine currency (every
+  finder in this codebase only ever anchors a `start`/`profit` currency on
+  one of those two), so there's no third-currency case to handle.
+  """
+  @spec to_chaos(t(), Currency.t(), number()) :: float()
+  def to_chaos(%__MODULE__{} = rate, %Currency{} = currency, quantity) do
+    if chaos?(currency, rate), do: quantity, else: quantity * rate.chaos_per_divine
+  end
+
   defp chaos?(currency), do: currency.external_id == BaseCurrencyIds.chaos_external_id()
   defp divine?(currency), do: currency.external_id == BaseCurrencyIds.divine_external_id()
+  defp chaos?(currency, rate), do: currency.external_id == rate.chaos_currency.external_id
 end

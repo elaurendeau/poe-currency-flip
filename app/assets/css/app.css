@@ -185,6 +185,14 @@ body {
   gap: 3px;
 }
 
+.col-head--center {
+  align-items: center;
+}
+
+.col-head--center .col-filter {
+  text-align: center;
+}
+
 .col-label {
   display: flex;
   align-items: center;

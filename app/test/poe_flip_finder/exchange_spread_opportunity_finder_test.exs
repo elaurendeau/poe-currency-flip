@@ -146,15 +146,32 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
            ) == []
   end
 
-  test "chaos and divine pair itself is dropped since one chaos cannot buy a whole divine" do
+  test "chaos and divine pair retries inverted when 1 chaos can't buy a whole divine" do
     # A real Chaos<->Divine rate (~210 chaos per divine) means "buying
     # Divine with 1 Chaos" nets a small fraction of a Divine, which can't
-    # sustain the -1 undercut -- this pair's own listing is correctly
-    # dropped even though Chaos still wins the anchor slot.
-    assert ExchangeSpreadOpportunityFinder.find(
-             [snapshot(@divine, @chaos, 1, 200, 1, 210)],
-             @rate_210
-           ) == []
+    # sustain the -1 undercut -- the direct orientation (anchored on
+    # Chaos, quoting "Divine per 1 Chaos") isn't viable. Per docs/PRD.md
+    # § 7.2, the finder retries anchored on the item instead (quoting
+    # "Chaos per 1 Divine"): raw extremes 200/210 floor+undercut to a
+    # postable 209 (buy) / 201 (sell), still Chaos-anchored on Start/Sell
+    # like every other row, just priced per-Divine instead of per-Chaos.
+    [opportunity] =
+      ExchangeSpreadOpportunityFinder.find(
+        [snapshot(@divine, @chaos, 1, 200, 1, 210)],
+        @rate_210
+      )
+
+    assert hd(opportunity.start).currency == @chaos
+    assert hd(opportunity.start).quantity == 209.0
+    assert hd(opportunity.via).currency == @divine
+    assert hd(opportunity.via).quantity == 1.0
+    assert hd(opportunity.sell).currency == @chaos
+    assert hd(opportunity.sell).quantity == 201.0
+    assert_in_delta opportunity.margin_percent, -3.8278, 0.01
+    assert opportunity.profit.currency == @chaos
+    assert_in_delta opportunity.profit.quantity, -8.0, 0.001
+    assert opportunity.start_chaos_equivalent == 209.0
+    assert opportunity.detail == "buy 209:1 · sell 201:1"
   end
 
   test "chaos and divine both qualify: chaos still wins the anchor slot" do
@@ -186,6 +203,8 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
     assert_in_delta opportunity.margin_percent, 96.2366, 0.01
     assert opportunity.profit.currency == @chaos
     assert_in_delta opportunity.profit.quantity, 202.0968, 0.01
+    # 1 Divine start, converted via the same 210 chaos/divine rate.
+    assert_in_delta opportunity.start_chaos_equivalent, 210.0, 0.001
   end
 
   test "divine-anchored pair with no chaos/divine rate available is skipped" do

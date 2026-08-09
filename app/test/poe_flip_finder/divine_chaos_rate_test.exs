@@ -86,4 +86,20 @@ defmodule PoeFlipFinder.DivineChaosRateTest do
   test "returns nil for an empty snapshot list" do
     assert DivineChaosRate.resolve([]) == nil
   end
+
+  describe "to_chaos/3" do
+    @rate %DivineChaosRate{
+      chaos_currency: @chaos,
+      divine_currency: @divine,
+      chaos_per_divine: 210.0
+    }
+
+    test "passes a Chaos-denominated quantity through unchanged" do
+      assert DivineChaosRate.to_chaos(@rate, @chaos, 5.0) == 5.0
+    end
+
+    test "converts a Divine-denominated quantity using chaos_per_divine" do
+      assert DivineChaosRate.to_chaos(@rate, @divine, 2.0) == 420.0
+    end
+  end
 end

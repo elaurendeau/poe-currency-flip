@@ -28,6 +28,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
         sell: [currency_amount("chaos", "Chaos Orb", 1.9784)],
         margin_percent: 97.84,
         profit: chaos_profit(0.9784),
+        start_chaos_equivalent: 1.0,
         volume: 1234,
         detail: "buy 365:1 · sell 186:1"
       },
@@ -208,6 +209,37 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
     end
   end
 
+  describe "filter_by_max_start_chaos/2" do
+    test "passes everything through when nil" do
+      items = [
+        opportunity(%{start_chaos_equivalent: 1.0}),
+        opportunity(%{start_chaos_equivalent: 500.0})
+      ]
+
+      assert FlipOpportunityTablePresenter.filter_by_max_start_chaos(items, nil) == items
+    end
+
+    test "keeps rows at or under the cap regardless of anchor currency, using the Chaos-normalized value" do
+      cheap = opportunity(%{start_chaos_equivalent: 5.0})
+
+      divine_anchored_but_affordable =
+        opportunity(%{
+          start: [currency_amount("divine", "Divine Orb", 0.05)],
+          start_chaos_equivalent: 8.0
+        })
+
+      too_expensive = opportunity(%{start_chaos_equivalent: 79.0})
+
+      result =
+        FlipOpportunityTablePresenter.filter_by_max_start_chaos(
+          [cheap, divine_anchored_but_affordable, too_expensive],
+          10.0
+        )
+
+      assert result == [cheap, divine_anchored_but_affordable]
+    end
+  end
+
   describe "sort_opportunities/3" do
     test "sorts ascending by the requested column" do
       low = opportunity(%{profit: chaos_profit(1)})
@@ -302,6 +334,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenterTest do
             enabled_techniques: %{@all_enabled | bulk_buy: false},
             enabled_categories: @all_categories_enabled,
             thresholds: %{},
+            max_start_chaos: nil,
             sort_column: :margin,
             sort_direction: :desc,
             favorite_route_keys:

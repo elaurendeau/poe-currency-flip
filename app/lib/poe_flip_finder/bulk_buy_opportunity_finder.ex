@@ -151,6 +151,7 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
       sell: [%CurrencyAmount{currency: rate.divine_currency, quantity: sell_amount}],
       margin_percent: margin_percent,
       profit: %CurrencyAmount{currency: rate.chaos_currency, quantity: profit_chaos},
+      start_chaos_equivalent: DivineChaosRate.to_chaos(rate, rate.chaos_currency, start_amount),
       volume: volume,
       detail:
         detail(
@@ -197,6 +198,7 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
       sell: [%CurrencyAmount{currency: rate.chaos_currency, quantity: sell_amount_chaos}],
       margin_percent: margin_percent,
       profit: %CurrencyAmount{currency: rate.chaos_currency, quantity: profit_chaos},
+      start_chaos_equivalent: DivineChaosRate.to_chaos(rate, rate.divine_currency, 1.0),
       volume: volume,
       detail: detail(via_amount, chaos_quote.market_sell_price, rate.chaos_per_divine)
     }

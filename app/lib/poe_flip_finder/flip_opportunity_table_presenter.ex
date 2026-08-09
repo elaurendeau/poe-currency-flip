@@ -69,6 +69,19 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
     end)
   end
 
+  @doc """
+  Hides rows whose Chaos-normalized starting stake exceeds `max_chaos`
+  (docs/PRD.md § 7.9) -- lets a player cap what they're shown to what they
+  can actually afford, regardless of whether a row happens to anchor on
+  Chaos or Divine. `nil` passes every row through unfiltered.
+  """
+  @spec filter_by_max_start_chaos([FlipOpportunity.t()], number() | nil) :: [FlipOpportunity.t()]
+  def filter_by_max_start_chaos(opportunities, nil), do: opportunities
+
+  def filter_by_max_start_chaos(opportunities, max_chaos) do
+    Enum.filter(opportunities, &(&1.start_chaos_equivalent <= max_chaos))
+  end
+
   @spec sort_opportunities([FlipOpportunity.t()], sort_column(), sort_direction()) :: [
           FlipOpportunity.t()
         ]
@@ -90,6 +103,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
           enabled_techniques: %{optional(FlipOpportunity.technique()) => boolean()},
           enabled_categories: %{optional(Currency.category()) => boolean()},
           thresholds: thresholds(),
+          max_start_chaos: number() | nil,
           sort_column: sort_column(),
           sort_direction: sort_direction(),
           favorite_route_keys: MapSet.t(String.t())
@@ -102,6 +116,7 @@ defmodule PoeFlipFinder.FlipOpportunityTablePresenter do
     |> filter_by_technique(options.enabled_techniques)
     |> filter_by_category(options.enabled_categories)
     |> filter_by_thresholds(options.thresholds)
+    |> filter_by_max_start_chaos(options.max_start_chaos)
     |> sort_opportunities(options.sort_column, options.sort_direction)
     |> partition_favorites(options.favorite_route_keys)
   end
