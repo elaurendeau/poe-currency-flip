@@ -227,6 +227,58 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     assert result.icon_url == nil
   end
 
+  test "a real supplementary name overrides the derived Omen name when one is available" do
+    catalog =
+      GggItemIconGateway.normalize(fixture())
+      |> Map.put(:real_names, %{
+        "Metadata/Items/Currency/AncestralOmenOnChanceMakeUnique" => "Omen of Fortune"
+      })
+
+    # Real pair verified against repoe-fork/pob-data 2026-08-09 (docs/DATA_SOURCES.md
+    # § Supplementary Currency Names) -- the derived name for this exact
+    # basename would otherwise be "Omen of Chance Make Unique".
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/Currency/AncestralOmenOnChanceMakeUnique",
+        catalog
+      )
+
+    assert result.display_name == "Omen of Fortune"
+    assert result.category == :ancestor
+  end
+
+  test "a real supplementary name overrides the generic humanized fallback when one is available" do
+    catalog =
+      GggItemIconGateway.normalize(fixture())
+      |> Map.put(:real_names, %{
+        "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral" => "Flesh of Xesht"
+      })
+
+    # Real pair verified against repoe-fork/pob-data 2026-08-09 -- the
+    # humanized fallback for this exact basename would otherwise be
+    # "Breach Upgrade Unique General" (see the :currency fallback test
+    # above, which deliberately leaves real_names empty).
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral",
+        catalog
+      )
+
+    assert result.display_name == "Flesh of Xesht"
+    assert result.category == :currency
+  end
+
+  test "the real bundled Supplementary Currency Names file resolves a real example end to end" do
+    # Deliberately calls the single-arg lookup_item/1, which goes through
+    # the real ensure_catalog_loaded/0 + load_real_names/0 path -- only
+    # passes if priv/reference-data/currency-names.json is present and
+    # parses, same regression-guard rationale as the equivalent Item
+    # Icons test above.
+    result = GggItemIconGateway.lookup_item("Metadata/Items/Currency/RunegraftSuffering")
+
+    assert result.display_name == "Runegraft of Suffering"
+  end
+
   defp fixture do
     Path.join([__DIR__, "..", "..", "fixtures", "ggg_item_icons", "catalog.json"])
     |> File.read!()

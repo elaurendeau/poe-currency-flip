@@ -39,13 +39,32 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   "VoodooOmensNColor") -- neither exact nor suffix basename matching can
   bridge that gap (re-fetching the catalog fresh from GGG's CDN confirmed
   it isn't a stale-bundle problem either). These three families get a
-  narrow, pattern-based fallback instead (`lookup_by_known_naming_pattern/2`),
+  narrow, pattern-based fallback instead (`lookup_by_known_naming_pattern/3`),
   independent of the catalog entirely, with a derived (not
   GGG-authoritative) display name. Checked the same live hour for a
   fourth suspect, Oils -- found zero Oil trades anywhere, in any league,
   across ~24h of real data, so that one's an actual liquidity gap, not a
   matching bug (the catalog's Oil basenames are old, stable, unrenamed
   ones that should match fine whenever a real trade exists).
+
+  **A third-party data source supplies a real name where GGG's own catalog
+  has none at all.** Verified 2026-08-09: `repoe-fork/pob-data` (Path of
+  Building's own automated data export, mined directly from the game's
+  data files and kept current by a scheduled CI job) resolves the vast
+  majority of the previously-generic items above to their real in-game
+  name -- confirmed against every Tattoo/Omen/Runegraft example already
+  handled above (matching what the hand-written patterns already derive,
+  independently confirming those), plus Delve currency, Heist Coin, and
+  even items this project's own bundled catalog has never had under any
+  name. It is consulted first, ahead of both the derived
+  tattoo/omen/runegraft name and the generic humanized fallback, since an
+  authoritative name always beats a guess -- vendored the same way as the
+  Item Icons catalog above (`priv/reference-data/currency-names.json`,
+  refreshed manually; see docs/DATA_SOURCES.md § Supplementary Currency
+  Names for the license caveat, which mirrors the Item Icons one). It does
+  **not** cover Scarabs or Map Fragments (irrelevant to Path of Building's
+  own purpose) -- those keep today's correct-category-but-generic-name
+  treatment; a known, documented gap, not silently papered over.
 
   **This module never returns `nil` for a real market entry.** It used to
   -- an unmatched item fell through to `nil`, and `Ingestion.resolve_currency/2`
@@ -54,7 +73,7 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   from a missing decoration, not a missing trade. GGG's Currency Exchange
   feed is the ground truth for what's actually tradeable; this catalog is
   only ever supplementary decoration for it, so a catalog miss now always
-  falls through to `fallback_currency/3` -- a generic, best-effort
+  falls through to `fallback_currency/4` -- a generic, best-effort
   `:misc`-categorized entry with a humanized basename as its display
   name -- rather than dropping the item. The `ItemIconGateway` behaviour
   itself still allows `nil` (a genuinely malformed/empty external_id, or
@@ -75,13 +94,18 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
 
   @divination_card_prefix "DivinationCard"
   @catalog_resource_path "reference-data/item-icons-catalog.json"
+  @currency_names_resource_path "reference-data/currency-names.json"
   @min_suffix_match_length 4
   @persistent_term_key {__MODULE__, :catalog}
   @tattoo_pattern ~r/^AncestralTattoo([A-Z][a-zA-Z]*?)(\d+)$/
   @omen_pattern ~r/^AncestralOmen(.+)$/
   @runegraft_pattern ~r/^Runegraft([A-Z][a-zA-Z]*)$/
 
-  @type catalog :: %{by_image_basename: map(), cards_by_canonical_name: map()}
+  @type catalog :: %{
+          by_image_basename: map(),
+          cards_by_canonical_name: map(),
+          real_names: %{String.t() => String.t()}
+        }
 
   @impl true
   def lookup_item(external_id), do: lookup_item(external_id, ensure_catalog_loaded())
@@ -96,15 +120,15 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     basename = basename_of(external_id)
 
     if String.starts_with?(basename, @divination_card_prefix) do
-      lookup_card(external_id, basename, catalog.cards_by_canonical_name)
+      lookup_card(external_id, basename, catalog.cards_by_canonical_name, catalog.real_names)
     else
-      lookup_currency(external_id, basename, catalog.by_image_basename)
+      lookup_currency(external_id, basename, catalog.by_image_basename, catalog.real_names)
     end
   end
 
-  defp lookup_currency(external_id, basename, by_image_basename) do
+  defp lookup_currency(external_id, basename, by_image_basename, real_names) do
     case Map.get(by_image_basename, basename) || suffix_match(basename, by_image_basename) do
-      nil -> resolve_uncataloged_currency(external_id, basename)
+      nil -> resolve_uncataloged_currency(external_id, basename, real_names)
       entry -> currency_from_catalog_entry(external_id, entry)
     end
   end
@@ -116,9 +140,9 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   # name". The known-family patterns give a proper category and a decent
   # name; anything else still resolves, generically, rather than vanishing
   # from ingestion the way both families above did before this existed.
-  defp resolve_uncataloged_currency(external_id, basename) do
-    lookup_by_known_naming_pattern(external_id, basename) ||
-      fallback_currency(external_id, basename, category_from_path(external_id))
+  defp resolve_uncataloged_currency(external_id, basename, real_names) do
+    lookup_by_known_naming_pattern(external_id, basename, real_names) ||
+      fallback_currency(external_id, basename, category_from_path(external_id), real_names)
   end
 
   # This catalog turns out not to be an exhaustive item list at all --
@@ -149,15 +173,17 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     end)
   end
 
-  defp fallback_currency(external_id, basename, category) do
+  defp fallback_currency(external_id, basename, category, real_names) do
     %Currency{
       id: nil,
       external_id: external_id,
-      display_name: humanize_basename(basename),
+      display_name: real_name(real_names, external_id) || humanize_basename(basename),
       icon_url: nil,
       category: category
     }
   end
+
+  defp real_name(real_names, external_id), do: Map.get(real_names, external_id)
 
   defp currency_from_catalog_entry(external_id, entry) do
     %Currency{
@@ -173,19 +199,20 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   # but they're known and common enough to earn a real category and a
   # much better name instead of landing in :misc with a raw humanized
   # basename.
-  defp lookup_by_known_naming_pattern(external_id, basename) do
-    tattoo_currency(external_id, basename) ||
-      omen_currency(external_id, basename) ||
-      runegraft_currency(external_id, basename)
+  defp lookup_by_known_naming_pattern(external_id, basename, real_names) do
+    tattoo_currency(external_id, basename, real_names) ||
+      omen_currency(external_id, basename, real_names) ||
+      runegraft_currency(external_id, basename, real_names)
   end
 
-  defp tattoo_currency(external_id, basename) do
+  defp tattoo_currency(external_id, basename, real_names) do
     case Regex.run(@tattoo_pattern, basename) do
       [_, family, tier] ->
         %Currency{
           id: nil,
           external_id: external_id,
-          display_name: "Tattoo of the #{family} (Tier #{tier})",
+          display_name:
+            real_name(real_names, external_id) || "Tattoo of the #{family} (Tier #{tier})",
           icon_url: nil,
           category: :ancestor
         }
@@ -202,13 +229,15 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   # real basename encodes the omen's trigger+effect as "On<Descriptor>"
   # (e.g. "OnChanceMakeUnique") -- the leading "On" is stripped before
   # humanizing purely for readability, since every real example has it.
-  defp omen_currency(external_id, basename) do
+  defp omen_currency(external_id, basename, real_names) do
     case Regex.run(@omen_pattern, basename) do
       [_, descriptor] ->
         %Currency{
           id: nil,
           external_id: external_id,
-          display_name: "Omen of #{humanize_basename(strip_on_prefix(descriptor))}",
+          display_name:
+            real_name(real_names, external_id) ||
+              "Omen of #{humanize_basename(strip_on_prefix(descriptor))}",
           icon_url: nil,
           category: :ancestor
         }
@@ -220,13 +249,14 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
 
   defp strip_on_prefix(descriptor), do: String.replace(descriptor, ~r/^On(?=[A-Z])/, "")
 
-  defp runegraft_currency(external_id, basename) do
+  defp runegraft_currency(external_id, basename, real_names) do
     case Regex.run(@runegraft_pattern, basename) do
       [_, descriptor] ->
         %Currency{
           id: nil,
           external_id: external_id,
-          display_name: "Runegraft of #{humanize_basename(descriptor)}",
+          display_name:
+            real_name(real_names, external_id) || "Runegraft of #{humanize_basename(descriptor)}",
           icon_url: nil,
           category: :runegrafts
         }
@@ -261,12 +291,12 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     end
   end
 
-  defp lookup_card(external_id, basename, cards_by_canonical_name) do
+  defp lookup_card(external_id, basename, cards_by_canonical_name, real_names) do
     card_name = String.slice(basename, String.length(@divination_card_prefix)..-1//1)
 
     case Map.get(cards_by_canonical_name, canonicalize(card_name)) do
       nil ->
-        fallback_currency(external_id, card_name, :cards)
+        fallback_currency(external_id, card_name, :cards, real_names)
 
       entry ->
         %Currency{
@@ -282,7 +312,11 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   defp ensure_catalog_loaded do
     case :persistent_term.get(@persistent_term_key, nil) do
       nil ->
-        catalog = normalize(Jason.decode!(read_bundled_catalog()))
+        catalog =
+          Jason.decode!(read_bundled_catalog())
+          |> normalize()
+          |> Map.put(:real_names, load_real_names())
+
         :persistent_term.put(@persistent_term_key, catalog)
         catalog
 
@@ -298,12 +332,22 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
     |> File.read!()
   end
 
+  # docs/DATA_SOURCES.md § Supplementary Currency Names: already a flat
+  # {external_id => real name} map, no normalize-equivalent step needed.
+  defp load_real_names do
+    :poe_flip_finder
+    |> Application.app_dir("priv")
+    |> Path.join(@currency_names_resource_path)
+    |> File.read!()
+    |> Jason.decode!()
+  end
+
   @doc "Exposed so contract tests can exercise parsing without reading the bundled file."
   @spec normalize(map()) :: catalog()
   def normalize(raw_catalog) do
     Enum.reduce(
       raw_catalog["result"],
-      %{by_image_basename: %{}, cards_by_canonical_name: %{}},
+      %{by_image_basename: %{}, cards_by_canonical_name: %{}, real_names: %{}},
       fn group, acc ->
         Enum.reduce(group["entries"], acc, &add_entry(&2, group, &1))
       end
