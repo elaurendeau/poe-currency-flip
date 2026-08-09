@@ -34,6 +34,13 @@ defmodule PoeFlipFinder.Currency do
           | :legacy
           | :expedition
           | :misc
+          # Historical-only category, docs/PRD.md § 7.14: real poe-antiquary
+          # data exists, but nothing here ever trades on GGG's Currency
+          # Exchange (roll-dependent, not fungible) -- never appears on a
+          # live-resolved Currency, only on HistoricalPricePattern's
+          # placeholder one, so it's deliberately not in the `currency`
+          # table's DB check constraint.
+          | :cluster_jewels
 
   @type t :: %__MODULE__{
           id: pos_integer() | nil,

@@ -16,7 +16,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   @behaviour PoeFlipFinder.HistoricalPatternReferenceGateway
 
   alias PoeFlipFinder.{Currency, HistoricalPricePattern}
-  alias PoeFlipFinder.HistoricalPricePattern.LeagueObservation
+  alias PoeFlipFinder.HistoricalPricePattern.{DayPrice, LeagueObservation}
 
   @catalog_resource_path "reference-data/historical-investment-patterns.json"
   @persistent_term_key {__MODULE__, :historical_patterns}
@@ -49,7 +49,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
 
   defp to_entity(entry) do
     %HistoricalPricePattern{
-      currency: placeholder_currency(entry["currencyName"]),
+      currency: placeholder_currency(entry["currencyName"], entry["category"]),
       league_observations: Enum.map(entry["leagueObservations"], &to_observation/1)
     }
   end
@@ -57,13 +57,21 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   defp to_observation(entry) do
     %LeagueObservation{
       league: entry["league"],
-      day0_chaos: entry["day0Chaos"] * 1.0,
-      day1_chaos: entry["day1Chaos"] * 1.0,
-      day2_chaos: entry["day2Chaos"] * 1.0
+      day_prices: Enum.map(entry["days"], &to_day_price/1)
     }
   end
 
-  defp placeholder_currency(name) do
-    %Currency{id: nil, external_id: nil, display_name: name, icon_url: nil, category: :currency}
+  defp to_day_price(entry) do
+    %DayPrice{day: entry["day"], chaos: entry["chaos"] * 1.0}
+  end
+
+  defp placeholder_currency(name, raw_category) do
+    %Currency{
+      id: nil,
+      external_id: nil,
+      display_name: name,
+      icon_url: nil,
+      category: String.to_existing_atom(raw_category)
+    }
   end
 end

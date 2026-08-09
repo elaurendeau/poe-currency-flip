@@ -14,35 +14,43 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     # and parses.
     patterns = BundledHistoricalPatternReferenceGateway.find_all()
 
-    assert length(patterns) == 5
+    assert length(patterns) >= 15
 
     exalted = Enum.find(patterns, &(&1.currency.display_name == "Exalted Orb"))
     assert exalted.currency.external_id == nil
     assert exalted.currency.category == :currency
-    assert length(exalted.league_observations) == 2
+    assert length(exalted.league_observations) == 4
 
     necropolis = Enum.find(exalted.league_observations, &(&1.league == "Necropolis"))
-    assert necropolis.day0_chaos == 3.0
-    assert necropolis.day1_chaos == 9.0
-    assert necropolis.day2_chaos == 10.74
+    day0 = Enum.find(necropolis.day_prices, &(&1.day == 0))
+    day1 = Enum.find(necropolis.day_prices, &(&1.day == 1))
+    assert day0.chaos == 3.0
+    assert day1.chaos == 9.0
   end
 
-  test "captures Ancestor's Orb of Annulment dip, not just leagues that rose" do
+  test "loads the historical-only Cluster Jewel category with a category not in the live DB enum" do
     patterns = BundledHistoricalPatternReferenceGateway.find_all()
-    annulment = Enum.find(patterns, &(&1.currency.display_name == "Orb of Annulment"))
+    jewel = Enum.find(patterns, &(&1.currency.display_name =~ "Cluster Jewel"))
 
-    ancestor = Enum.find(annulment.league_observations, &(&1.league == "Ancestor"))
-    assert ancestor.day0_chaos == 8.8
-    assert ancestor.day1_chaos == 6.0
-    assert ancestor.day1_chaos < ancestor.day0_chaos
+    assert jewel.currency.category == :cluster_jewels
+  end
+
+  test "captures a real league observation that doesn't start at day 0 (Farrul in Affliction)" do
+    patterns = BundledHistoricalPatternReferenceGateway.find_all()
+    farrul = Enum.find(patterns, &(&1.currency.display_name == "Farrul, First of the Plains"))
+    affliction = Enum.find(farrul.league_observations, &(&1.league == "Affliction"))
+
+    refute Enum.any?(affliction.day_prices, &(&1.day == 0))
+    assert Enum.any?(affliction.day_prices, &(&1.day == 5))
   end
 
   test "normalize/1 maps raw JSON fields onto HistoricalPricePattern" do
     raw = [
       %{
         "currencyName" => "Chromatic Orb",
+        "category" => "currency",
         "leagueObservations" => [
-          %{"league" => "Necropolis", "day0Chaos" => 0.09, "day1Chaos" => 0.17, "day2Chaos" => 0.17}
+          %{"league" => "Necropolis", "days" => [%{"day" => 0, "chaos" => 0.09}, %{"day" => 1, "chaos" => 0.17}]}
         ]
       }
     ]
@@ -53,6 +61,10 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     assert pattern.currency.category == :currency
     [observation] = pattern.league_observations
     assert observation.league == "Necropolis"
-    assert observation.day0_chaos == 0.09
+    [day0, day1] = observation.day_prices
+    assert day0.day == 0
+    assert day0.chaos == 0.09
+    assert day1.day == 1
+    assert day1.chaos == 0.17
   end
 end
