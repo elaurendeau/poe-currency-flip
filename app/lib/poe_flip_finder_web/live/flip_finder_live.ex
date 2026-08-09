@@ -18,6 +18,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @techniques [:vendor_recipe, :exchange_spread, :divination_card, :bulk_buy]
   @sort_columns [:margin, :profit, :volume]
   @sort_directions [:asc, :desc]
+  @tabs [:grand_exchange, :vendor, :historical]
 
   # docs/PRD.md § 7.6/7.7: the in-flight duration is a safety net, not the
   # real dismiss timer -- normally superseded by a completion banner (set
@@ -56,6 +57,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         Map.new(category_options(), fn {category, _label} -> {category, true} end)
       )
       |> assign(:category_menu_open, false)
+      |> assign(:active_tab, :grand_exchange)
       # Matches the mockup's default state: Margin column active, sorted descending.
       |> assign(:sort_column, :margin)
       |> assign(:sort_direction, :desc)
@@ -141,6 +143,11 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
     {:noreply,
      start_async(socket, :refresh_ingestion, fn -> Ingestion.run_ingestion_catchup(cap_policy) end)}
+  end
+
+  def handle_event("select_tab", %{"tab" => tab}, socket) do
+    tab_atom = String.to_existing_atom(tab)
+    {:noreply, socket |> assign(:active_tab, tab_atom) |> persist_display_preferences()}
   end
 
   def handle_event("toggle_technique", %{"technique" => technique}, socket) do
@@ -234,6 +241,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   def handle_event("display_preferences_loaded", params, socket) do
     {:noreply,
      assign(socket,
+       active_tab: parse_atom_in(params["active_tab"], @tabs, socket.assigns.active_tab),
        enabled_techniques:
          parse_enabled_techniques(params["enabled_techniques"], socket.assigns.enabled_techniques),
        enabled_categories:
@@ -483,6 +491,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # on every toggle rather than only on unmount.
   defp persist_display_preferences(socket) do
     push_event(socket, "persist_display_preferences", %{
+      active_tab: socket.assigns.active_tab,
       enabled_techniques: socket.assigns.enabled_techniques,
       enabled_categories: socket.assigns.enabled_categories,
       sort_column: socket.assigns.sort_column,
@@ -620,6 +629,42 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       {:divination_card, "Divination card", "divination-card-icon"},
       {:bulk_buy, "Bulk buy", nil}
     ]
+  end
+
+  # The tab bar above the results table (docs/PRD.md § 7.8): each tab
+  # groups a subset of techniques, with per-technique checkboxes still
+  # filtering within the active tab. "Historical Investment" has no
+  # backing computation yet -- it renders as an inert, disabled tab (see
+  # tab_disabled?/1) rather than a clickable one with nothing behind it.
+  defp tab_options do
+    [
+      {:grand_exchange, "Grand Exchange Flip"},
+      {:vendor, "Vendor Flip"},
+      {:historical, "Historical Investment"}
+    ]
+  end
+
+  defp tab_disabled?(:historical), do: true
+  defp tab_disabled?(_tab), do: false
+
+  defp techniques_for_tab(:grand_exchange), do: [:exchange_spread, :divination_card, :bulk_buy]
+  defp techniques_for_tab(:vendor), do: [:vendor_recipe]
+  defp techniques_for_tab(:historical), do: []
+
+  defp technique_options_for_tab(tab) do
+    allowed = techniques_for_tab(tab)
+    Enum.filter(technique_options(), fn {technique, _label, _icon_class} -> technique in allowed end)
+  end
+
+  # Scopes the technique checkboxes' own enabled/disabled state down to
+  # whatever the active tab actually shows, without losing each checkbox's
+  # remembered value when the user switches tabs and back.
+  defp effective_enabled_techniques(enabled_techniques, tab) do
+    allowed = techniques_for_tab(tab)
+
+    Map.new(enabled_techniques, fn {technique, enabled} ->
+      {technique, enabled and technique in allowed}
+    end)
   end
 
   # The Currency Category Filter drawer (docs/PRD.md § 7.13): one row per

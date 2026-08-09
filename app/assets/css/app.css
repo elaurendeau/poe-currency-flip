@@ -149,6 +149,40 @@ body {
   background: linear-gradient(90deg, rgba(232, 163, 61, 0.5), rgba(232, 163, 61, 0));
 }
 
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 0 4px;
+  margin-bottom: 12px;
+  border-bottom: 0.5px solid #262c33;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -0.5px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #8a92a0;
+  cursor: pointer;
+}
+
+.tab-button:hover:not(:disabled) {
+  color: #c7cdd3;
+}
+
+.tab-button--active {
+  color: #e8a33d;
+  border-bottom-color: #e8a33d;
+}
+
+.tab-button:disabled {
+  color: #525a63;
+  cursor: default;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;

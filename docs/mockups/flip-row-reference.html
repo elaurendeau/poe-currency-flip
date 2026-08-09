@@ -23,6 +23,12 @@
 
   .status-banner { width:100%; box-sizing:border-box; text-align:center; padding:6px 20px; font-size:12px; color:#e8a33d; background:#1a1e23; border-bottom:0.5px solid #262c33; }
 
+  .tab-bar { display:flex; gap:4px; padding:0 4px; margin-bottom:12px; border-bottom:0.5px solid #262c33; }
+  .tab-button { background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-0.5px; padding:10px 14px; font-size:12.5px; font-weight:500; color:#8a92a0; cursor:pointer; }
+  .tab-button:hover:not(:disabled) { color:#c7cdd3; }
+  .tab-button.active { color:#e8a33d; border-bottom-color:#e8a33d; }
+  .tab-button:disabled { color:#525a63; cursor:default; }
+
   .filter-bar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:0 4px 12px; border-bottom:0.5px solid #262c33; margin-bottom:10px; }
   .filter-check { display:flex; align-items:center; gap:6px; font-size:12px; color:#c7cdd3; cursor:pointer; }
   .filter-check input { accent-color:#e8a33d; }
@@ -153,8 +159,13 @@
 <div class="content">
 <div class="panel">
 
+  <div class="tab-bar">
+    <button type="button" class="tab-button active">Grand Exchange Flip</button>
+    <button type="button" class="tab-button">Vendor Flip</button>
+    <button type="button" class="tab-button" disabled title="Coming soon">Historical Investment</button>
+  </div>
+
   <div class="filter-bar">
-    <label class="filter-check"><input type="checkbox" checked><i class="ti ti-user" aria-hidden="true"></i>Vendor recipe</label>
     <label class="filter-check"><input type="checkbox" checked><i class="ti ti-arrows-split" aria-hidden="true"></i>Exchange spread</label>
     <label class="filter-check"><input type="checkbox" checked><i class="ti ti-cards" style="color:#c98ded" aria-hidden="true"></i>Divination card</label>
     <label class="filter-check"><input type="checkbox" checked><i class="ti ti-packages" aria-hidden="true"></i>Bulk buy</label>
@@ -225,6 +236,10 @@
 
   <div class="favorites-divider"></div>
 
+  <!-- Reference only: this row (a Vendor Recipe chain) is shown here purely to
+       demonstrate the multi-hop Via-chain visual style. In the live app it only
+       renders under the "Vendor Flip" tab above, never alongside Exchange
+       Spread/Divination Card/Bulk Buy rows under "Grand Exchange Flip". -->
   <div class="grid row">
     <div class="cur">
       <div class="cur-top"><span class="qty">1</span><img src="https://www.pathofexile.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQ3VycmVuY3kvQ3VycmVuY3lSZXJvbGxSYXJlIiwic2NhbGUiOjF9XQ/46a2347805/CurrencyRerollRare.png" alt=""></div>

@@ -5,9 +5,17 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
   # one row deadlock against each other under the SQL Sandbox.
   use PoeFlipFinder.DataCase, async: false
 
-  alias PoeFlipFinder.{BaseCurrencyIds, Currency, DivinationCardReward, FlipOpportunities}
+  alias PoeFlipFinder.{
+    BaseCurrencyIds,
+    Currency,
+    DivinationCardReward,
+    FlipOpportunities,
+    VendorRecipe
+  }
+
   alias PoeFlipFinder.Gateways.Schema
   alias PoeFlipFinder.StubDivinationCardReferenceGateway
+  alias PoeFlipFinder.StubVendorRecipeReferenceGateway
 
   # Context-level integration test per docs/ELIXIR_TEST_MANIFESTO.md: the
   # real Ecto-backed gateway against real DB rows, not a mock -- these are
@@ -315,5 +323,72 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
     techniques = Enum.map(opportunities, & &1.technique)
 
     assert :divination_card in techniques
+  end
+
+  test "merges vendor recipe into the list, sourced from a stubbed reference gateway" do
+    Application.put_env(
+      :poe_flip_finder,
+      :vendor_recipe_reference_gateway,
+      StubVendorRecipeReferenceGateway
+    )
+
+    on_exit(fn ->
+      Application.delete_env(:poe_flip_finder, :vendor_recipe_reference_gateway)
+    end)
+
+    league = insert_league!("Standard")
+    chaos = insert_currency!(chaos_external_id())
+    divine = insert_currency!(divine_external_id())
+    wisdom = insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Wisdom")
+    portal = insert_currency!("Metadata/Items/Currency/CurrencyPortal", "Portal")
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: divine.id,
+      lowest_ratio_a: 210.0,
+      lowest_ratio_b: 1.0,
+      highest_ratio_a: 210.0,
+      highest_ratio_b: 1.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: wisdom.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 5.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 5.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: portal.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 2.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 2.0
+    })
+
+    StubVendorRecipeReferenceGateway.stub([
+      %VendorRecipe{
+        input_currency: %Currency{external_id: nil, display_name: "Wisdom", category: :currency},
+        input_quantity: 4,
+        output_currency: %Currency{external_id: nil, display_name: "Portal", category: :currency},
+        output_quantity: 1
+      }
+    ])
+
+    activate_generation!(1)
+
+    opportunities = FlipOpportunities.compute_flip_opportunities("Standard")
+    techniques = Enum.map(opportunities, & &1.technique)
+
+    assert :vendor_recipe in techniques
   end
 end

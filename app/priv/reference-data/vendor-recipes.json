@@ -1,0 +1,20 @@
+[
+  { "inputCurrencyName": "Scroll of Wisdom", "inputQuantity": 3, "outputCurrencyName": "Portal Scroll", "outputQuantity": 1 },
+  { "inputCurrencyName": "Portal Scroll", "inputQuantity": 7, "outputCurrencyName": "Orb of Transmutation", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Transmutation", "inputQuantity": 4, "outputCurrencyName": "Orb of Augmentation", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Augmentation", "inputQuantity": 4, "outputCurrencyName": "Orb of Alteration", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Alteration", "inputQuantity": 2, "outputCurrencyName": "Jeweller's Orb", "outputQuantity": 1 },
+  { "inputCurrencyName": "Jeweller's Orb", "inputQuantity": 4, "outputCurrencyName": "Orb of Fusing", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Fusing", "inputQuantity": 1, "outputCurrencyName": "Orb of Chance", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Chance", "inputQuantity": 4, "outputCurrencyName": "Orb of Scouring", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Scouring", "inputQuantity": 2, "outputCurrencyName": "Orb of Regret", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Regret", "inputQuantity": 1, "outputCurrencyName": "Orb of Alchemy", "outputQuantity": 1 },
+  { "inputCurrencyName": "Orb of Regret", "inputQuantity": 2, "outputCurrencyName": "Orb of Unmaking", "outputQuantity": 1 },
+  { "inputCurrencyName": "Armourer's Scrap", "inputQuantity": 3, "outputCurrencyName": "Blacksmith's Whetstone", "outputQuantity": 1 },
+  { "inputCurrencyName": "Blacksmith's Whetstone", "inputQuantity": 1, "outputCurrencyName": "Armourer's Scrap", "outputQuantity": 1 },
+  { "inputCurrencyName": "Portal Scroll", "inputQuantity": 1, "outputCurrencyName": "Scroll of Wisdom", "outputQuantity": 1 },
+  { "inputCurrencyName": "Armourer's Scrap", "inputQuantity": 1, "outputCurrencyName": "Scroll of Wisdom", "outputQuantity": 2 },
+  { "inputCurrencyName": "Blacksmith's Whetstone", "inputQuantity": 1, "outputCurrencyName": "Scroll of Wisdom", "outputQuantity": 4 },
+  { "inputCurrencyName": "Orb of Alteration", "inputQuantity": 1, "outputCurrencyName": "Scroll of Wisdom", "outputQuantity": 4 },
+  { "inputCurrencyName": "Orb of Transmutation", "inputQuantity": 1, "outputCurrencyName": "Scroll of Wisdom", "outputQuantity": 4 }
+]

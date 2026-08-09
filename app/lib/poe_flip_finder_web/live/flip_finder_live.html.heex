@@ -114,96 +114,117 @@
   <main class="app-main">
     <%= if @selected_league do %>
       <div class="panel">
-        <div class="filter-bar">
-          <label :for={{technique, label, icon_class} <- technique_options()} class="filter-check">
-            <input
-              type="checkbox"
-              checked={@enabled_techniques[technique]}
-              phx-click="toggle_technique"
-              phx-value-technique={technique}
-              aria-label={label}
-            />
-            <.technique_icon technique={technique} class={icon_class} />
+        <div class="tab-bar">
+          <button
+            :for={{tab, label} <- tab_options()}
+            type="button"
+            class={"tab-button#{if @active_tab == tab, do: " tab-button--active"}#{if tab_disabled?(tab), do: " tab-button--disabled"}"}
+            phx-click={if !tab_disabled?(tab), do: "select_tab"}
+            phx-value-tab={tab}
+            disabled={tab_disabled?(tab)}
+            title={if tab_disabled?(tab), do: "Coming soon"}
+          >
             {label}
-          </label>
+          </button>
         </div>
 
-        <div class="grid header-row">
-          <.start_column_header max_start_chaos={@max_start_chaos} />
-          <span>Via</span>
-          <span style="text-align: center">Sell</span>
-          <.sortable_column_header
-            column={:margin}
-            label="Margin"
-            placeholder="min %"
-            sort_column={@sort_column}
-            sort_direction={@sort_direction}
-            threshold_value={@thresholds[:margin]}
-          />
-          <.sortable_column_header
-            column={:profit}
-            label="Profit"
-            placeholder="min c"
-            sort_column={@sort_column}
-            sort_direction={@sort_direction}
-            threshold_value={@thresholds[:profit]}
-          />
-          <.sortable_column_header
-            column={:volume}
-            label="Volume"
-            placeholder="min"
-            sort_column={@sort_column}
-            sort_direction={@sort_direction}
-            threshold_value={@thresholds[:volume]}
-          />
-        </div>
-
-        <% groups =
-          PoeFlipFinder.FlipOpportunityTablePresenter.build_display_groups(@opportunities, %{
-            enabled_techniques: @enabled_techniques,
-            enabled_categories: @enabled_categories,
-            thresholds: @thresholds,
-            max_start_chaos: @max_start_chaos,
-            sort_column: @sort_column,
-            sort_direction: @sort_direction,
-            favorite_route_keys: @favorite_route_keys
-          }) %>
-
-        <%= cond do %>
-          <% @opportunities_error -> %>
-            <p class="flip-table-message flip-table-message--error">
-              Failed to load flip opportunities
-            </p>
-          <% @opportunities_loading -> %>
-            <p class="flip-table-message">Loading flip opportunities…</p>
-          <% Enum.empty?(groups.favorites) && Enum.empty?(groups.others) -> %>
-            <p class="flip-table-message">No flip opportunities yet.</p>
-          <% true -> %>
-            <.flip_row
-              :for={opportunity <- groups.favorites}
-              opportunity={opportunity}
-              favorite?={true}
-            />
-            <div :if={groups.favorites != [] && groups.others != []} class="favorites-divider" />
-            <.flip_row
-              :for={opportunity <- groups.others}
-              opportunity={opportunity}
-              favorite?={false}
-            />
-        <% end %>
-
-        <div
-          :if={@context_menu}
-          id="ctx-menu"
-          class="ctx-menu"
-          style={"left: #{@context_menu.x}px; top: #{@context_menu.y}px;"}
-          phx-click-away="close_context_menu"
-        >
-          <div class="ctx-item" phx-click="toggle_favorite_from_menu">
-            <.star_icon />
-            {if @context_menu.is_favorite, do: "Unfavorite", else: "Favorite"}
+        <%= if @active_tab == :historical do %>
+          <p class="flip-table-message">Historical Investment — coming soon.</p>
+        <% else %>
+          <div class="filter-bar">
+            <label
+              :for={{technique, label, icon_class} <- technique_options_for_tab(@active_tab)}
+              class="filter-check"
+            >
+              <input
+                type="checkbox"
+                checked={@enabled_techniques[technique]}
+                phx-click="toggle_technique"
+                phx-value-technique={technique}
+                aria-label={label}
+              />
+              <.technique_icon technique={technique} class={icon_class} />
+              {label}
+            </label>
           </div>
-        </div>
+
+          <div class="grid header-row">
+            <.start_column_header max_start_chaos={@max_start_chaos} />
+            <span>Via</span>
+            <span style="text-align: center">Sell</span>
+            <.sortable_column_header
+              column={:margin}
+              label="Margin"
+              placeholder="min %"
+              sort_column={@sort_column}
+              sort_direction={@sort_direction}
+              threshold_value={@thresholds[:margin]}
+            />
+            <.sortable_column_header
+              column={:profit}
+              label="Profit"
+              placeholder="min c"
+              sort_column={@sort_column}
+              sort_direction={@sort_direction}
+              threshold_value={@thresholds[:profit]}
+            />
+            <.sortable_column_header
+              column={:volume}
+              label="Volume"
+              placeholder="min"
+              sort_column={@sort_column}
+              sort_direction={@sort_direction}
+              threshold_value={@thresholds[:volume]}
+            />
+          </div>
+
+          <% groups =
+            PoeFlipFinder.FlipOpportunityTablePresenter.build_display_groups(@opportunities, %{
+              enabled_techniques: effective_enabled_techniques(@enabled_techniques, @active_tab),
+              enabled_categories: @enabled_categories,
+              thresholds: @thresholds,
+              max_start_chaos: @max_start_chaos,
+              sort_column: @sort_column,
+              sort_direction: @sort_direction,
+              favorite_route_keys: @favorite_route_keys
+            }) %>
+
+          <%= cond do %>
+            <% @opportunities_error -> %>
+              <p class="flip-table-message flip-table-message--error">
+                Failed to load flip opportunities
+              </p>
+            <% @opportunities_loading -> %>
+              <p class="flip-table-message">Loading flip opportunities…</p>
+            <% Enum.empty?(groups.favorites) && Enum.empty?(groups.others) -> %>
+              <p class="flip-table-message">No flip opportunities yet.</p>
+            <% true -> %>
+              <.flip_row
+                :for={opportunity <- groups.favorites}
+                opportunity={opportunity}
+                favorite?={true}
+              />
+              <div :if={groups.favorites != [] && groups.others != []} class="favorites-divider" />
+              <.flip_row
+                :for={opportunity <- groups.others}
+                opportunity={opportunity}
+                favorite?={false}
+              />
+          <% end %>
+
+          <div
+            :if={@context_menu}
+            id="ctx-menu"
+            class="ctx-menu"
+            style={"left: #{@context_menu.x}px; top: #{@context_menu.y}px;"}
+            phx-click-away="close_context_menu"
+          >
+            <div class="ctx-item" phx-click="toggle_favorite_from_menu">
+              <.star_icon />
+              {if @context_menu.is_favorite, do: "Unfavorite", else: "Favorite"}
+            </div>
+          </div>
+        <% end %>
       </div>
     <% else %>
       <p>Select a league to get started.</p>

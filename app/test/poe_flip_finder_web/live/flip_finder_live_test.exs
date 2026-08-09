@@ -424,6 +424,104 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   # === Feature H: Technique Filters ===================================
 
+  # Seeds one vendor-recipe opportunity using a real single-hop entry from
+  # the bundled reference catalog (docs/PRD.md § 7.1) rather than a stubbed
+  # gateway -- same rationale as seed_one_divination_card_opportunity!/1:
+  # BundledVendorRecipeReferenceGateway caches via :persistent_term, visible
+  # from the LiveView's own process. "Scroll of Wisdom" (3x) -> "Portal
+  # Scroll" (1x) is the first captured recipe (docs/DATA_SOURCES.md).
+  defp seed_one_vendor_recipe_opportunity!(league_external_id) do
+    league = insert_league!(league_external_id, is_current: true)
+    chaos = insert_currency!(BaseCurrencyIds.chaos_external_id(), "Chaos Orb")
+    divine = insert_currency!(BaseCurrencyIds.divine_external_id(), "Divine Orb")
+    wisdom = insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Scroll of Wisdom")
+    portal = insert_currency!("Metadata/Items/Currency/CurrencyPortal", "Portal Scroll")
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: divine.id,
+      lowest_ratio_a: 210.0,
+      lowest_ratio_b: 1.0,
+      highest_ratio_a: 210.0,
+      highest_ratio_b: 1.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: wisdom.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 5.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 5.0
+    })
+
+    insert_snapshot!(%{
+      generation_id: 1,
+      league_id: league.id,
+      currency_a_id: chaos.id,
+      currency_b_id: portal.id,
+      lowest_ratio_a: 1.0,
+      lowest_ratio_b: 2.0,
+      highest_ratio_a: 1.0,
+      highest_ratio_b: 2.0
+    })
+
+    activate_generation!(1)
+    league
+  end
+
+  # === Grand Exchange Flip / Vendor Flip tabs ===========================
+
+  test "the Grand Exchange Flip tab is active by default and shows only its own techniques", %{
+    conn: conn
+  } do
+    seed_one_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+
+    assert has_element?(view, "button.tab-button--active", "Grand Exchange Flip")
+    assert has_element?(view, "input[aria-label='Exchange spread']")
+    refute has_element?(view, "input[aria-label='Vendor recipe']")
+    assert count_rows(render(view)) == 1
+  end
+
+  test "switching to the Vendor Flip tab shows vendor recipe rows and hides Grand Exchange ones",
+       %{conn: conn} do
+    seed_one_vendor_recipe_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    # Grand Exchange Flip is active by default. The seeded snapshots also
+    # feed Exchange Spread rows for the same chaos-anchored pairs (expected
+    # -- that's a different technique looking at the same market data), but
+    # no vendor_recipe row is ever included in this tab's rendered output.
+    refute render(view) =~ ~s(data-route-key="vendor_recipe|)
+
+    html = view |> element("button.tab-button", "Vendor Flip") |> render_click()
+
+    assert has_element?(view, "button.tab-button--active", "Vendor Flip")
+    assert has_element?(view, "input[aria-label='Vendor recipe']")
+    refute has_element?(view, "input[aria-label='Exchange spread']")
+    assert html =~ ~s(data-route-key="vendor_recipe|)
+    refute html =~ ~s(data-route-key="exchange_spread|)
+  end
+
+  test "the Historical Investment tab is disabled and shows a placeholder instead of a table", %{
+    conn: conn
+  } do
+    # A selected league is required for the panel (and its tab bar) to
+    # render at all -- see the "Select a league to get started" fallback.
+    insert_league!("Standard", is_current: true)
+
+    {:ok, view, _html} = live(conn, "/")
+
+    assert has_element?(view, "button.tab-button--disabled", "Historical Investment")
+    assert has_element?(view, "button[disabled]", "Historical Investment")
+  end
+
   test "toggle_technique hides and reshows matching rows without affecting other techniques", %{
     conn: conn
   } do
@@ -747,10 +845,13 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     # sort_column applies; the unrecognized technique/category keys are
     # ignored rather than crashing; bulk_buy's and oils's real, valid
     # entries still apply; the unparseable margin threshold is dropped, the
-    # valid profit one isn't.
+    # valid profit one isn't. exchange_spread wasn't mentioned in the
+    # payload at all, so it keeps its default-enabled value (checked here
+    # rather than vendor_recipe, since vendor_recipe's checkbox now lives
+    # under the separate "Vendor Flip" tab, not the default active one).
     assert has_element?(view, "span.col-label.active", "Volume")
     refute has_element?(view, "input[aria-label='Bulk buy'][checked]")
-    assert has_element?(view, "input[aria-label='Vendor recipe'][checked]")
+    assert has_element?(view, "input[aria-label='Exchange spread'][checked]")
 
     view |> element("button.category-menu-toggle") |> render_click()
     refute has_element?(view, "[phx-value-category='oils'].category-item--selected")
