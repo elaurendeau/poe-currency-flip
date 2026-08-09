@@ -87,7 +87,8 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       is_current: schema.is_current,
-      has_exchange_activity: schema.has_exchange_activity
+      has_exchange_activity: schema.has_exchange_activity,
+      start_at: schema.start_at
     }
   end
 

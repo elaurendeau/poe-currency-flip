@@ -124,6 +124,22 @@ Notes:
 - **No official formula published by GGG.** Community-sourced examples exist (e.g. ~225 gold per Chaos Orb, ~5 gold per Orb of Transmutation, up to 25,000 for a Mirror of Kalandra), described as scaling with trade size and item value/rarity, but with no authoritative source and no guarantee of stability across balance patches.
 - **Decision:** gold cost is out of scope for the product (see [PRD.md § 9](PRD.md#9-future-considerations)) until either GGG exposes it via an API or a trustworthy, stable source is found. Do not hardcode community-observed gold values as if they were verified data.
 
+## Historical League Price Archive (poe-antiquary.xyz)
+
+**Source:** [poe-antiquary.xyz](https://poe-antiquary.xyz), an unofficial, unauthenticated site archiving per-item daily price history across past PoE challenge leagues.
+**Auth:** None required.
+**Last verified:** 2026-08-09, by direct testing.
+
+Verified facts:
+
+- **Public, no authentication, but undocumented and unofficial** — no published API contract, no stability guarantee, run by a third party rather than GGG. Treated the same as the PoE Wiki: fine as a one-time/occasional manual capture, never called live in production (see [ARCHITECTURE.md § Anti-Corruption Layer](ARCHITECTURE.md#1-anti-corruption-layer) and the "captured, not live" precedent already set for Vendor Recipes/Divination Cards below).
+- **Item price history:** `GET /api/prices/{leagueId}/{categoryId}/{itemId}` returns `pricePoints`, an array of `{chaos, chaosSmooth, timestamp, leagueAge, leagueAgeHours, count}` objects, one per day of that league (roughly). `leagueAge` is a clean integer day-index (`"0"`, `"1"`, `"2"`, ...) — reliable. `leagueAgeHours` was observed to be **non-monotonic across consecutive array entries** (e.g. `21` then `3`) despite `timestamp` increasing by exactly 24h each time — its exact meaning wasn't fully resolved (most likely a per-snapshot capture-window size, not "hours since league start"). **Do not treat `leagueAgeHours` as a reliable hour-of-league-age value** — use `leagueAge`'s day index and array order instead, as this project's own reference-data capture does.
+- **Item/category/league IDs are internal numeric IDs**, not names. `GET /api/items/{categoryId}` lists `{id, name, itemType, data}` for every item in a category (verified: category `9` = Currency; `Divine Orb` = item `3`, `Exalted Orb` = item `2`, consistent across leagues). A league's numeric ID isn't exposed by any listing endpoint found — it's only observable by loading `https://poe-antiquary.xyz/{LeagueName}/{Category}/{ItemName}/{itemId}` in a browser and reading the resulting `/api/prices/{leagueId}/...` network request.
+- **`count`** (per price point) is the number of underlying trades the snapshot was built from — low early-league counts are a real data-quality signal (a 3-trade day means noisy pricing), not something to treat as equally trustworthy as a 400-trade day.
+- **No rate limiting observed** across the burst of requests made while verifying this (dozens of sequential `/api/prices/...` calls, all HTTP 200) — still treated conservatively (occasional manual capture only) given the lack of any published policy.
+
+**Decision: captured, not live.** Same treatment as [Vendor Sell Rates & Recipes](#vendor-sell-rates--recipes) below — this data is for past, concluded leagues, which don't change, so there's no freshness reason to call it live, and every reason (stability, no ToS, no rate-limit contract) not to. [PRD.md § 7.14 Feature N](PRD.md#714-feature-n--historical-investment) reads from a small hand-curated sample vendored into `app/priv/reference-data/historical-investment-patterns.json`, captured by directly querying the endpoints above and transcribing real observed values — refreshed manually (a developer captures fresh data and ships a new reference-data entry) when the sample is worth extending, never fetched at request time.
+
 ## Trade Search API (for context — not used)
 
 GGG's live trade-search endpoints (`pathofexile.com/api/trade/...`) carry documented, stricter per-IP rate limits (e.g., ~5 requests/12s for search, ~5/17s for exchange search), and the interactive trade *site* increasingly requires authentication. We deliberately do not depend on these — the CDN-hosted `currency-exchange` river above and the public `leagues` endpoint cover everything the product needs without touching this more fragile, rate-limited surface.

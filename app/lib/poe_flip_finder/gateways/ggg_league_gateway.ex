@@ -49,9 +49,23 @@ defmodule PoeFlipFinder.Gateways.GggLeagueGateway do
       # Not yet cross-checked against ingested market data
       # (docs/ARCHITECTURE.md § League Resolution step 3) -- wired in once
       # the ingestion service exists (Phase 3/4 of the migration).
-      has_exchange_activity: false
+      has_exchange_activity: false,
+      start_at: parse_start_at(raw["startAt"])
     }
   end
+
+  # A malformed/missing startAt is treated the same as "unknown" (nil)
+  # rather than a hard failure -- docs/PRD.md § 7.14 already requires
+  # callers to handle nil explicitly, and one league's bad timestamp
+  # shouldn't fail the whole league-list sync.
+  defp parse_start_at(iso8601) when is_binary(iso8601) do
+    case DateTime.from_iso8601(iso8601) do
+      {:ok, datetime, _offset} -> datetime
+      {:error, _reason} -> nil
+    end
+  end
+
+  defp parse_start_at(_missing), do: nil
 
   # GGG flags every ruleset variant of the active challenge (softcore,
   # Hardcore, Ruthless, ...) with the same category.current=true, so that

@@ -73,6 +73,17 @@ defmodule PoeFlipFinder.Gateways.GggLeagueGatewayTest do
     assert Enum.all?(leagues, &(&1.has_exchange_activity == false))
   end
 
+  test "parses startAt into a real DateTime, per docs/PRD.md § 7.14's day-of-league need", %{
+    bypass: bypass
+  } do
+    expect_leagues_fixture(bypass)
+
+    {:ok, leagues} = GggLeagueGateway.fetch_leagues()
+
+    assert find_by_external_id(leagues, "Allflame").start_at ==
+             ~U[2026-07-24 20:00:00Z]
+  end
+
   test "an unexpected HTTP status is a reported error", %{bypass: bypass} do
     Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
       Plug.Conn.resp(conn, 500, "internal error")

@@ -1,0 +1,41 @@
+[
+  {
+    "currencyName": "Exalted Orb",
+    "leagueObservations": [
+      { "league": "Necropolis", "day0Chaos": 3.0, "day1Chaos": 9.0, "day2Chaos": 10.74 },
+      { "league": "Affliction", "day0Chaos": 4.0, "day1Chaos": 5.0, "day2Chaos": 9.0 }
+    ]
+  },
+  {
+    "currencyName": "Orb of Annulment",
+    "leagueObservations": [
+      { "league": "Necropolis", "day0Chaos": 3.0, "day1Chaos": 4.0, "day2Chaos": 7.0 },
+      { "league": "Affliction", "day0Chaos": 2.7, "day1Chaos": 5.0, "day2Chaos": 10.0 },
+      { "league": "Ancestor", "day0Chaos": 8.8, "day1Chaos": 6.0, "day2Chaos": 10.0 }
+    ]
+  },
+  {
+    "currencyName": "Orb of Unmaking",
+    "leagueObservations": [
+      { "league": "Necropolis", "day0Chaos": 0.5, "day1Chaos": 0.5, "day2Chaos": 1.0 },
+      { "league": "Affliction", "day0Chaos": 0.8, "day1Chaos": 1.0, "day2Chaos": 1.03 },
+      { "league": "Ancestor", "day0Chaos": 1.0, "day1Chaos": 1.0, "day2Chaos": 1.3 }
+    ]
+  },
+  {
+    "currencyName": "Chromatic Orb",
+    "leagueObservations": [
+      { "league": "Necropolis", "day0Chaos": 0.09, "day1Chaos": 0.17, "day2Chaos": 0.17 },
+      { "league": "Affliction", "day0Chaos": 0.11, "day1Chaos": 0.14, "day2Chaos": 0.15 },
+      { "league": "Ancestor", "day0Chaos": 0.15, "day1Chaos": 0.15, "day2Chaos": 0.17 }
+    ]
+  },
+  {
+    "currencyName": "Awakener's Orb",
+    "leagueObservations": [
+      { "league": "Necropolis", "day0Chaos": 61.6, "day1Chaos": 97.2, "day2Chaos": 137.0 },
+      { "league": "Ancestor", "day0Chaos": 70.6, "day1Chaos": 84.0, "day2Chaos": 141.5 },
+      { "league": "Affliction", "day0Chaos": 81.0, "day1Chaos": 69.0, "day2Chaos": 87.3 }
+    ]
+  }
+]

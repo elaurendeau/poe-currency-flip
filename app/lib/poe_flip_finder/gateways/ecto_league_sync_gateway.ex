@@ -21,7 +21,8 @@ defmodule PoeFlipFinder.Gateways.EctoLeagueSyncGateway do
     |> Ecto.Changeset.change(
       display_name: league.display_name,
       is_current: league.is_current,
-      known_to_ggg: true
+      known_to_ggg: true,
+      start_at: league.start_at
     )
     |> Repo.insert_or_update!()
     |> to_entity()
@@ -33,7 +34,8 @@ defmodule PoeFlipFinder.Gateways.EctoLeagueSyncGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       is_current: schema.is_current,
-      has_exchange_activity: schema.has_exchange_activity
+      has_exchange_activity: schema.has_exchange_activity,
+      start_at: schema.start_at
     }
   end
 end
