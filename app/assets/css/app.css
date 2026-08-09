@@ -871,9 +871,10 @@ body {
   color: var(--text-dim);
 }
 
-.league-day-badge {
+.league-elapsed-badge {
   font-size: 12px;
   color: var(--text-dim);
+  margin-bottom: 2px;
 }
 
 .historical-candidates {

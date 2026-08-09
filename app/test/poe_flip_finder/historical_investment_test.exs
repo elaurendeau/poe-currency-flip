@@ -116,6 +116,36 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
     }
   end
 
+  describe "current_league_elapsed/1" do
+    test "splits real elapsed time into days and the hour-of-day remainder" do
+      StubClock.stub(~U[2026-08-09 14:00:00Z])
+
+      league = %League{
+        external_id: "Necropolis",
+        display_name: "Necropolis",
+        is_current: true,
+        has_exchange_activity: true,
+        start_at: ~U[2026-08-07 12:00:00Z]
+      }
+
+      # 2 days and 2 hours have really elapsed (Aug 7 12:00 -> Aug 9 14:00).
+      assert HistoricalInvestment.current_league_elapsed(league) ==
+               {:ok, %{days: 2, hours_into_day: 2}}
+    end
+
+    test "is :unknown when start_at was never captured" do
+      league = %League{
+        external_id: "Necropolis",
+        display_name: "Necropolis",
+        is_current: true,
+        has_exchange_activity: true,
+        start_at: nil
+      }
+
+      assert HistoricalInvestment.current_league_elapsed(league) == :unknown
+    end
+  end
+
   describe "current_league_day/1" do
     test "computes the real elapsed day count from start_at" do
       StubClock.stub(~U[2026-08-09 12:00:00Z])

@@ -59,7 +59,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       # investment_amount changes via load_historical_candidates/1.
       |> assign(:investment_amount, 40.0)
       |> assign(:historical_candidates, :no_league_selected)
-      |> assign(:league_day, :unknown)
+      |> assign(:league_elapsed, :unknown)
       |> assign(:enabled_techniques, %{
         vendor_recipe: true,
         exchange_spread: true,
@@ -495,7 +495,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   defp load_historical_candidates(socket) do
     case socket.assigns.selected_league do
       nil ->
-        assign(socket, historical_candidates: :no_league_selected, league_day: :unknown)
+        assign(socket, historical_candidates: :no_league_selected, league_elapsed: :unknown)
 
       league ->
         candidates =
@@ -503,7 +503,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
         assign(socket,
           historical_candidates: candidates,
-          league_day: HistoricalInvestment.current_league_day(league)
+          league_elapsed: HistoricalInvestment.current_league_elapsed(league)
         )
     end
   end

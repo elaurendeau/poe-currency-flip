@@ -46,17 +46,33 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   @spec list_patterns() :: [HistoricalPricePattern.t()]
   def list_patterns, do: historical_pattern_reference_gateway().find_all()
 
-  @doc """
-  How many days into `league` we are right now, per its real GGG `startAt`
-  (docs/PRD.md § 7.14's known prerequisite, now wired up). `:unknown` for
-  a league whose start time was never captured -- never a guessed day.
-  """
-  @spec current_league_day(League.t()) :: {:ok, non_neg_integer()} | :unknown
-  def current_league_day(%League{start_at: nil}), do: :unknown
+  @type elapsed :: %{days: non_neg_integer(), hours_into_day: non_neg_integer()}
 
-  def current_league_day(%League{start_at: start_at}) do
-    day = DateTime.diff(clock().now(), start_at, :day)
-    if day < 0, do: :unknown, else: {:ok, day}
+  @doc """
+  How far into `league` we are right now, per its real GGG `startAt`
+  (docs/PRD.md § 7.14's known prerequisite, now wired up) -- both the day
+  index (what ranking evidence keys off) and the hour-of-day remainder
+  (for the "Day 2, 14h in" display, docs/PRD.md § 7.14). `:unknown` for a
+  league whose start time was never captured -- never a guessed value.
+  """
+  @spec current_league_elapsed(League.t()) :: {:ok, elapsed()} | :unknown
+  def current_league_elapsed(%League{start_at: nil}), do: :unknown
+
+  def current_league_elapsed(%League{start_at: start_at}) do
+    total_hours = DateTime.diff(clock().now(), start_at, :hour)
+
+    if total_hours < 0,
+      do: :unknown,
+      else: {:ok, %{days: div(total_hours, 24), hours_into_day: rem(total_hours, 24)}}
+  end
+
+  @doc "Just the day index from current_league_elapsed/1 -- what ranking evidence keys off."
+  @spec current_league_day(League.t()) :: {:ok, non_neg_integer()} | :unknown
+  def current_league_day(%League{} = league) do
+    case current_league_elapsed(league) do
+      {:ok, %{days: days}} -> {:ok, days}
+      :unknown -> :unknown
+    end
   end
 
   @doc """

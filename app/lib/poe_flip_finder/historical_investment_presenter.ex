@@ -39,8 +39,10 @@ defmodule PoeFlipFinder.HistoricalInvestmentPresenter do
   def format_live_price(:no_live_market), do: "no live market for this category"
   def format_live_price(:not_traded_this_refresh), do: "not traded this refresh"
 
-  @doc "'Day 2', or the unknown-start fallback -- never a guessed day."
-  @spec format_day_badge({:ok, non_neg_integer()} | :unknown) :: String.t()
-  def format_day_badge({:ok, day}), do: "Day #{day}"
-  def format_day_badge(:unknown), do: "league start time unknown"
+  @doc "'Day 2, 14h in', or the unknown-start fallback -- never a guessed value."
+  @spec format_elapsed_badge({:ok, HistoricalInvestment.elapsed()} | :unknown) :: String.t()
+  def format_elapsed_badge({:ok, %{days: days, hours_into_day: hours}}),
+    do: "Day #{days}, #{hours}h in"
+
+  def format_elapsed_badge(:unknown), do: "league start time unknown"
 end

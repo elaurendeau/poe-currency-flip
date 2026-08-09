@@ -130,7 +130,7 @@
     ]
   },
   {
-    "currencyName": "Large Cluster Jewel: 12% increased Fire Damage",
+    "currencyName": "Medium Cluster Jewel (8 passives, Lv50): 12% increased Fire Damage",
     "category": "cluster_jewels",
     "leagueObservations": [
       { "league": "Necropolis", "days": [{"day":0,"chaos":2.2},{"day":1,"chaos":10},{"day":2,"chaos":30},{"day":3,"chaos":42.95},{"day":4,"chaos":49.75}] },
@@ -140,7 +140,7 @@
     ]
   },
   {
-    "currencyName": "Cluster Jewel: Minions deal 10% increased Damage",
+    "currencyName": "Large Cluster Jewel (12 passives, Lv84): Minions deal 10% increased Damage",
     "category": "cluster_jewels",
     "leagueObservations": [
       { "league": "Necropolis", "days": [{"day":0,"chaos":735.44},{"day":1,"chaos":487.69},{"day":2,"chaos":677.04},{"day":3,"chaos":708.27},{"day":4,"chaos":837.55}] },

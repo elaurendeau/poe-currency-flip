@@ -148,10 +148,16 @@
               </span>
             </div>
 
+            <div :if={@selected_league} class="league-elapsed-badge">
+              {@selected_league.display_name} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_elapsed_badge(
+                @league_elapsed
+              )}
+            </div>
+
             <%= case @historical_candidates do %>
               <% :unknown_league_start -> %>
                 <p class="flip-table-message">
-                  League start time unknown for {@selected_league.display_name} — refresh leagues to try again.
+                  Refresh leagues to try capturing a start time for {@selected_league.display_name}.
                 </p>
               <% :no_league_selected -> %>
                 <p class="flip-table-message">Select a league to get started.</p>
@@ -160,11 +166,6 @@
                   No historical pattern has real evidence for this point in the league yet.
                 </p>
               <% {:ok, candidates} -> %>
-                <div class="league-day-badge">
-                  {@selected_league.display_name} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_day_badge(
-                    @league_day
-                  )}
-                </div>
                 <div class="historical-candidates">
                   <div :for={candidate <- candidates} class="historical-candidate">
                     <div class="candidate-head">

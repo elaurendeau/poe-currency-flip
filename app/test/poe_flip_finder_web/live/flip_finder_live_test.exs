@@ -629,7 +629,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     html = view |> element("button.tab-button", "Historical Investment") |> render_click()
 
-    assert html =~ "League start time unknown"
+    assert html =~ "league start time unknown"
   end
 
   test "toggle_technique hides and reshows matching rows without affecting other techniques", %{
