@@ -46,21 +46,22 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     assert result.icon_url == nil
   end
 
-  test "falls back to a generic :misc entry, not nil, for an item not in the catalog" do
+  test "falls back to a generic :currency entry, not nil, for an uncataloged item under the Currency path" do
     catalog = GggItemIconGateway.normalize(fixture())
 
     # Verified real example (docs/DATA_SOURCES.md § Item Icons): this item
     # genuinely has no catalog entry in any group. A real market entry
     # must never be dropped just because this decorative catalog has
     # nothing for it -- see GggItemIconGateway's moduledoc "This module
-    # never returns nil for a real market entry".
+    # never returns nil for a real market entry". Its path still marks it
+    # as generic currency, which is a more useful category than :misc.
     result =
       GggItemIconGateway.lookup_item(
         "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral",
         catalog
       )
 
-    assert result.category == :misc
+    assert result.category == :currency
     assert result.display_name == "Breach Upgrade Unique General"
     assert result.icon_url == nil
     assert result.external_id == "Metadata/Items/Currency/CurrencyBreachUpgradeUniqueGeneral"
@@ -98,13 +99,88 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGatewayTest do
     # The fixture's "Misc" group has a 3-character basename ("Tal") that
     # this real path's basename ends in -- proves the minimum suffix
     # length actually suppresses a match that would otherwise succeed
-    # (which would fall through to the generic :misc fallback, not this
-    # more-specific would-be match), not just that unrelated items land
-    # in the fallback too.
+    # (which would fall through to the generic Currency-path fallback,
+    # not this more-specific would-be match), not just that unrelated
+    # items land in the fallback too.
     result = GggItemIconGateway.lookup_item("Metadata/Items/Currency/CurrencyFooBarTal", catalog)
 
-    assert result.category == :misc
+    assert result.category == :currency
     assert result.display_name == "Foo Bar Tal"
+  end
+
+  test "falls back to a true :misc entry only for a path matching none of the known markers" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Not under Currency/Scarabs/MapFragments, and contains none of
+    # Delve/Heist/Essence -- e.g. the real Metadata/Items/AtlasExiles/*
+    # family (docs/DATA_SOURCES.md § Item Icons), which this catalog has
+    # never covered under any name.
+    result = GggItemIconGateway.lookup_item("Metadata/Items/AtlasExiles/ApplyInfluence", catalog)
+
+    assert result.category == :misc
+    assert result.display_name == "Apply Influence"
+  end
+
+  test "classifies an uncataloged Scarab by its path, not the generic Currency fallback" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-09 -- docs/DATA_SOURCES.md § Item Icons: this catalog turns
+    # out not to cover Scarabs at all, under any name.
+    result = GggItemIconGateway.lookup_item("Metadata/Items/Scarabs/ScarabRitual2", catalog)
+
+    assert result.category == :fragments
+    assert result.display_name == "Scarab Ritual2"
+  end
+
+  test "classifies an uncataloged Map Fragment as :fragments" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-09.
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/MapFragments/CurrencySirusFragment1",
+        catalog
+      )
+
+    assert result.category == :fragments
+  end
+
+  test "classifies an uncataloged Delve currency as :delve" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-09.
+    result =
+      GggItemIconGateway.lookup_item(
+        "Metadata/Items/Currency/CurrencyDelveCraftingChaos",
+        catalog
+      )
+
+    assert result.category == :delve
+  end
+
+  test "classifies an uncataloged Heist currency as :heist" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-09.
+    result = GggItemIconGateway.lookup_item("Metadata/Items/Heist/HeistCoin", catalog)
+
+    assert result.category == :heist
+  end
+
+  test "classifies an uncataloged Essence tier as :essences rather than generic currency" do
+    catalog = GggItemIconGateway.normalize(fixture())
+
+    # Real example verified against a live hour of Currency Exchange data
+    # 2026-08-09: this specific tier isn't in the catalog even via
+    # suffix-match, unlike the "Screaming Essence of Hatred" case above.
+    result =
+      GggItemIconGateway.lookup_item("Metadata/Items/Currency/CurrencyEssenceAnger1", catalog)
+
+    assert result.category == :essences
   end
 
   test "resolves a Tattoo via its known naming pattern -- GGG's static catalog has no entry matching any real tattoo's basename at all (every one of ~90 distinct tattoos shares one generic catalog icon)" do

@@ -118,7 +118,35 @@ defmodule PoeFlipFinder.Gateways.GggItemIconGateway do
   # from ingestion the way both families above did before this existed.
   defp resolve_uncataloged_currency(external_id, basename) do
     lookup_by_known_naming_pattern(external_id, basename) ||
-      fallback_currency(external_id, basename, :misc)
+      fallback_currency(external_id, basename, category_from_path(external_id))
+  end
+
+  # This catalog turns out not to be an exhaustive item list at all --
+  # verified against a real live hour of Currency Exchange data
+  # 2026-08-09: roughly a third of every distinct item actually being
+  # traded (Scarabs, Map Fragments, Delve/Heist currency, and dozens of
+  # smaller one-off utility currencies) has no catalog entry whatsoever,
+  # under any name, current or historical. It's a curated set for the
+  # trade-site's own filter icons, not a registry of every tradeable item
+  # -- so past the three specific families above, the path/basename
+  # itself is the next-best signal for a real category (checked in this
+  # order so a more specific match always wins over the broad `/Currency/`
+  # catch-all), landing on :misc only for the residual that matches none
+  # of these -- e.g. Metadata/Items/AtlasExiles/*, a genuinely different
+  # top-level item family this catalog has never covered.
+  @category_by_marker [
+    {"/Scarabs/", :fragments},
+    {"/MapFragments/", :fragments},
+    {"Delve", :delve},
+    {"Heist", :heist},
+    {"Essence", :essences},
+    {"/Currency/", :currency}
+  ]
+
+  defp category_from_path(external_id) do
+    Enum.find_value(@category_by_marker, :misc, fn {marker, category} ->
+      String.contains?(external_id, marker) && category
+    end)
   end
 
   defp fallback_currency(external_id, basename, category) do
