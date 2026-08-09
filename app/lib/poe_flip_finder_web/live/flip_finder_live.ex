@@ -60,6 +60,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:investment_amount, 40.0)
       |> assign(:historical_candidates, :no_league_selected)
       |> assign(:league_elapsed, :unknown)
+      |> assign(:max_sampled_day, HistoricalInvestment.max_sampled_day())
       |> assign(:enabled_techniques, %{
         vendor_recipe: true,
         exchange_spread: true,

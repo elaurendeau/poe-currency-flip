@@ -148,5 +148,326 @@
       { "league": "Ancestor", "days": [{"day":1,"chaos":122.4},{"day":2,"chaos":375.31},{"day":3,"chaos":428.03},{"day":4,"chaos":597.12}] },
       { "league": "Crucible", "days": [{"day":1,"chaos":252.06},{"day":2,"chaos":297.06},{"day":3,"chaos":387.06},{"day":4,"chaos":512.92}] }
     ]
+  },
+  {
+    "currencyName": "Mirror of Kalandra",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":38500},{"day":1,"chaos":16500},{"day":2,"chaos":29400},{"day":3,"chaos":35750},{"day":4,"chaos":36315}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":19250},{"day":1,"chaos":9270},{"day":2,"chaos":18480},{"day":3,"chaos":25993},{"day":4,"chaos":28600}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":25772.5},{"day":1,"chaos":12480},{"day":2,"chaos":17148},{"day":3,"chaos":23393},{"day":4,"chaos":28967}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":22176},{"day":2,"chaos":8000},{"day":3,"chaos":10880},{"day":4,"chaos":12880}] }
+    ]
+  },
+  {
+    "currencyName": "Hinekora's Lock",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":2249.55},{"day":1,"chaos":760},{"day":2,"chaos":1342.6},{"day":3,"chaos":1620},{"day":4,"chaos":2520}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":780},{"day":1,"chaos":618},{"day":2,"chaos":1344},{"day":3,"chaos":2203.17},{"day":4,"chaos":1278}] },
+      { "league": "Ancestor", "days": [{"day":2,"chaos":3625},{"day":3,"chaos":10281},{"day":4,"chaos":10547.45}] }
+    ]
+  },
+  {
+    "currencyName": "Divine Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":38},{"day":1,"chaos":108},{"day":2,"chaos":137},{"day":3,"chaos":143},{"day":4,"chaos":141.9}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":39.5},{"day":1,"chaos":103},{"day":2,"chaos":130},{"day":3,"chaos":138},{"day":4,"chaos":144}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":19.4},{"day":1,"chaos":108},{"day":2,"chaos":141.5},{"day":3,"chaos":150},{"day":4,"chaos":164}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":35},{"day":1,"chaos":84},{"day":2,"chaos":100},{"day":3,"chaos":130},{"day":4,"chaos":137}] }
+    ]
+  },
+  {
+    "currencyName": "Ancient Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":5.3},{"day":1,"chaos":2},{"day":2,"chaos":2},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":9.1},{"day":1,"chaos":2},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1.2},{"day":1,"chaos":2},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":7},{"day":1,"chaos":3},{"day":2,"chaos":2.5},{"day":3,"chaos":3},{"day":4,"chaos":3}] }
+    ]
+  },
+  {
+    "currencyName": "Harbinger's Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1.93},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":1.9}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1.2},{"day":1,"chaos":2},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":2.9},{"day":1,"chaos":2},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":3},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] }
+    ]
+  },
+  {
+    "currencyName": "Vaal Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.49},{"day":2,"chaos":0.48},{"day":3,"chaos":0.48},{"day":4,"chaos":0.48}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.74},{"day":2,"chaos":0.65},{"day":3,"chaos":0.62},{"day":4,"chaos":0.61}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.65},{"day":2,"chaos":0.57},{"day":3,"chaos":0.5},{"day":4,"chaos":0.47}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.33},{"day":2,"chaos":0.67},{"day":3,"chaos":0.6},{"day":4,"chaos":0.5}] }
+    ]
+  },
+  {
+    "currencyName": "Regal Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.5},{"day":2,"chaos":0.5},{"day":3,"chaos":0.5},{"day":4,"chaos":0.5}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.8},{"day":2,"chaos":0.75},{"day":3,"chaos":0.75},{"day":4,"chaos":0.75}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.7},{"day":2,"chaos":0.7},{"day":3,"chaos":0.67},{"day":4,"chaos":0.66}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.8},{"day":2,"chaos":0.8},{"day":3,"chaos":0.77},{"day":4,"chaos":0.75}] }
+    ]
+  },
+  {
+    "currencyName": "Blessed Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.5},{"day":2,"chaos":0.75},{"day":3,"chaos":0.7},{"day":4,"chaos":0.63}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.5},{"day":2,"chaos":0.75},{"day":3,"chaos":0.75},{"day":4,"chaos":0.7}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.5},{"day":2,"chaos":0.67},{"day":3,"chaos":0.75},{"day":4,"chaos":0.75}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.36},{"day":2,"chaos":0.67},{"day":3,"chaos":0.74},{"day":4,"chaos":0.71}] }
+    ]
+  },
+  {
+    "currencyName": "Orb of Horizons",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.29},{"day":2,"chaos":0.28},{"day":3,"chaos":0.28},{"day":4,"chaos":0.29}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":2},{"day":1,"chaos":0.37},{"day":2,"chaos":0.33},{"day":3,"chaos":0.33},{"day":4,"chaos":0.33}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":2},{"day":1,"chaos":0.36},{"day":2,"chaos":0.31},{"day":3,"chaos":0.29},{"day":4,"chaos":0.28}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.67},{"day":2,"chaos":0.36},{"day":3,"chaos":0.32},{"day":4,"chaos":0.29}] }
+    ]
+  },
+  {
+    "currencyName": "Orb of Binding",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.13},{"day":2,"chaos":0.13},{"day":3,"chaos":0.13},{"day":4,"chaos":0.13}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.17},{"day":2,"chaos":0.14},{"day":3,"chaos":0.13},{"day":4,"chaos":0.13}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.14},{"day":2,"chaos":0.14},{"day":3,"chaos":0.14},{"day":4,"chaos":0.13}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":0.2},{"day":2,"chaos":0.17},{"day":3,"chaos":0.15},{"day":4,"chaos":0.14}] }
+    ]
+  },
+  {
+    "currencyName": "Sacred Orb",
+    "category": "currency",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":4.15},{"day":1,"chaos":5},{"day":2,"chaos":8},{"day":3,"chaos":9},{"day":4,"chaos":14}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":8.2},{"day":1,"chaos":5},{"day":2,"chaos":5},{"day":3,"chaos":8},{"day":4,"chaos":9}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":12},{"day":1,"chaos":5},{"day":2,"chaos":9},{"day":3,"chaos":12},{"day":4,"chaos":12}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":10},{"day":1,"chaos":4},{"day":2,"chaos":4},{"day":3,"chaos":8},{"day":4,"chaos":10}] }
+    ]
+  },
+  {
+    "currencyName": "Abandoned Wealth",
+    "category": "cards",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":2.4},{"day":1,"chaos":3},{"day":2,"chaos":3},{"day":3,"chaos":5},{"day":4,"chaos":5}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":2},{"day":1,"chaos":2},{"day":2,"chaos":3},{"day":3,"chaos":4},{"day":4,"chaos":4}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":2},{"day":1,"chaos":3},{"day":2,"chaos":4},{"day":3,"chaos":5},{"day":4,"chaos":5}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":4},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":5}] }
+    ]
+  },
+  {
+    "currencyName": "Chaotic Disposition",
+    "category": "cards",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":4},{"day":1,"chaos":3.6},{"day":2,"chaos":5},{"day":3,"chaos":5},{"day":4,"chaos":5}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1.4},{"day":1,"chaos":2},{"day":2,"chaos":3.9},{"day":3,"chaos":5},{"day":4,"chaos":4}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":3},{"day":1,"chaos":3.6},{"day":2,"chaos":5},{"day":3,"chaos":5},{"day":4,"chaos":5}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":2.4},{"day":2,"chaos":3},{"day":3,"chaos":5},{"day":4,"chaos":5}] }
+    ]
+  },
+  {
+    "currencyName": "Coveted Possession",
+    "category": "cards",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2.2}] },
+      { "league": "Crucible", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":2},{"day":4,"chaos":2}] }
+    ]
+  },
+  {
+    "currencyName": "The Hoarder",
+    "category": "cards",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] }
+    ]
+  },
+  {
+    "currencyName": "Deafening Essence of Anger",
+    "category": "essences",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":7},{"day":1,"chaos":6},{"day":2,"chaos":4},{"day":3,"chaos":4},{"day":4,"chaos":3.99}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":8},{"day":1,"chaos":6.5},{"day":2,"chaos":6},{"day":3,"chaos":6},{"day":4,"chaos":6}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":7},{"day":1,"chaos":5},{"day":2,"chaos":4},{"day":3,"chaos":4},{"day":4,"chaos":4}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":4},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":2.5}] }
+    ]
+  },
+  {
+    "currencyName": "Deafening Essence of Fear",
+    "category": "essences",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":7.98},{"day":1,"chaos":6.82},{"day":2,"chaos":5.54},{"day":3,"chaos":4.92},{"day":4,"chaos":4.5}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":4},{"day":1,"chaos":3.33},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":4},{"day":1,"chaos":2.5},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":3},{"day":2,"chaos":2},{"day":3,"chaos":1.5},{"day":4,"chaos":1.5}] }
+    ]
+  },
+  {
+    "currencyName": "Deafening Essence of Hatred",
+    "category": "essences",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":6.89},{"day":1,"chaos":6},{"day":2,"chaos":4},{"day":3,"chaos":4},{"day":4,"chaos":3.89}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":8},{"day":1,"chaos":6.64},{"day":2,"chaos":6},{"day":3,"chaos":6},{"day":4,"chaos":6}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":7.84},{"day":1,"chaos":5.67},{"day":2,"chaos":5},{"day":3,"chaos":4},{"day":4,"chaos":4}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":4.5},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] }
+    ]
+  },
+  {
+    "currencyName": "Deafening Essence of Loathing",
+    "category": "essences",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":13},{"day":1,"chaos":11.98},{"day":2,"chaos":9.88},{"day":3,"chaos":9},{"day":4,"chaos":8.5}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":4.5},{"day":1,"chaos":4.5},{"day":2,"chaos":3.89},{"day":3,"chaos":4},{"day":4,"chaos":4.8}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":5},{"day":1,"chaos":4},{"day":2,"chaos":4},{"day":3,"chaos":4},{"day":4,"chaos":4.7}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":5},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] }
+    ]
+  },
+  {
+    "currencyName": "Deafening Essence of Woe",
+    "category": "essences",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":5},{"day":1,"chaos":5},{"day":2,"chaos":4},{"day":3,"chaos":4},{"day":4,"chaos":4}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":3.1},{"day":1,"chaos":2.5},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Ancestor", "days": [{"day":0,"chaos":4},{"day":1,"chaos":3},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":3},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] }
+    ]
+  },
+  {
+    "currencyName": "Craicic Maw",
+    "category": "beasts",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":1,"chaos":15},{"day":2,"chaos":9},{"day":3,"chaos":7.4},{"day":4,"chaos":6}] },
+      { "league": "Affliction", "days": [{"day":5,"chaos":9.9},{"day":6,"chaos":10},{"day":7,"chaos":8},{"day":8,"chaos":7.6}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":20},{"day":2,"chaos":18},{"day":3,"chaos":11.2},{"day":4,"chaos":9}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":5},{"day":2,"chaos":4.4},{"day":3,"chaos":10.8},{"day":4,"chaos":8}] }
+    ]
+  },
+  {
+    "currencyName": "Craicic Sand Spitter",
+    "category": "beasts",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":20},{"day":1,"chaos":54.99},{"day":2,"chaos":40},{"day":3,"chaos":20},{"day":4,"chaos":23}] },
+      { "league": "Affliction", "days": [{"day":5,"chaos":3.7},{"day":6,"chaos":2},{"day":7,"chaos":2},{"day":8,"chaos":2}] },
+      { "league": "Crucible", "days": [{"day":3,"chaos":8},{"day":4,"chaos":3.4},{"day":5,"chaos":3},{"day":6,"chaos":3}] }
+    ]
+  },
+  {
+    "currencyName": "Craicic Savage Crab",
+    "category": "beasts",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":2.3},{"day":1,"chaos":3.5},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Affliction", "days": [{"day":5,"chaos":2.6},{"day":6,"chaos":2},{"day":7,"chaos":2},{"day":8,"chaos":2}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":4.2},{"day":2,"chaos":2},{"day":3,"chaos":2},{"day":4,"chaos":2}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":5},{"day":2,"chaos":3},{"day":3,"chaos":2},{"day":4,"chaos":2}] }
+    ]
+  },
+  {
+    "currencyName": "Omen of Fortune",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1093.95},{"day":1,"chaos":1066.4},{"day":2,"chaos":2321.8},{"day":3,"chaos":2263.36},{"day":4,"chaos":2100.75}] },
+      { "league": "Affliction", "days": [{"day":2,"chaos":1034.8},{"day":3,"chaos":1950.3},{"day":4,"chaos":1529.33},{"day":5,"chaos":1300.14}] }
+    ]
+  },
+  {
+    "currencyName": "Tattoo of the Hinekora Deathwarden",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":2}] }
+    ]
+  },
+  {
+    "currencyName": "Tattoo of the Hinekora Shaman",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] }
+    ]
+  },
+  {
+    "currencyName": "Tattoo of the Hinekora Storyteller",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":4},{"day":1,"chaos":4},{"day":2,"chaos":8.2},{"day":3,"chaos":12.9},{"day":4,"chaos":20}] }
+    ]
+  },
+  {
+    "currencyName": "Tattoo of the Hinekora Warmonger",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":3},{"day":2,"chaos":4},{"day":3,"chaos":5},{"day":4,"chaos":5}] }
+    ]
+  },
+  {
+    "currencyName": "Tattoo of the Hinekora Warrior",
+    "category": "ancestor",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":1},{"day":1,"chaos":1},{"day":2,"chaos":1},{"day":3,"chaos":1},{"day":4,"chaos":1}] }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (8 passives, Lv84): 10% increased Elemental Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":56},{"day":1,"chaos":15.8},{"day":2,"chaos":15},{"day":3,"chaos":20},{"day":4,"chaos":25}] },
+      { "league": "Affliction", "days": [{"day":1,"chaos":20},{"day":2,"chaos":10},{"day":3,"chaos":9},{"day":4,"chaos":9}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":10},{"day":2,"chaos":12.8},{"day":3,"chaos":10},{"day":4,"chaos":10}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":68},{"day":2,"chaos":18.4},{"day":3,"chaos":10},{"day":4,"chaos":10}] }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (8 passives, Lv75): 10% increased Elemental Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":3},{"day":1,"chaos":5},{"day":2,"chaos":10},{"day":3,"chaos":23.85},{"day":4,"chaos":20}] },
+      { "league": "Affliction", "days": [{"day":1,"chaos":2},{"day":2,"chaos":3.2},{"day":3,"chaos":5},{"day":4,"chaos":7}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":4},{"day":2,"chaos":4},{"day":3,"chaos":5},{"day":4,"chaos":5.6}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":3},{"day":2,"chaos":5},{"day":3,"chaos":5},{"day":4,"chaos":8}] }
+    ]
+  },
+  {
+    "currencyName": "Golden Oil",
+    "category": "oils",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":24.05},{"day":1,"chaos":28},{"day":2,"chaos":35},{"day":3,"chaos":39},{"day":4,"chaos":46.65}] },
+      { "league": "Affliction", "days": [{"day":1,"chaos":21},{"day":2,"chaos":30},{"day":3,"chaos":43.16},{"day":4,"chaos":46.04}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":20},{"day":2,"chaos":29},{"day":3,"chaos":33},{"day":4,"chaos":43}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":29.4},{"day":2,"chaos":33},{"day":3,"chaos":46},{"day":4,"chaos":54}] }
+    ]
+  },
+  {
+    "currencyName": "Silver Oil",
+    "category": "oils",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":15},{"day":1,"chaos":20},{"day":2,"chaos":28},{"day":3,"chaos":29},{"day":4,"chaos":32}] },
+      { "league": "Affliction", "days": [{"day":1,"chaos":13},{"day":2,"chaos":17.6},{"day":3,"chaos":23.9},{"day":4,"chaos":27.81}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":13.04},{"day":2,"chaos":18},{"day":3,"chaos":23},{"day":4,"chaos":24}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":15},{"day":2,"chaos":17},{"day":3,"chaos":17},{"day":4,"chaos":19}] }
+    ]
+  },
+  {
+    "currencyName": "Black Oil",
+    "category": "oils",
+    "leagueObservations": [
+      { "league": "Necropolis", "days": [{"day":0,"chaos":3},{"day":1,"chaos":3},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3}] },
+      { "league": "Affliction", "days": [{"day":0,"chaos":3},{"day":1,"chaos":2.87},{"day":2,"chaos":3},{"day":3,"chaos":3},{"day":4,"chaos":3.5}] },
+      { "league": "Ancestor", "days": [{"day":1,"chaos":2.55},{"day":2,"chaos":2.75},{"day":3,"chaos":2.67},{"day":4,"chaos":2.7}] },
+      { "league": "Crucible", "days": [{"day":1,"chaos":3},{"day":2,"chaos":3},{"day":3,"chaos":2.5},{"day":4,"chaos":2.2}] }
+    ]
   }
 ]

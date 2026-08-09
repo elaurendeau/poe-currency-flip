@@ -116,6 +116,25 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
     }
   end
 
+  describe "max_sampled_day/0" do
+    test "is the deepest real day across every league observation, not just the first pattern" do
+      StubHistoricalPatternReferenceGateway.stub([
+        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])]),
+        pattern("Farrul, First of the Plains", :beasts, [
+          observation("Affliction", [{5, 68.8}, {6, 65}, {9, 39}])
+        ])
+      ])
+
+      assert HistoricalInvestment.max_sampled_day() == 9
+    end
+
+    test "is nil when there are no patterns at all" do
+      StubHistoricalPatternReferenceGateway.stub([])
+
+      assert HistoricalInvestment.max_sampled_day() == nil
+    end
+  end
+
   describe "current_league_elapsed/1" do
     test "splits real elapsed time into days and the hour-of-day remainder" do
       StubClock.stub(~U[2026-08-09 14:00:00Z])
@@ -323,6 +342,39 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
     test "is :not_traded_this_refresh for a live-capable category with no matching snapshot" do
       StubClock.stub(~U[2026-08-09 00:00:00Z])
       league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
+      activate_generation!(1)
+
+      StubHistoricalPatternReferenceGateway.stub([
+        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
+      ])
+
+      {:ok, [candidate]} =
+        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+
+      assert candidate.live_price == :not_traded_this_refresh
+    end
+
+    test "a snapshot with a zero ratio is skipped, not a crash", %{} do
+      # Regression test: a real Allflame market snapshot with a zero ratio
+      # on one side crashed the whole LiveView process with an
+      # ArithmeticError (division by zero) during manual verification --
+      # real production data, not a hypothetical edge case.
+      StubClock.stub(~U[2026-08-09 00:00:00Z])
+      league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
+      chaos = insert_currency!(BaseCurrencyIds.chaos_external_id())
+      exalted = insert_currency!("exalted-path", "Exalted Orb")
+
+      insert_snapshot!(%{
+        generation_id: 1,
+        league_id: league_schema.id,
+        currency_a_id: chaos.id,
+        currency_b_id: exalted.id,
+        lowest_ratio_a: 1.0,
+        lowest_ratio_b: 0.0,
+        highest_ratio_a: 1.0,
+        highest_ratio_b: 3.0
+      })
+
       activate_generation!(1)
 
       StubHistoricalPatternReferenceGateway.stub([

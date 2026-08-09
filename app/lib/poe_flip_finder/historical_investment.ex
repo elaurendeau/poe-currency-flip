@@ -46,6 +46,24 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   @spec list_patterns() :: [HistoricalPricePattern.t()]
   def list_patterns, do: historical_pattern_reference_gateway().find_all()
 
+  @doc """
+  The deepest league-day any sampled league has a real price for, across
+  every curated pattern. This is an inherent scope boundary, not a
+  configurable setting: a league this many days old or older will never
+  find day/day+1 evidence, no matter how many candidates exist, since the
+  sample simply doesn't reach that far yet. Used to make that boundary
+  explicit in the UI rather than let it read as "nothing is worth buying."
+  `nil` only if the reference data is completely empty.
+  """
+  @spec max_sampled_day() :: non_neg_integer() | nil
+  def max_sampled_day do
+    list_patterns()
+    |> Enum.flat_map(& &1.league_observations)
+    |> Enum.flat_map(& &1.day_prices)
+    |> Enum.map(& &1.day)
+    |> Enum.max(fn -> nil end)
+  end
+
   @type elapsed :: %{days: non_neg_integer(), hours_into_day: non_neg_integer()}
 
   @doc """
@@ -205,6 +223,16 @@ defmodule PoeFlipFinder.HistoricalInvestment do
          rate
        ) do
     cond do
+      # A real market snapshot can carry a zero ratio on one side (thin/
+      # edge-case data, not a programmer error) -- dividing by it would
+      # crash the whole LiveView process on live production data, per the
+      # real ArithmeticError this raised against a genuine Allflame
+      # snapshot during manual verification. Treated as "no price
+      # available from this snapshot," same as no snapshot matching at
+      # all, not a fatal error.
+      target_lowest == 0 or target_highest == 0 ->
+        nil
+
       other_currency.external_id == BaseCurrencyIds.chaos_external_id() ->
         average(other_lowest / target_lowest, other_highest / target_highest)
 

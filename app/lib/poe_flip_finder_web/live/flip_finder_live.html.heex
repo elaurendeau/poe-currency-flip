@@ -163,7 +163,7 @@
                 <p class="flip-table-message">Select a league to get started.</p>
               <% {:ok, []} -> %>
                 <p class="flip-table-message">
-                  No historical pattern has real evidence for this point in the league yet.
+                  No sampled league has real evidence this many days into a league — the current sample only tracks the first {@max_sampled_day} days, so Historical Investment can't say anything useful this far in yet. This isn't a signal that nothing is worth buying, just a gap in the sample.
                 </p>
               <% {:ok, candidates} -> %>
                 <div class="historical-candidates">
