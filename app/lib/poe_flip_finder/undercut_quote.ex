@@ -21,14 +21,31 @@ defmodule PoeFlipFinder.UndercutQuote do
   genuine one-directional sell of the "via" currency into the base currency
   (used by Bulk Buy, which is dumping a currency it already holds, not
   round-tripping the same pair, per docs/PRD.md § 7.5). It must **not** be
-  confused with `suggested_sell_price`'s hourly extreme: that extreme is
-  chosen to be favorable for a same-pair round trip (buy this pair's cheap
-  extreme, sell back at its dear extreme -- the whole premise of Feature B),
-  which makes it the *optimistic* case for a one-directional seller, not the
-  conservative one. `market_sell_price` instead reuses the hour's *other*
-  real extreme -- the same one `suggested_buy_price` is undercut from --
-  floored with no further push, representing the worst of the two real
-  fills seen this hour from a seller's perspective.
+  confused with `suggested_sell_price`: that one targets a patient,
+  competitive round trip (buy this pair's cheap extreme, sell back at a
+  favorable rate -- the whole premise of Feature B), which makes it the
+  *optimistic* case for a one-directional seller, not the conservative one.
+  `market_sell_price` instead reuses the hour's *other* real extreme -- the
+  same one `suggested_buy_price` is undercut from -- floored with no
+  further push, representing the worst of the two real fills seen this hour
+  from a seller's perspective.
+
+  `suggested_sell_price` is derived from the hour's **volume-weighted
+  average rate** (`total via traded / total start traded`), not the raw
+  "other" extreme. A single thin/outlier fill (e.g. one trade at an
+  absurd 1:1 rate sitting alongside thousands of trades at the real
+  ~1:75 market rate) can make that raw extreme wildly unrepresentative --
+  verified against live GGG data 2026-08-08: Jeweller's Orb showed a raw
+  lowest/highest ratio pair of 1:75 and 1:1 against Chaos, which floored
+  the old "other extreme" sell reference to 2 (`suggested_sell_price`)
+  even though the real in-game competitive rate that hour was ~53-66:1.
+  The volume-weighted rate is immune to this because a 1-unit outlier fill
+  barely moves a total-volume ratio, while it can single-handedly become
+  one of only two raw extremes. This average is mathematically guaranteed
+  to fall between `lowest_ratio` and `highest_ratio` (a weighted mean of
+  per-trade rates using each trade's own `start`-side volume as its
+  weight), so it can never produce a `suggested_sell_price` that
+  contradicts `suggested_buy_price`'s direction.
   """
 
   @enforce_keys [:suggested_sell_price, :market_sell_price, :buy_leg_stock]
@@ -52,18 +69,28 @@ defmodule PoeFlipFinder.UndercutQuote do
   this checks divisors explicitly instead of dividing first and testing
   finiteness after.
   """
-  @spec resolve(number(), number(), number(), number(), number(), number()) :: t() | nil
+  @spec resolve(number(), number(), number(), number(), number(), number(), number(), number()) ::
+          t() | nil
   def resolve(
         lowest_ratio_start,
         lowest_ratio_via,
         highest_ratio_start,
         highest_ratio_via,
         lowest_stock_start,
-        highest_stock_start
+        highest_stock_start,
+        volume_traded_start,
+        volume_traded_via
       ) do
     with {:ok, price_at_lowest} <- safe_divide(lowest_ratio_via, lowest_ratio_start),
          {:ok, price_at_highest} <- safe_divide(highest_ratio_via, highest_ratio_start) do
-      build_quote(price_at_lowest, price_at_highest, lowest_stock_start, highest_stock_start)
+      build_quote(
+        price_at_lowest,
+        price_at_highest,
+        lowest_stock_start,
+        highest_stock_start,
+        volume_traded_start,
+        volume_traded_via
+      )
     else
       :error -> nil
     end
@@ -72,12 +99,22 @@ defmodule PoeFlipFinder.UndercutQuote do
   defp safe_divide(_numerator, denominator) when denominator == 0, do: :error
   defp safe_divide(numerator, denominator), do: {:ok, numerator / denominator}
 
-  defp build_quote(price_at_lowest, price_at_highest, lowest_stock_start, highest_stock_start) do
+  defp build_quote(
+         price_at_lowest,
+         price_at_highest,
+         lowest_stock_start,
+         highest_stock_start,
+         volume_traded_start,
+         volume_traded_via
+       ) do
     buy_at_highest_extreme? = price_at_highest >= price_at_lowest
     raw_buy_price = if buy_at_highest_extreme?, do: price_at_highest, else: price_at_lowest
 
-    raw_round_trip_sell_price =
+    other_extreme_price =
       if buy_at_highest_extreme?, do: price_at_lowest, else: price_at_highest
+
+    raw_round_trip_sell_price =
+      volume_weighted_price(volume_traded_start, volume_traded_via) || other_extreme_price
 
     floored_buy_price = Float.floor(raw_buy_price) - 1
     suggested_buy_price = if floored_buy_price >= 1, do: floored_buy_price, else: nil
@@ -92,4 +129,14 @@ defmodule PoeFlipFinder.UndercutQuote do
       buy_leg_stock: buy_leg_stock
     }
   end
+
+  # No real trading happened this hour (a zero-volume leg is dropped
+  # entirely one layer up, docs/PRD.md § 7.2) -- falls back to the raw
+  # extreme rather than dividing by zero.
+  defp volume_weighted_price(volume_traded_start, _volume_traded_via)
+       when volume_traded_start == 0,
+       do: nil
+
+  defp volume_weighted_price(volume_traded_start, volume_traded_via),
+    do: volume_traded_via / volume_traded_start
 end

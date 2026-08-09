@@ -34,9 +34,21 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGateway do
   @impl true
   def start_new_generation, do: System.system_time(:millisecond)
 
+  # Postgres caps a single query at 65,535 bind parameters. Each row here
+  # binds 15 columns, so a from-scratch ingestion catch-up spanning
+  # thousands of pairs can exceed that in one `insert_all` -- verified
+  # against a real production crash 2026-08-08 (~5,050-row generation,
+  # 75,750 params). 4000 rows/chunk (60,000 params) stays safely under the
+  # limit with headroom for column-count drift.
+  @max_rows_per_insert 4000
+
   @impl true
   def save_snapshots(snapshots) do
-    Repo.insert_all(Schema.ExchangeMarketSnapshot, Enum.map(snapshots, &to_schema_attrs/1))
+    snapshots
+    |> Enum.map(&to_schema_attrs/1)
+    |> Enum.chunk_every(@max_rows_per_insert)
+    |> Enum.each(&Repo.insert_all(Schema.ExchangeMarketSnapshot, &1))
+
     :ok
   end
 

@@ -105,6 +105,32 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotRepositoryGatewayTest do
     assert DateTime.compare(saved.snapshot_hour, real_shaped_hour) == :eq
   end
 
+  test "save_snapshots chunks a batch that would otherwise exceed Postgres's parameter limit" do
+    # Regression test for a real production crash 2026-08-08: a
+    # from-scratch ingestion catch-up produced ~5,050 snapshots in one
+    # generation, and inserting them in a single `insert_all` call hit
+    # Postgres's 65,535-bind-parameter ceiling (15 columns/row * 5,050 rows
+    # = 75,750). 5,000 rows here (75,000 params) reproduces that failure
+    # mode if chunking regresses. Each row needs a distinct currency_b --
+    # the schema's unique index is on
+    # (generation_id, league_id, currency_a_id, currency_b_id).
+    league = insert_league!("Standard")
+    chaos = insert_currency!("Chaos")
+
+    currency_bs =
+      Enum.map(1..5000, fn i ->
+        %{external_id: "Item#{i}", display_name: "Item#{i}", category: :currency}
+      end)
+
+    Repo.insert_all(Schema.Currency, currency_bs)
+    other_currencies = Repo.all(from c in Schema.Currency, where: c.id != ^chaos.id)
+
+    snapshots = Enum.map(other_currencies, &domain_snapshot(1, league, chaos, &1))
+
+    assert :ok = EctoSnapshotRepositoryGateway.save_snapshots(snapshots)
+    assert length(Repo.all(Schema.ExchangeMarketSnapshot)) == length(other_currencies)
+  end
+
   test "commit_generation activates the new generation and purges the superseded one" do
     league = insert_league!("Standard")
     chaos = insert_currency!("Chaos")

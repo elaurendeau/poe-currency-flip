@@ -238,7 +238,9 @@ defmodule PoeFlipFinder.DivinationCardOpportunityFinder do
       pick(base_is_a?, snapshot.highest_ratio_a, snapshot.highest_ratio_b),
       pick(base_is_a?, snapshot.highest_ratio_b, snapshot.highest_ratio_a),
       pick(base_is_a?, snapshot.lowest_stock_a, snapshot.lowest_stock_b),
-      pick(base_is_a?, snapshot.highest_stock_a, snapshot.highest_stock_b)
+      pick(base_is_a?, snapshot.highest_stock_a, snapshot.highest_stock_b),
+      pick(base_is_a?, snapshot.volume_traded_a, snapshot.volume_traded_b),
+      pick(base_is_a?, snapshot.volume_traded_b, snapshot.volume_traded_a)
     )
   end
 

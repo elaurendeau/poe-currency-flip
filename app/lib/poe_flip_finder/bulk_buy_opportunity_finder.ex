@@ -2,10 +2,15 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
   @moduledoc """
   Computes Feature E (Bulk Buy / triangular arbitrage, docs/PRD.md § 7.5)
   opportunities: for any currency X that trades against both Chaos and
-  Divine, checks whether buying X with one and reselling it for the other
-  beats the direct Chaos<->Divine exchange rate -- evaluated in both
-  directions independently, since undercut pricing isn't symmetric (one
-  direction can be viable while the reverse isn't).
+  Divine, checks whether buying X with Divine and reselling it for Chaos
+  beats the direct Divine->Chaos exchange rate.
+
+  Only this one direction is computed -- per direct user feedback, the
+  reverse (buy with Chaos, resell for Divine) isn't a trade players are
+  looking for here, even though it's a real, computable arbitrage. Bulk
+  Buy is specifically "convert Divine you're already holding into more
+  Chaos than a direct sale would get," not a general two-way triangular
+  scan.
   """
 
   alias PoeFlipFinder.{
@@ -43,11 +48,10 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
     if chaos_quote == nil or divine_quote == nil do
       []
     else
-      [
-        chaos_to_divine(intermediary, chaos_quote, divine_quote, rate),
-        divine_to_chaos(intermediary, chaos_quote, divine_quote, rate)
-      ]
-      |> Enum.reject(&is_nil/1)
+      case divine_to_chaos(intermediary, chaos_quote, divine_quote, rate) do
+        nil -> []
+        opportunity -> [opportunity]
+      end
     end
   end
 
@@ -92,16 +96,18 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
       pick(base_is_a?, snapshot.highest_ratio_a, snapshot.highest_ratio_b),
       pick(base_is_a?, snapshot.highest_ratio_b, snapshot.highest_ratio_a),
       pick(base_is_a?, snapshot.lowest_stock_a, snapshot.lowest_stock_b),
-      pick(base_is_a?, snapshot.highest_stock_a, snapshot.highest_stock_b)
+      pick(base_is_a?, snapshot.highest_stock_a, snapshot.highest_stock_b),
+      pick(base_is_a?, snapshot.volume_traded_a, snapshot.volume_traded_b),
+      pick(base_is_a?, snapshot.volume_traded_b, snapshot.volume_traded_a)
     )
   end
 
   defp pick(true, a, _b), do: a
   defp pick(false, _a, b), do: b
 
-  # Buy the intermediary with Chaos, sell it for Divine, compare against the
-  # direct Chaos->Divine baseline at the raw, non-undercut, averaged rate --
-  # a comparison reference, not an order we're suggesting the user post.
+  # Buy the intermediary with 1 Divine, sell it for Chaos, compare against
+  # the direct Divine->Chaos baseline -- already Chaos-denominated, so the
+  # profit figure needs no conversion.
   #
   # The buy leg uses suggested_buy_price (a competitive limit order,
   # undercut -1) but the sell leg uses market_sell_price -- see
@@ -112,60 +118,6 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinder do
   # competitively; the exit assumes dumping into demand that's already been
   # shown to exist, at worst at the less generous of the hour's two real
   # rates.
-  #
-  # Scaled so the trade always ends at exactly 1 Divine sold, rather than
-  # starting from 1 Chaos: "1 Chaos -> 0.005 Divine" is a meaningless
-  # fraction to read, since Chaos is the much smaller-value currency here.
-  defp chaos_to_divine(
-         _intermediary,
-         %UndercutQuote{suggested_buy_price: nil},
-         _divine_quote,
-         _rate
-       ),
-       do: nil
-
-  defp chaos_to_divine(
-         _intermediary,
-         _chaos_quote,
-         %UndercutQuote{market_sell_price: price},
-         _rate
-       )
-       when price <= 0,
-       do: nil
-
-  defp chaos_to_divine(intermediary, chaos_quote, divine_quote, rate) do
-    sell_amount = 1.0
-    # Sells for exactly 1 Divine, by definition.
-    via_amount = divine_quote.market_sell_price
-    start_amount = via_amount / chaos_quote.suggested_buy_price
-
-    direct_baseline_divine = start_amount / rate.chaos_per_divine
-    margin_percent = (sell_amount - direct_baseline_divine) / direct_baseline_divine * 100
-    profit_chaos = (sell_amount - direct_baseline_divine) * rate.chaos_per_divine
-    volume = min(chaos_quote.buy_leg_stock, divine_quote.buy_leg_stock)
-
-    %FlipOpportunity{
-      technique: :bulk_buy,
-      start: [%CurrencyAmount{currency: rate.chaos_currency, quantity: start_amount}],
-      via: [%CurrencyAmount{currency: intermediary, quantity: via_amount}],
-      sell: [%CurrencyAmount{currency: rate.divine_currency, quantity: sell_amount}],
-      margin_percent: margin_percent,
-      profit: %CurrencyAmount{currency: rate.chaos_currency, quantity: profit_chaos},
-      start_chaos_equivalent: DivineChaosRate.to_chaos(rate, rate.chaos_currency, start_amount),
-      volume: volume,
-      detail:
-        detail(
-          chaos_quote.suggested_buy_price,
-          divine_quote.market_sell_price,
-          rate.chaos_per_divine
-        )
-    }
-  end
-
-  # Buy the intermediary with 1 Divine, sell it for Chaos, compare against
-  # the direct Divine->Chaos baseline -- already Chaos-denominated, so the
-  # profit figure needs no conversion. Same buy-competitive/sell-market
-  # split as chaos_to_divine/4 above.
   defp divine_to_chaos(
          _intermediary,
          _chaos_quote,

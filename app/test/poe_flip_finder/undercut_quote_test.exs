@@ -8,45 +8,52 @@ defmodule PoeFlipFinder.UndercutQuoteTest do
   # (see docs/ELIXIR_TEST_MANIFESTO.md § Use-Case Discovery).
 
   test "chaos/wisdom worked example matches hand-verified Feature B numbers" do
-    # Raw extremes 185/366 -> buy floors to 366 then undercuts to 365;
-    # suggested_sell_price (Feature B's round-trip-favorable extreme) floors
-    # to 185 then undercuts to 186.
-    quote = UndercutQuote.resolve(1, 185, 1, 366, 50, 60)
+    # Raw extremes 185/366 -> buy floors to 366 then undercuts to 365.
+    # suggested_sell_price no longer uses the raw "other" extreme (185)
+    # directly -- it's the hour's volume-weighted average rate
+    # (volume_traded_via / volume_traded_start = 1000/4 = 250), floored
+    # then undercut to 251. See the moduledoc for why: a single outlier
+    # fill can dominate a raw extreme but barely moves a volume total.
+    quote = UndercutQuote.resolve(1, 185, 1, 366, 50, 60, 4, 1000)
 
     assert quote.suggested_buy_price == 365.0
-    assert quote.suggested_sell_price == 186.0
+    assert quote.suggested_sell_price == 251.0
 
     # market_sell_price (Bulk Buy's one-directional sell reference) is the
-    # SAME extreme as the buy price (366), not the round-trip extreme
-    # (185) -- a real one-way seller can't rely on the optimistic
-    # round-trip rate, so it floors the buy-side extreme with no undercut.
+    # SAME extreme as the buy price (366), not the round-trip extreme --
+    # a real one-way seller can't rely on the optimistic round-trip rate,
+    # so it floors the buy-side extreme with no undercut. Unaffected by
+    # volume-weighting, which only feeds suggested_sell_price.
     assert quote.market_sell_price == 366.0
     # highest_stock_start -- the buy-leg extreme won here.
     assert quote.buy_leg_stock == 60
   end
 
-  test "buy price too small to undercut also collapses market_sell_price" do
-    # market_sell_price shares its raw extreme with suggested_buy_price
-    # (both = the hour's higher "via per start" extreme), so whenever that
-    # shared extreme floors below 1, both collapse together: there is no
-    # meaningful buy AND no meaningful realistic sell for this leg.
-    quote = UndercutQuote.resolve(2, 2, 2, 3, 40, 70)
+  test "zero traded volume falls back to the raw other-extreme sell price" do
+    # No real trading happened this hour (volume_traded_start == 0) -- can't
+    # compute a volume-weighted average, so suggested_sell_price falls back
+    # to the old raw-extreme behavior instead of dividing by zero.
+    quote = UndercutQuote.resolve(2, 2, 2, 3, 40, 70, 0, 0)
 
     assert quote.suggested_buy_price == nil
+    # Falls back to the other raw extreme (1.0), floor+1.
     assert quote.suggested_sell_price == 2.0
-    # floor(1.5), same raw extreme as the buy side.
+    # floor(1.5), same raw extreme as the buy side -- unaffected either way.
     assert quote.market_sell_price == 1.0
     assert quote.buy_leg_stock == 70
   end
 
   test "non-finite ratio returns nil (whole quote is empty)" do
-    assert UndercutQuote.resolve(0, 185, 1, 366, 50, 60) == nil
+    assert UndercutQuote.resolve(0, 185, 1, 366, 50, 60, 10, 20) == nil
   end
 
   test "tied extremes undercuts both legs away from the tied rate" do
     # Cross-checks the existing tied-extremes Feature B test's implied
     # intermediate values: 184/186 - 1 =~ -0.010753 profit, ~-1.0753% margin.
-    quote = UndercutQuote.resolve(1, 185, 1, 185, 50, 60)
+    # Volume figures (18500/100 = 185) match the tied extremes exactly --
+    # every trade that hour happened at the same rate, so the
+    # volume-weighted average agrees with both raw extremes.
+    quote = UndercutQuote.resolve(1, 185, 1, 185, 50, 60, 100, 18_500)
 
     assert quote.suggested_buy_price == 184.0
     assert quote.suggested_sell_price == 186.0
@@ -63,11 +70,28 @@ defmodule PoeFlipFinder.UndercutQuoteTest do
     # same-pair round trip, per Feature B). Using 9 here previously made
     # Bulk Buy report an "impossible" sell rate roughly double the worst
     # real one, inflating margin and profit accordingly.
-    quote = UndercutQuote.resolve(1, 17, 1, 9, 100, 200)
+    quote = UndercutQuote.resolve(1, 17, 1, 9, 100, 200, 10, 100)
 
     # floor(17)-1, the favorable-for-buying extreme.
     assert quote.suggested_buy_price == 16.0
     # Same extreme as buy, not the optimistic 9.
     assert quote.market_sell_price == 17.0
+  end
+
+  test "volume-weighted sell price fixes the real Jeweller's Orb outlier bug" do
+    # Regression test for a real production bug, verified against live GGG
+    # data 2026-08-08 (Allflame league, Jeweller's Orb vs Chaos Orb):
+    # lowest_ratio 1:75, highest_ratio 1:1 -- that 1:1 extreme is a single
+    # thin outlier fill, not the real market. The old "other extreme" logic
+    # floored suggested_sell_price to 2 even though the real in-game
+    # competitive rate that hour was ~53-66:1. volume_traded was
+    # {chaos: 3904, jeweller: 247240} -- a volume-weighted average of
+    # 247240/3904 =~ 63.34, matching the real observed rate and immune to
+    # the 1:1 outlier because it barely moves a total-volume ratio.
+    quote = UndercutQuote.resolve(1, 75, 1, 1, 16_832, 17_970, 3904, 247_240)
+
+    assert quote.suggested_buy_price == 74.0
+    assert quote.suggested_sell_price == 64.0
+    refute quote.suggested_sell_price == 2.0
   end
 end

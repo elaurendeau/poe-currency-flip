@@ -126,7 +126,8 @@ defmodule PoeFlipFinder.FlipOpportunitiesTest do
 
     assert :exchange_spread in techniques
     assert :bulk_buy in techniques
-    assert Enum.count(opportunities, &(&1.technique == :bulk_buy)) == 2
+    # Only the Divine->deck->Chaos direction is computed (docs/PRD.md § 7.5).
+    assert Enum.count(opportunities, &(&1.technique == :bulk_buy)) == 1
   end
 
   test "no chaos/divine rate: bulk buy contributes nothing but exchange spread still works" do

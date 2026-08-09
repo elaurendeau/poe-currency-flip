@@ -98,7 +98,14 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       lowest_ratio_a: 1.0,
       lowest_ratio_b: 185.0,
       highest_ratio_a: 1.0,
-      highest_ratio_b: 366.0
+      highest_ratio_b: 366.0,
+      # {1, 185} makes the volume-weighted sell average land exactly on the
+      # 185 extreme (see UndercutQuote's moduledoc) -- insert_snapshot!'s
+      # default {100, 100} would instead average to 1.0, cratering the
+      # sell price to 2 and inflating margin to ~18000%, since 100/100 is
+      # an arbitrary placeholder unrelated to this fixture's 185/366 ratio.
+      volume_traded_a: 1,
+      volume_traded_b: 185
     })
 
     activate_generation!(1)

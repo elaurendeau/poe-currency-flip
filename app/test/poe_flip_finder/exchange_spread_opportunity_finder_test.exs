@@ -58,9 +58,11 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
          lowest_ratio_b,
          highest_ratio_a,
          highest_ratio_b,
-         stocks \\ {50, 60, 50, 60}
+         stocks \\ {50, 60, 50, 60},
+         volumes \\ {100, 100}
        ) do
     {lowest_stock_a, highest_stock_a, lowest_stock_b, highest_stock_b} = stocks
+    {volume_traded_a, volume_traded_b} = volumes
 
     %ExchangeMarketSnapshot{
       id: 1,
@@ -69,8 +71,8 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
       currency_a: currency_a,
       currency_b: currency_b,
       snapshot_hour: DateTime.utc_now(),
-      volume_traded_a: 100,
-      volume_traded_b: 100,
+      volume_traded_a: volume_traded_a,
+      volume_traded_b: volume_traded_b,
       lowest_stock_a: lowest_stock_a,
       highest_stock_a: highest_stock_a,
       lowest_stock_b: lowest_stock_b,
@@ -85,11 +87,16 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
   test "chaos/wisdom pair undercuts both legs before computing profit" do
     # Raw observed extremes are 185:1 and 366:1 (Chaos:Wisdom). Per
     # docs/PRD.md § 7.2, the buy leg floors then undercuts by -1
-    # (366 -> 365) and the sell leg floors then undercuts by +1
-    # (185 -> 186) -- these are the actually-postable prices, not the raw
-    # historical extremes.
+    # (366 -> 365). The sell leg uses the hour's volume-weighted average
+    # rate, not the raw 185 extreme directly -- volumes {1, 185} here make
+    # that average land exactly on 185 (every trade this hour behaved as if
+    # it happened at the low extreme), so it floors then undercuts by +1
+    # the same way (185 -> 186), matching this worked example either way.
     [opportunity] =
-      ExchangeSpreadOpportunityFinder.find([snapshot(@chaos, @wisdom, 1, 185, 1, 366)], @rate_210)
+      ExchangeSpreadOpportunityFinder.find(
+        [snapshot(@chaos, @wisdom, 1, 185, 1, 366, {50, 60, 50, 60}, {1, 185})],
+        @rate_210
+      )
 
     assert opportunity.technique == :exchange_spread
     assert hd(opportunity.start).currency == @chaos
@@ -113,7 +120,7 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
     # of which slot the base currency is in.
     [opportunity] =
       ExchangeSpreadOpportunityFinder.find(
-        [snapshot(@wisdom, @chaos, 185, 1, 366, 1, {10, 20, 50, 60})],
+        [snapshot(@wisdom, @chaos, 185, 1, 366, 1, {10, 20, 50, 60}, {185, 1})],
         @rate_210
       )
 
@@ -155,9 +162,12 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
     # "Chaos per 1 Divine"): raw extremes 200/210 floor+undercut to a
     # postable 209 (buy) / 201 (sell), still Chaos-anchored on Start/Sell
     # like every other row, just priced per-Divine instead of per-Chaos.
+    # Volumes {1, 200} (Divine, Chaos) make the volume-weighted sell
+    # average land exactly on the 200 extreme, matching this worked
+    # example's numbers unchanged.
     [opportunity] =
       ExchangeSpreadOpportunityFinder.find(
-        [snapshot(@divine, @chaos, 1, 200, 1, 210)],
+        [snapshot(@divine, @chaos, 1, 200, 1, 210, {50, 60, 50, 60}, {1, 200})],
         @rate_210
       )
 
@@ -187,24 +197,44 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
   end
 
   test "divine-anchored pair converts profit to chaos using the chaos/divine rate" do
-    # Divine-anchored pair: identical raw shape to the Chaos/Wisdom worked
-    # example, but starting from Divine instead of Chaos. The undercut math
-    # is unit-agnostic (365 wisdom bought, 1.962366 *Divine* received
-    # back), so the raw profit is 0.962366 Divine, which must become
-    # 0.962366 * 210 = 202.0968 Chaos.
+    # @wisdom here stands in for a hypothetical item worth 2-4 Divine (not
+    # its real in-game value) -- since a Divine-anchored direct quote
+    # buying more than 1 whole unit of the other currency is now dropped
+    # (see the "bulk-scale" test below), a *profitable* Divine-anchored
+    # example has to use the inverted orientation (buy exactly 1 unit of
+    # an item worth more than 1 Divine), the same as § 7.2's Chaos/Divine
+    # worked example, just one level up in value. Raw extremes 2:1/4:1
+    # (Divine:item) invert to buy 1 item for 3 Divine (floor(4)-1) and
+    # sell it back for 4 Divine (volume-weighted 3/1=3, floor+1=4) --
+    # profit 1 Divine, which must become 1 * 210 = 210 Chaos.
     [opportunity] =
       ExchangeSpreadOpportunityFinder.find(
-        [snapshot(@divine, @wisdom, 1, 185, 1, 366)],
+        [snapshot(@divine, @wisdom, 2, 1, 4, 1, {50, 60, 50, 60}, {3, 1})],
         @rate_210
       )
 
     assert hd(opportunity.start).currency == @divine
-    # Unit-agnostic, unaffected by conversion.
-    assert_in_delta opportunity.margin_percent, 96.2366, 0.01
+    assert_in_delta hd(opportunity.start).quantity, 3.0, 0.001
+    assert_in_delta hd(opportunity.via).quantity, 1.0, 0.001
+    assert_in_delta opportunity.margin_percent, 33.333, 0.01
     assert opportunity.profit.currency == @chaos
-    assert_in_delta opportunity.profit.quantity, 202.0968, 0.01
-    # 1 Divine start, converted via the same 210 chaos/divine rate.
-    assert_in_delta opportunity.start_chaos_equivalent, 210.0, 0.001
+    assert_in_delta opportunity.profit.quantity, 210.0, 0.01
+    # 3 Divine start, converted via the same 210 chaos/divine rate.
+    assert_in_delta opportunity.start_chaos_equivalent, 630.0, 0.001
+  end
+
+  test "divine-anchored direct quote buying more than 1 unit is dropped as bulk-scale" do
+    # Regression test for real user feedback: "1 Divine Orb -> 3199 Orb of
+    # Fusing" reads as a bulk trade, not the single-order competitive
+    # spread this feature is about, even though the rate and liquidity are
+    # both real. A Chaos-anchored pair with the identical shape (many
+    # cheap units per 1 base unit) is exempt -- that's this feature's
+    # normal, expected shape, not bulk (see the chaos/wisdom worked
+    # example above, which buys 365 units per 1 Chaos and is kept).
+    assert ExchangeSpreadOpportunityFinder.find(
+             [snapshot(@divine, @wisdom, 1, 185, 1, 366, {50, 60, 50, 60}, {1, 185})],
+             @rate_210
+           ) == []
   end
 
   test "divine-anchored pair with no chaos/divine rate available is skipped" do
@@ -235,10 +265,46 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinderTest do
     # guaranteed loss, not exactly zero. This is the realistic cost of
     # actually getting both legs filled.
     [opportunity] =
-      ExchangeSpreadOpportunityFinder.find([snapshot(@chaos, @wisdom, 1, 185, 1, 185)], @rate_210)
+      ExchangeSpreadOpportunityFinder.find(
+        [snapshot(@chaos, @wisdom, 1, 185, 1, 185, {50, 60, 50, 60}, {1, 185})],
+        @rate_210
+      )
 
     assert_in_delta opportunity.margin_percent, -1.0753, 0.01
     assert_in_delta opportunity.profit.quantity, -0.010753, 0.0001
+  end
+
+  test "wide-spread outlier fill no longer inflates margin into fantasy territory" do
+    # Regression test for the real production bug reported by the user,
+    # verified against live GGG data 2026-08-08 (Allflame league, Jeweller's
+    # Orb vs Chaos Orb): raw lowest_ratio 1:75, highest_ratio 1:1. That 1:1
+    # extreme is a single thin outlier fill (real in-game competitive rate
+    # that hour was ~53-66:1), but the old "other extreme" sell logic
+    # floored suggested_sell_price to 2, manufacturing a ~3600% fake margin
+    # that would dominate any margin-sorted view of the opportunities list.
+    # volume_traded {chaos: 3904, jeweller: 247240} is the real hourly total
+    # -- its weighted average (~63.34) lands right where the real market
+    # was, keeping the margin realistic instead of fantastical.
+    [opportunity] =
+      ExchangeSpreadOpportunityFinder.find(
+        [
+          snapshot(
+            @chaos,
+            @wisdom,
+            1,
+            75,
+            1,
+            1,
+            {16_832, 17_970, 49_119, 93_210},
+            {3904, 247_240}
+          )
+        ],
+        @rate_210
+      )
+
+    assert opportunity.detail == "buy 74:1 · sell 64:1"
+    assert opportunity.margin_percent < 50
+    refute opportunity.detail == "buy 74:1 · sell 2:1"
   end
 
   test "non-finite extreme skips that snapshot rather than erroring" do

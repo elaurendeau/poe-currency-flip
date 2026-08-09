@@ -79,8 +79,8 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     }
   end
 
-  test "both directions viable produces two opportunities with hand-verified numbers" do
-    # Chaos-deck leg: price_at_lowest=8, price_at_highest=13 -> buy=floor(13)-1=12.
+  test "divine-to-chaos opportunity computed with hand-verified numbers" do
+    # Chaos-deck leg: price_at_lowest=8, price_at_highest=13 -> buy=floor(13)-1=12,
     # market_sell_price = floor(13) = 13 -- the SAME extreme as the buy price
     # (the worse-for-a-seller one), not the round-trip-favorable 8. This is
     # the exact shape of a real production bug: a wide in-hour spread (here
@@ -88,66 +88,41 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     # overstating how much a real seller could get.
     chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
 
-    # Divine-deck leg: price_at_lowest=1700, price_at_highest=1900 -> buy=1899, market_sell_price=floor(1900)=1900.
+    # Divine-deck leg: price_at_lowest=1700, price_at_highest=1900 -> buy=1899.
     divine_leg = snapshot(@divine, @deck, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
-    opportunities = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
+    [opportunity] = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
 
-    assert length(opportunities) == 2
-    chaos_to_divine = Enum.find(opportunities, &(hd(&1.sell).currency == @divine))
-    divine_to_chaos = Enum.find(opportunities, &(hd(&1.sell).currency == @chaos))
-
-    # Rescaled so the trade always ends at exactly 1 Divine sold instead of
-    # starting from 1 Chaos ("1 Chaos -> 0.005 Divine" is a meaningless
-    # fraction to read): via always equals the divine leg's *market* sell
-    # price (1900, the worse-for-a-seller real hourly extreme -- same one
-    # the buy price is undercut from, floored with no further push), and
-    # start is however much Chaos that took (1900/12 = 158.333). Margin is
-    # unaffected by the rescaling itself (still scale-invariant); profit
-    # scales up proportionally.
-    assert chaos_to_divine.technique == :bulk_buy
-    assert hd(chaos_to_divine.start).currency == @chaos
-    assert_in_delta hd(chaos_to_divine.start).quantity, 1900.0 / 12, 0.001
-    assert hd(chaos_to_divine.via).currency == @deck
-    assert hd(chaos_to_divine.via).quantity == 1900.0
-    assert hd(chaos_to_divine.sell).quantity == 1.0
-    assert_in_delta chaos_to_divine.margin_percent, 31.0 / 95 * 100, 0.001
-    assert chaos_to_divine.profit.currency == @chaos
-    assert_in_delta chaos_to_divine.profit.quantity, 155.0 / 3, 0.001
-    # min(chaos buy_leg_stock=50, divine buy_leg_stock=80)
-    assert chaos_to_divine.volume == 50
-
-    # Divine->Chaos sells through the chaos leg's market price (13, not the
+    assert opportunity.technique == :bulk_buy
+    # Sells through the chaos leg's market price (13, not the
     # round-trip-favorable 8), so 1899 deck / 13 = 146.077 Chaos -- below
-    # the 210 c/div direct baseline, i.e. this direction is a real loss
-    # even though the reverse direction is profitable. Exactly the
-    # asymmetry BulkBuyOpportunityFinder's moduledoc calls out: each
-    # direction is evaluated independently, and one being viable says
-    # nothing about the other.
-    assert hd(divine_to_chaos.start).currency == @divine
-    assert hd(divine_to_chaos.start).quantity == 1.0
-    assert hd(divine_to_chaos.via).quantity == 1899.0
-    assert_in_delta hd(divine_to_chaos.sell).quantity, 1899.0 / 13, 1.0e-7
-    assert_in_delta divine_to_chaos.margin_percent, (1899.0 / 13 - 210) / 210 * 100, 0.001
-    assert divine_to_chaos.profit.currency == @chaos
-    assert_in_delta divine_to_chaos.profit.quantity, 1899.0 / 13 - 210, 1.0e-7
+    # the 210 c/div direct baseline, i.e. this specific pair is a real loss
+    # here, not a profitable flip -- the math still has to be reported
+    # accurately either way.
+    assert hd(opportunity.start).currency == @divine
+    assert hd(opportunity.start).quantity == 1.0
+    assert hd(opportunity.via).currency == @deck
+    assert hd(opportunity.via).quantity == 1899.0
+    assert hd(opportunity.sell).currency == @chaos
+    assert_in_delta hd(opportunity.sell).quantity, 1899.0 / 13, 1.0e-7
+    assert_in_delta opportunity.margin_percent, (1899.0 / 13 - 210) / 210 * 100, 0.001
+    assert opportunity.profit.currency == @chaos
+    assert_in_delta opportunity.profit.quantity, 1899.0 / 13 - 210, 1.0e-7
     # min(divine buy_leg_stock=80, chaos buy_leg_stock=50)
-    assert divine_to_chaos.volume == 50
+    assert opportunity.volume == 50
   end
 
-  test "chaos buy leg not viable, only divine-to-chaos direction survives" do
-    # Chaos-wisdom leg: price_at_lowest=1, price_at_highest=1.5 -> buy floors
-    # to 0 (invalid), but sell=floor(1)+1=2 is still valid -- this is
-    # exactly the asymmetry UndercutQuote exists to expose: a naive "drop
-    # both legs if either quote is unusable" would incorrectly return 0
-    # opportunities here.
+  test "chaos leg's buy price collapses but its market sell price is still usable" do
+    # Chaos-wisdom leg: price_at_lowest=1, price_at_highest=1.5 -> buy
+    # floors to 0 (suggested_buy_price=nil), but market_sell_price=floor(1.5)=1
+    # is still a valid, nonzero sell reference -- divine_to_chaos only
+    # depends on the chaos leg's market_sell_price, not its (irrelevant,
+    # collapsed) suggested_buy_price, so the opportunity must still compute.
     chaos_leg = snapshot(@chaos, @wisdom, {2, 2, 2, 3}, {40, 70, 1, 1})
     divine_leg = snapshot(@divine, @wisdom, {1, 50, 1, 80}, {30, 80, 1, 1})
 
-    opportunities = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
+    [opportunity] = BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210)
 
-    assert length(opportunities) == 1
-    [opportunity] = opportunities
     assert hd(opportunity.start).currency == @divine
     assert hd(opportunity.sell).currency == @chaos
     # floor(80)-1
@@ -157,30 +132,22 @@ defmodule PoeFlipFinder.BulkBuyOpportunityFinderTest do
     assert_in_delta hd(opportunity.sell).quantity, 79.0, 1.0e-7
   end
 
-  test "chaos leg price collapses below one: both directions dropped safely, no crash" do
+  test "chaos leg price collapses below one: dropped safely, no crash" do
     # A real production incident: market_sell_price (no +1 push, unlike
     # suggested_sell_price) can floor to exactly 0 when its raw extreme is
     # below 1 -- e.g. both price_at_lowest=0.5 and price_at_highest=0.3
     # here. divine_to_chaos divides by chaos_leg.market_sell_price, so an
     # unguarded 0 would produce a crash rather than an empty result.
-    #
-    # market_sell_price shares its raw extreme with suggested_buy_price
-    # (see UndercutQuote), so a leg's price collapsing below 1 always takes
-    # out BOTH directions that leg participates in together --
-    # chaos_to_divine via chaos_leg.suggested_buy_price being nil, and
-    # divine_to_chaos via chaos_leg.market_sell_price being <= 0 -- rather
-    # than exactly one surviving.
     chaos_leg = snapshot(@chaos, @wisdom, {2, 1, 10, 3}, {100, 50, 1, 1})
     divine_leg = snapshot(@divine, @wisdom, {1, 1700, 1, 1900}, {30, 80, 1, 1})
 
     assert BulkBuyOpportunityFinder.find([chaos_leg, divine_leg], @rate_210) == []
   end
 
-  test "divine leg price collapses below one: both directions dropped safely, no crash" do
-    # Mirror of the case above: chaos_to_divine uses divine_leg.market_sell_price
-    # as its via amount, which feeds into a division against the direct
-    # baseline -- an unguarded 0 there produces a crash even though no
-    # field is a literal division by the zero itself.
+  test "divine leg price collapses below one: dropped safely, no crash" do
+    # divine_to_chaos uses divine_leg.suggested_buy_price as its via
+    # amount -- when that collapses to nil (raw extreme below 1), the
+    # opportunity must be dropped, not crash.
     chaos_leg = snapshot(@chaos, @deck, {1, 8, 1, 13}, {100, 50, 1, 1})
     divine_leg = snapshot(@divine, @deck, {2, 1, 10, 3}, {100, 50, 1, 1})
 

@@ -5,6 +5,10 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinder do
   rate against the competitive (sell) rate, always anchored on Chaos or
   Divine so the flip is one a player can actually act on.
 
+  A Divine-anchored opportunity that would buy more than 1 whole unit of
+  the other currency is dropped rather than shown -- see the comment above
+  `resolve_oriented_quote/3` for why.
+
   The zero-volume floor (docs/PRD.md § 7.2/§ 7.5) is deliberately *not*
   applied here -- it's a merge-time rule applied once across every
   technique, not a per-finder rule (see the `FlipOpportunities` context).
@@ -30,7 +34,9 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinder do
 
   defp to_opportunity(snapshot, divine_chaos_rate) do
     with {:ok, anchor_on_a?} <- resolve_anchor_on_a(snapshot.currency_a, snapshot.currency_b),
-         {:ok, quote, inverted?} <- resolve_oriented_quote(snapshot, anchor_on_a?) do
+         start_currency = pick(anchor_on_a?, snapshot.currency_a, snapshot.currency_b),
+         {:ok, quote, inverted?} <-
+           resolve_oriented_quote(snapshot, anchor_on_a?, start_currency) do
       build_opportunity(snapshot, anchor_on_a?, quote, inverted?, divine_chaos_rate)
     else
       _ -> nil
@@ -46,19 +52,37 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinder do
   # generic over "which side is base"), the same try-both-directions
   # fallback DivinationCardOpportunityFinder already uses for its own legs
   # (`resolve_oriented_quote/4` there).
-  defp resolve_oriented_quote(snapshot, anchor_on_a?) do
+  #
+  # A Divine-anchored direct quote is *also* rejected outright (falling
+  # through to the same inverted retry) when it would buy more than 1 whole
+  # unit of the other currency -- a real user report: "1 Divine -> 3199 Orb
+  # of Fusing" reads as a bulk-scale trade, not the single-order competitive
+  # spread this feature is about, even though the math and the underlying
+  # liquidity are both perfectly sound. Chaos-anchored quotes are exempt --
+  # Chaos is already the smallest-value base currency, so "1 Chaos buys many
+  # cheap items" (e.g. "1 Chaos -> 74 Jeweller's Orb") is the normal,
+  # expected shape for this feature, not a bulk trade.
+  defp resolve_oriented_quote(snapshot, anchor_on_a?, start_currency) do
     direct = resolve_quote(snapshot, anchor_on_a?)
 
-    if viable?(direct) do
+    if acceptable?(direct, start_currency, false) do
       {:ok, direct, false}
     else
       inverted = resolve_quote(snapshot, not anchor_on_a?)
-      if viable?(inverted), do: {:ok, inverted, true}, else: :error
+      if acceptable?(inverted, start_currency, true), do: {:ok, inverted, true}, else: :error
     end
   end
 
-  defp viable?(%UndercutQuote{suggested_buy_price: price}), do: not is_nil(price)
-  defp viable?(nil), do: false
+  defp acceptable?(nil, _start_currency, _inverted?), do: false
+  defp acceptable?(%UndercutQuote{suggested_buy_price: nil}, _start_currency, _inverted?), do: false
+
+  defp acceptable?(%UndercutQuote{suggested_buy_price: price}, start_currency, false),
+    do: not divine?(start_currency) or price <= 1.0
+
+  # Inverted always buys exactly 1 unit of the other currency by
+  # construction (`quantities/2` below) -- never a bulk-scale quantity,
+  # regardless of which currency anchors it.
+  defp acceptable?(%UndercutQuote{}, _start_currency, true), do: true
 
   defp resolve_quote(snapshot, anchor_on_a?) do
     UndercutQuote.resolve(
@@ -67,7 +91,9 @@ defmodule PoeFlipFinder.ExchangeSpreadOpportunityFinder do
       pick(anchor_on_a?, snapshot.highest_ratio_a, snapshot.highest_ratio_b),
       pick(anchor_on_a?, snapshot.highest_ratio_b, snapshot.highest_ratio_a),
       pick(anchor_on_a?, snapshot.lowest_stock_a, snapshot.lowest_stock_b),
-      pick(anchor_on_a?, snapshot.highest_stock_a, snapshot.highest_stock_b)
+      pick(anchor_on_a?, snapshot.highest_stock_a, snapshot.highest_stock_b),
+      pick(anchor_on_a?, snapshot.volume_traded_a, snapshot.volume_traded_b),
+      pick(anchor_on_a?, snapshot.volume_traded_b, snapshot.volume_traded_a)
     )
   end
 
