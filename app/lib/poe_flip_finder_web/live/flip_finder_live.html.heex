@@ -131,7 +131,7 @@
         <%= if @active_tab == :historical do %>
           <p class="flip-table-message">Historical Investment — coming soon.</p>
         <% else %>
-          <div class="filter-bar">
+          <div :if={show_technique_filters?(@active_tab)} class="filter-bar">
             <label
               :for={{technique, label, icon_class} <- technique_options_for_tab(@active_tab)}
               class="filter-check"

@@ -656,14 +656,29 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     Enum.filter(technique_options(), fn {technique, _label, _icon_class} -> technique in allowed end)
   end
 
+  # A tab with only one technique has nothing to filter against itself --
+  # showing a lone always-checked checkbox is pointless, so that tab skips
+  # the filter-bar entirely and its technique is simply always on.
+  defp show_technique_filters?(tab), do: length(techniques_for_tab(tab)) > 1
+
   # Scopes the technique checkboxes' own enabled/disabled state down to
   # whatever the active tab actually shows, without losing each checkbox's
-  # remembered value when the user switches tabs and back.
+  # remembered value when the user switches tabs and back. A tab with no
+  # filter-bar of its own (see show_technique_filters?/1) forces its one
+  # technique on, ignoring whatever was last persisted for it -- there's no
+  # checkbox left to have stored a stale "off" value through, but a prior
+  # session's saved preference could still have one, and it must not be
+  # able to leave the technique permanently, invisibly disabled.
   defp effective_enabled_techniques(enabled_techniques, tab) do
     allowed = techniques_for_tab(tab)
+    show_filters? = show_technique_filters?(tab)
 
     Map.new(enabled_techniques, fn {technique, enabled} ->
-      {technique, enabled and technique in allowed}
+      cond do
+        technique not in allowed -> {technique, false}
+        show_filters? -> {technique, enabled}
+        true -> {technique, true}
+      end
     end)
   end
 

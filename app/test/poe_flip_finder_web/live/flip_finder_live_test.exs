@@ -503,10 +503,28 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     html = view |> element("button.tab-button", "Vendor Flip") |> render_click()
 
     assert has_element?(view, "button.tab-button--active", "Vendor Flip")
-    assert has_element?(view, "input[aria-label='Vendor recipe']")
-    refute has_element?(view, "input[aria-label='Exchange spread']")
+    # Vendor Flip has exactly one technique -- nothing to filter it against,
+    # so it shows no checkbox at all (Vendor Recipe is simply always on).
+    refute has_element?(view, ".filter-bar")
     assert html =~ ~s(data-route-key="vendor_recipe|)
     refute html =~ ~s(data-route-key="exchange_spread|)
+  end
+
+  test "Vendor Recipe stays on under the Vendor Flip tab even if a prior session persisted it off",
+       %{conn: conn} do
+    seed_one_vendor_recipe_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    # Simulates a value saved back when the checkbox still existed --
+    # without the always-on override, this would leave the technique
+    # permanently, invisibly disabled with no checkbox left to re-enable it.
+    render_click(view, "display_preferences_loaded", %{
+      "active_tab" => "vendor",
+      "enabled_techniques" => %{"vendor_recipe" => false}
+    })
+
+    assert has_element?(view, "button.tab-button--active", "Vendor Flip")
+    assert render(view) =~ ~s(data-route-key="vendor_recipe|)
   end
 
   test "the Historical Investment tab is disabled and shows a placeholder instead of a table", %{
