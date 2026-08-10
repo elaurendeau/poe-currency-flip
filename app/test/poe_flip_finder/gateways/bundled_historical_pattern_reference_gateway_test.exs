@@ -16,17 +16,19 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
 
     assert length(patterns) >= 15
 
-    exalted = Enum.find(patterns, &(&1.currency.display_name == "Exalted Orb"))
-    assert exalted.currency.external_id == nil
-    assert exalted.currency.category == :currency
-    assert length(exalted.league_observations) == 4
-    assert exalted.currency.icon_url =~ "CurrencyAddModToRare.png"
+    ancient_orb = Enum.find(patterns, &(&1.currency.display_name == "Ancient Orb"))
+    assert ancient_orb.currency.external_id == nil
+    assert ancient_orb.currency.category == :currency
+    # Ancestors (most recent) + Mirage (older, deeper fallback) -- see
+    # docs/DATA_SOURCES.md's "past 2 leagues" rationale.
+    assert length(ancient_orb.league_observations) == 2
+    assert ancient_orb.currency.icon_url =~ "AncientOrb.png"
 
-    necropolis = Enum.find(exalted.league_observations, &(&1.league == "Necropolis"))
-    day0 = Enum.find(necropolis.day_prices, &(&1.day == 0))
-    day1 = Enum.find(necropolis.day_prices, &(&1.day == 1))
-    assert day0.chaos == 3.0
-    assert day1.chaos == 9.0
+    ancestors = Enum.find(ancient_orb.league_observations, &(&1.league == "Ancestors"))
+    day0 = Enum.find(ancestors.day_prices, &(&1.day == 0))
+    day1 = Enum.find(ancestors.day_prices, &(&1.day == 1))
+    assert day0.chaos == 2.45
+    assert day1.chaos == 3.51
   end
 
   test "loads the historical-only Cluster Jewel category with a category not in the live DB enum" do
@@ -40,13 +42,16 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     assert jewel.currency.icon_url == nil
   end
 
-  test "captures a real league observation that doesn't start at day 0 (Farrul in Affliction)" do
+  test "captures a real league observation that doesn't start at day 0 (Flesh of Xesht in Mirage)" do
     patterns = BundledHistoricalPatternReferenceGateway.find_all()
-    farrul = Enum.find(patterns, &(&1.currency.display_name == "Farrul, First of the Plains"))
-    affliction = Enum.find(farrul.league_observations, &(&1.league == "Affliction"))
+    flesh = Enum.find(patterns, &(&1.currency.display_name == "Flesh of Xesht"))
+    mirage = Enum.find(flesh.league_observations, &(&1.league == "Mirage"))
 
-    refute Enum.any?(affliction.day_prices, &(&1.day == 0))
-    assert Enum.any?(affliction.day_prices, &(&1.day == 5))
+    # Real poe.ninja data: this item's Mirage series has no real listing
+    # until day 31 (it presumably wasn't tradeable/priced before then) --
+    # not every league observation for every item starts at day 0.
+    refute Enum.any?(mirage.day_prices, &(&1.day == 0))
+    assert Enum.any?(mirage.day_prices, &(&1.day == 31))
   end
 
   test "normalize/1 maps raw JSON fields onto HistoricalPricePattern" do
@@ -84,7 +89,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     # which other modules happened to load first in the run. An explicit
     # map fixes it; this asserts every category the real bundled JSON
     # actually uses round-trips correctly regardless of load order.
-    for category <- ~w(currency cards essences beasts ancestor oils cluster_jewels) do
+    for category <- ~w(currency cards essences beasts ancestor oils cluster_jewels runegrafts) do
       raw = [%{"currencyName" => "Test Item", "category" => category, "leagueObservations" => []}]
       [pattern] = BundledHistoricalPatternReferenceGateway.normalize(raw)
       assert pattern.currency.category == String.to_atom(category)

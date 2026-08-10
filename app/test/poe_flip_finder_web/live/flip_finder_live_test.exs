@@ -557,10 +557,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   test "the Historical Investment tab shows day-relative candidates with icons, live price, and 4 horizons",
        %{conn: conn} do
-    # "Necropolis" and start_at=now (day 0) line up with real entries in
-    # priv/reference-data/historical-investment-patterns.json -- this
-    # deliberately exercises the real bundled gateway end to end, not a
-    # stub, per docs/ELIXIR_TEST_MANIFESTO.md's outside-in default.
+    # The selected/current league's own name/start_at is independent of
+    # which real HISTORICAL league (Ancestors/Mirage) backs each
+    # candidate's numbers -- "Necropolis" here is just this test's chosen
+    # name for the league the user is currently viewing, with start_at=now
+    # (day 0). This deliberately exercises the real bundled gateway end to
+    # end, not a stub, per docs/ELIXIR_TEST_MANIFESTO.md's outside-in default.
     insert_league!("Necropolis",
       is_current: true,
       start_at: DateTime.utc_now() |> DateTime.truncate(:second)
@@ -572,14 +574,15 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     html = view |> element("button.tab-button", "Historical Investment") |> render_click()
 
     assert html =~ "Day 0"
-    assert html =~ "Exalted Orb"
-    assert html =~ "Necropolis, day 0"
-    # Real Necropolis day-0 (3c), day-1 (9c), day-3 (14.72c), day-7/14 (10c each).
-    assert html =~ "+200%"
-    assert html =~ "+391%"
-    assert html =~ "+233%"
+    assert html =~ "Ancient Orb"
+    assert html =~ "Ancestors, day 0"
+    # Real Ancestors day-0 (2.45c), day-1 (3.51c), day-3 (3.7c), day-7 (4.28c), day-14 (3.56c).
+    assert html =~ "+43%"
+    assert html =~ "+51%"
+    assert html =~ "+75%"
+    assert html =~ "+45%"
     # An icon resolved from the real bundled Item Icons catalog by name.
-    assert html =~ "CurrencyAddModToRare.png"
+    assert html =~ "AncientOrb.png"
     # A trajectory sparkline (SVG), per docs/PRD.md § 7.14.
     assert html =~ "<svg" and html =~ "sparkline"
   end
@@ -593,12 +596,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     view |> element("button.tab-button", "Historical Investment") |> render_click()
 
-    assert render(view) =~ "Exalted Orb"
+    assert render(view) =~ "Ancient Orb"
 
     html =
       render_click(view, "toggle_category", %{"category" => "currency"})
 
-    refute html =~ "Exalted Orb"
+    refute html =~ "Ancient Orb"
     # A non-currency category (e.g. a Cluster Jewel) stays visible.
     assert html =~ "Cluster Jewel"
   end
@@ -613,26 +616,27 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     view |> element("button.tab-button", "Historical Investment") |> render_click()
 
     # Descending by default -- the best Next-day riser should render before a worse one.
-    # At day 0 in the bundled reference data, Exalted Orb's real day0->day1 move
-    # (3c -> 9c, +200%) beats the Fire Damage cluster jewel's (3.6c -> 10c, +177.8%).
+    # At day 0 in the bundled reference data, Ancient Orb's real day0->day1
+    # move (2.45c -> 3.51c, +43%) beats this Fire Damage cluster jewel's
+    # (4.15c -> 3.9c, -6%).
     #
     # Matched by exact candidate-name text (via Floki), not a raw HTML
     # substring search -- the dataset also contains "Eldritch Exalted Orb",
     # "Hunter's Exalted Orb", etc., which a bare `String.contains?`/
-    # `:binary.match` on "Exalted Orb" would collide with once the reference
-    # data grew past a handful of curated items.
-    fire_damage_name = "Large Cluster Jewel (8 passives, Lv50): 12% increased Fire Damage"
+    # `:binary.match` on "Ancient Orb"/"Orb" would collide with once the
+    # reference data grew past a handful of curated items.
+    fire_damage_name = "Large Cluster Jewel (8 passives, Lv68): 12% increased Fire Damage"
 
     html = render(view)
-    assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Exalted Orb")
+    assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Ancient Orb")
 
-    assert candidate_name_index(html, "Exalted Orb") <
+    assert candidate_name_index(html, "Ancient Orb") <
              candidate_name_index(html, fire_damage_name)
 
     flipped_html = view |> element(".historical-sort") |> render_click()
 
     assert candidate_name_index(flipped_html, fire_damage_name) <
-             candidate_name_index(flipped_html, "Exalted Orb")
+             candidate_name_index(flipped_html, "Ancient Orb")
   end
 
   # Exact candidate-name match (via Floki), not a raw HTML substring search --

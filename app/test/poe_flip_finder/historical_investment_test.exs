@@ -97,8 +97,9 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
 
   # `observations` is a list of {league_name, [{day, chaos}, ...]} tuples,
   # in most-recent-league-first order -- the same convention the real
-  # bundled reference data is authored in, per HistoricalInvestment's
-  # moduledoc ("last league" == List.first/1).
+  # bundled reference data is authored in. HistoricalInvestment tries
+  # each in that order and uses the first with real data at the current
+  # day (see its moduledoc).
   defp pattern(currency_name, category, observations) do
     %HistoricalPricePattern{
       currency: %Currency{
@@ -122,19 +123,19 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
   end
 
   describe "max_sampled_day/0" do
-    test "is the deepest real day in each pattern's LAST (most recent) league only" do
+    test "is the deepest real day across ALL of a pattern's league observations, not just the first" do
       StubHistoricalPatternReferenceGateway.stub([
         pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}]),
-        # Affliction (older, listed second) reaches day 20, but it isn't
-        # the last league for this pattern -- Necropolis's day 6 is what
-        # should count, per docs/PRD.md § 7.14's "last league" rule.
+        # Affliction (older, listed second) reaches day 20 -- with the
+        # fallback chain, that's real reachable depth for this pattern
+        # once Necropolis (day 6) runs out, so it counts too.
         pattern("Farrul, First of the Plains", :beasts, [
           {"Necropolis", [{0, 1}, {6, 2}]},
           {"Affliction", [{0, 1}, {20, 5}]}
         ])
       ])
 
-      assert HistoricalInvestment.max_sampled_day() == 6
+      assert HistoricalInvestment.max_sampled_day() == 20
     end
 
     test "is nil when there are no patterns at all" do
@@ -259,7 +260,7 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
       assert candidate.horizons.week_2 == nil
     end
 
-    test "excludes a pattern whose LAST league has no price at today, even if an older league does" do
+    test "falls back to an older league when the most recent one has no price at today" do
       StubClock.stub(~U[2026-08-09 00:00:00Z])
       league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
 
@@ -267,6 +268,28 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         pattern("Exalted Orb", :currency, [
           {"Necropolis", [{5, 20}, {6, 25}]},
           {"Affliction", [{0, 3}, {1, 9}]}
+        ])
+      ])
+
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
+
+      # Necropolis (most recent) has no day-0 price, so the whole candidate
+      # -- today's price AND every horizon -- falls back to Affliction
+      # instead. Never a blend of the two leagues within one candidate.
+      assert candidate.league == "Affliction"
+      assert candidate.today_day == 0
+      assert candidate.today_chaos == 3.0
+      assert candidate.horizons.day_1 == %{days: 1, chaos: 9.0, gain_pct: 200.0}
+    end
+
+    test "excludes a pattern with no price at today in ANY of its league observations" do
+      StubClock.stub(~U[2026-08-09 00:00:00Z])
+      league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
+
+      StubHistoricalPatternReferenceGateway.stub([
+        pattern("Exalted Orb", :currency, [
+          {"Necropolis", [{5, 20}, {6, 25}]},
+          {"Affliction", [{5, 3}, {6, 9}]}
         ])
       ])
 

@@ -92,7 +92,8 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
     "beasts" => :beasts,
     "ancestor" => :ancestor,
     "oils" => :oils,
-    "cluster_jewels" => :cluster_jewels
+    "cluster_jewels" => :cluster_jewels,
+    "runegrafts" => :runegrafts
   }
 
   defp to_category(raw_category) do

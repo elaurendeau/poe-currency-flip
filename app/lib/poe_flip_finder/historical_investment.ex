@@ -7,13 +7,18 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   cross-league averaging or "best of" cherry-picking).
 
   `HistoricalPricePattern.league_observations` is authored
-  most-recent-league-first (verified: every entry in the bundled
-  reference data has its newest sampled league at index 0) -- this
-  context always reads `List.first/1` as "the last league" a candidate's
-  numbers and trajectory graph are keyed to. A pattern whose last league
-  has no real price at the current day doesn't fall back to an older
-  league; it's simply excluded, so every displayed number stays traceable
-  to one real, named league.
+  most-recent-league-first. For each pattern, this context tries every
+  observation in that order and uses the first one with a real price at
+  the current day -- so a candidate's numbers and trajectory graph are
+  always keyed to exactly ONE named league (never a blend of two), but
+  it's whichever real league actually has data at the current day, not
+  unconditionally the newest one. This matters in practice: the bundled
+  data pairs a short, recent league (shallow but economically current)
+  with a full-length older one (deep but a patch or two stale) per
+  docs/DATA_SOURCES.md, so the short league backs early-league days and
+  the long one takes over once the short league's real data runs out.
+  A pattern with no data at the current day in ANY of its observations
+  is excluded entirely, rather than guessed at.
 
   Where the pattern's category is one this app's own Currency Exchange
   ingestion already tracks, today's real live price is resolved from the
@@ -50,22 +55,20 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   def list_patterns, do: historical_pattern_reference_gateway().find_all()
 
   @doc """
-  The deepest league-day the *last* (most recent) sampled league has a
-  real price for, across every curated pattern -- an inherent scope
+  The deepest league-day *any* sampled observation (across every league,
+  every curated pattern) has a real price for -- an inherent scope
   boundary, not a configurable setting: a league this many days old or
-  older will never find a "today" price to build a candidate from, no
-  matter how many patterns exist. Used to make that boundary explicit in
-  the UI rather than let an empty result read as "nothing is worth
-  buying." `nil` only if the reference data is completely empty.
+  older will never find a "today" price to build a candidate from
+  (via any fallback), no matter how many patterns exist. Used to make
+  that boundary explicit in the UI rather than let an empty result read
+  as "nothing is worth buying." `nil` only if the reference data is
+  completely empty.
   """
   @spec max_sampled_day() :: non_neg_integer() | nil
   def max_sampled_day do
     list_patterns()
     |> Enum.flat_map(fn pattern ->
-      case List.first(pattern.league_observations) do
-        nil -> []
-        observation -> observation.day_prices
-      end
+      Enum.flat_map(pattern.league_observations, & &1.day_prices)
     end)
     |> Enum.map(& &1.day)
     |> Enum.max(fn -> nil end)
@@ -144,7 +147,8 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   end
 
   defp build_candidate(%HistoricalPricePattern{} = pattern, day, snapshots, rate) do
-    with observation when not is_nil(observation) <- List.first(pattern.league_observations),
+    with observation when not is_nil(observation) <-
+           find_observation_with_day(pattern.league_observations, day),
          %{chaos: today_chaos} <- find_day(observation, day) do
       %{
         pattern: pattern,
@@ -158,6 +162,12 @@ defmodule PoeFlipFinder.HistoricalInvestment do
     else
       _ -> nil
     end
+  end
+
+  # Most-recent-first fallback: the whole candidate (horizons + trajectory)
+  # is keyed to whichever single observation is picked here, never a blend.
+  defp find_observation_with_day(observations, day) do
+    Enum.find(observations, &find_day(&1, day))
   end
 
   defp build_horizons(observation, today_day, today_chaos) do
