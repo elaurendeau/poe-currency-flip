@@ -130,24 +130,6 @@
 
         <%= if @active_tab == :historical do %>
           <div class="historical-investment">
-            <div class="amount-row">
-              <label for="investment-amount">Investment amount</label>
-              <form phx-change="set_investment_amount" phx-submit="set_investment_amount">
-                <input
-                  id="investment-amount"
-                  class="ratio-calculator-input"
-                  type="number"
-                  step="any"
-                  value={@investment_amount}
-                  phx-debounce="150"
-                  name="value"
-                />
-              </form>
-              <span class="hint">
-                not scoped to {@selected_league.display_name} specifically — forward-looking evidence for any league start
-              </span>
-            </div>
-
             <div :if={@selected_league} class="league-elapsed-badge">
               {@selected_league.display_name} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_elapsed_badge(
                 @league_elapsed
@@ -165,64 +147,95 @@
                 <p class="flip-table-message">
                   No sampled league has real evidence this many days into a league — the current sample only tracks the first {@max_sampled_day} days, so Historical Investment can't say anything useful this far in yet. This isn't a signal that nothing is worth buying, just a gap in the sample.
                 </p>
-              <% {:ok, candidates} -> %>
+              <% {:ok, raw_candidates} -> %>
+                <% candidates =
+                  PoeFlipFinder.HistoricalInvestmentPresenter.build_display_list(
+                    raw_candidates,
+                    %{
+                      enabled_categories: @enabled_categories,
+                      sort_direction: @historical_sort_direction
+                    }
+                  ) %>
+                <div class="grid historical-grid header-row">
+                  <span></span>
+                  <span>Item</span>
+                  <span>Live</span>
+                  <span
+                    class="col-label active historical-sort"
+                    phx-click="toggle_historical_sort"
+                  >
+                    Next day <.sort_arrow_icon direction={@historical_sort_direction} />
+                  </span>
+                  <span>Next 3 days</span>
+                  <span>Next week</span>
+                  <span>Next 2 weeks</span>
+                  <span>Trajectory</span>
+                </div>
                 <div class="historical-candidates">
-                  <div :for={candidate <- candidates} class="historical-candidate">
-                    <div class="candidate-head">
+                  <div :for={candidate <- candidates} class="grid historical-row">
+                    <.currency_icon amount={%{currency: candidate.pattern.currency}} />
+                    <div class="historical-name">
                       <span class="candidate-name">
                         {candidate.pattern.currency.display_name}
                       </span>
-                      <span class="candidate-confidence">
-                        {candidate.confidence_rising} of {candidate.confidence_total} sampled leagues rose
+                      <span class="candidate-league">
+                        {candidate.league}, day {candidate.today_day} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
+                          candidate.today_chaos
+                        )} today
                       </span>
-                      <span class="candidate-live">
-                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_live_price(
-                          candidate.live_price
+                    </div>
+                    <div class="historical-live">
+                      {PoeFlipFinder.HistoricalInvestmentPresenter.format_live_price(
+                        candidate.live_price
+                      )}
+                    </div>
+                    <div
+                      :for={horizon_key <- [:day_1, :day_3, :week_1, :week_2]}
+                      class="historical-horizon"
+                    >
+                      <span class="historical-horizon-chaos">
+                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_horizon_chaos(
+                          candidate.horizons[horizon_key]
+                        )}
+                      </span>
+                      <span class={[
+                        "historical-horizon-gain",
+                        horizon_gain_class(candidate.horizons[horizon_key])
+                      ]}>
+                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_horizon_gain(
+                          candidate.horizons[horizon_key]
                         )}
                       </span>
                     </div>
-                    <table class="evidence-table">
-                      <thead>
-                        <tr>
-                          <th>League</th>
-                          <th>Today</th>
-                          <th>Units</th>
-                          <th>Next day</th>
-                          <th>Gain</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr :for={ev <- candidate.league_evidence}>
-                          <td class="league-name">{ev.league}</td>
-                          <td>
-                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
-                              ev.day_chaos
-                            )}
-                          </td>
-                          <td>
-                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_units(ev.units)}
-                          </td>
-                          <td class={if ev.affordable, do: "up"}>
-                            <%= if ev.affordable do %>
-                              {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
-                                ev.projected_value_chaos
-                              )}
-                            <% else %>
-                              —
-                            <% end %>
-                          </td>
-                          <td class={if ev.gain_pct >= 0, do: "up", else: "down"}>
-                            {PoeFlipFinder.HistoricalInvestmentPresenter.format_gain_pct(
-                              ev.gain_pct
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <% spark =
+                      PoeFlipFinder.HistoricalInvestmentPresenter.sparkline(
+                        candidate.trajectory,
+                        candidate.today_day
+                      ) %>
+                    <svg
+                      :if={spark}
+                      viewBox={"0 0 #{spark.width} #{spark.height}"}
+                      class="sparkline"
+                      preserveAspectRatio="none"
+                    >
+                      <polyline
+                        points={spark.points_attr}
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+                      <circle
+                        :if={spark.marker}
+                        cx={spark.marker.x}
+                        cy={spark.marker.y}
+                        r="2"
+                        class="sparkline-marker"
+                      />
+                    </svg>
                   </div>
                 </div>
                 <p class="caveat">
-                  These are historical patterns, not predictions — an item that rose in one sampled league can be flat or fall in another (see the per-league breakdown above), and GGG's own rebalancing means next league can behave differently from every league sampled here.
+                  Each row is real evidence from one named past league (shown under the item's name), not a prediction — GGG's own rebalancing means the current league can behave differently from every league sampled here.
                 </p>
             <% end %>
           </div>

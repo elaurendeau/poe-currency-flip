@@ -95,6 +95,10 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
     }
   end
 
+  # `observations` is a list of {league_name, [{day, chaos}, ...]} tuples,
+  # in most-recent-league-first order -- the same convention the real
+  # bundled reference data is authored in, per HistoricalInvestment's
+  # moduledoc ("last league" == List.first/1).
   defp pattern(currency_name, category, observations) do
     %HistoricalPricePattern{
       currency: %Currency{
@@ -104,7 +108,8 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
         icon_url: nil,
         category: category
       },
-      league_observations: observations
+      league_observations:
+        Enum.map(observations, fn {league, days} -> observation(league, days) end)
     }
   end
 
@@ -117,15 +122,19 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
   end
 
   describe "max_sampled_day/0" do
-    test "is the deepest real day across every league observation, not just the first pattern" do
+    test "is the deepest real day in each pattern's LAST (most recent) league only" do
       StubHistoricalPatternReferenceGateway.stub([
-        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])]),
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}]),
+        # Affliction (older, listed second) reaches day 20, but it isn't
+        # the last league for this pattern -- Necropolis's day 6 is what
+        # should count, per docs/PRD.md § 7.14's "last league" rule.
         pattern("Farrul, First of the Plains", :beasts, [
-          observation("Affliction", [{5, 68.8}, {6, 65}, {9, 39}])
+          {"Necropolis", [{0, 1}, {6, 2}]},
+          {"Affliction", [{0, 1}, {20, 5}]}
         ])
       ])
 
-      assert HistoricalInvestment.max_sampled_day() == 9
+      assert HistoricalInvestment.max_sampled_day() == 6
     end
 
     test "is nil when there are no patterns at all" do
@@ -207,107 +216,128 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
     end
   end
 
-  describe "compute_candidates/2" do
-    test "ranks by best observed gain %, using only real day/day+1 evidence" do
+  describe "compute_candidates/1" do
+    test "builds a candidate from the LAST league only, with all four horizons" do
       StubClock.stub(~U[2026-08-09 00:00:00Z])
       league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
 
       StubHistoricalPatternReferenceGateway.stub([
         pattern("Exalted Orb", :currency, [
-          observation("Necropolis", [{0, 3}, {1, 9}, {2, 10.74}])
-        ]),
-        pattern("Chromatic Orb", :currency, [
-          observation("Necropolis", [{0, 0.09}, {1, 0.17}, {2, 0.17}])
+          {"Necropolis", [{0, 3}, {1, 9}, {3, 15}, {7, 30}, {14, 60}]}
         ])
       ])
 
-      {:ok, [top, second]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
-      assert top.pattern.currency.display_name == "Exalted Orb"
-      [evidence] = top.league_evidence
-      assert evidence.day_chaos == 3.0
-      assert evidence.next_day_chaos == 9.0
-      assert_in_delta evidence.gain_pct, 200.0, 0.001
-      assert evidence.units == 13
-      assert evidence.affordable == true
-      assert_in_delta evidence.projected_value_chaos, 117.0, 0.001
+      assert candidate.league == "Necropolis"
+      assert candidate.today_day == 0
+      assert candidate.today_chaos == 3.0
 
-      assert second.pattern.currency.display_name == "Chromatic Orb"
+      assert candidate.horizons.day_1 == %{days: 1, chaos: 9.0, gain_pct: 200.0}
+      assert candidate.horizons.day_3 == %{days: 3, chaos: 15.0, gain_pct: 400.0}
+      assert candidate.horizons.week_1 == %{days: 7, chaos: 30.0, gain_pct: 900.0}
+      assert candidate.horizons.week_2 == %{days: 14, chaos: 60.0, gain_pct: 1900.0}
+
+      assert candidate.trajectory ==
+               observation("Necropolis", [{0, 3}, {1, 9}, {3, 15}, {7, 30}, {14, 60}]).day_prices
     end
 
-    test "excludes a pattern with no league observation covering both the current day and the next" do
-      StubClock.stub(~U[2026-08-15 00:00:00Z])
-      # Day 6 -- the fixture data below only reaches day 2.
+    test "a horizon with no real data at that offset is nil, never fabricated" do
+      StubClock.stub(~U[2026-08-09 00:00:00Z])
+      league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
+
+      StubHistoricalPatternReferenceGateway.stub([
+        # Only reaches day 3 -- week_1/week_2 have nothing to report.
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}, {3, 15}]}])
+      ])
+
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
+
+      assert candidate.horizons.day_1 != nil
+      assert candidate.horizons.day_3 != nil
+      assert candidate.horizons.week_1 == nil
+      assert candidate.horizons.week_2 == nil
+    end
+
+    test "excludes a pattern whose LAST league has no price at today, even if an older league does" do
+      StubClock.stub(~U[2026-08-09 00:00:00Z])
       league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
 
       StubHistoricalPatternReferenceGateway.stub([
         pattern("Exalted Orb", :currency, [
-          observation("Necropolis", [{0, 3}, {1, 9}, {2, 10.74}])
+          {"Necropolis", [{5, 20}, {6, 25}]},
+          {"Affliction", [{0, 3}, {1, 9}]}
         ])
       ])
 
-      {:ok, candidates} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, candidates} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
       assert candidates == []
-    end
-
-    test "an amount that can't afford even 1 unit still shows as evidence, just not affordable" do
-      StubClock.stub(~U[2026-08-09 00:00:00Z])
-      league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
-
-      StubHistoricalPatternReferenceGateway.stub([
-        pattern("Awakener's Orb", :currency, [
-          observation("Necropolis", [{0, 61.6}, {1, 97.2}])
-        ])
-      ])
-
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
-
-      [evidence] = candidate.league_evidence
-
-      assert evidence.units == 0
-      assert evidence.affordable == false
-      assert evidence.projected_value_chaos == nil
-      # gain_pct is still real, known evidence even though it's unaffordable right now.
-      assert_in_delta evidence.gain_pct, 57.79, 0.01
-    end
-
-    test "confidence counts how many sampled leagues have evidence, and how many actually rose" do
-      StubClock.stub(~U[2026-08-09 00:00:00Z])
-      league_schema = insert_league!("Ancestor", ~U[2026-08-09 00:00:00Z])
-
-      StubHistoricalPatternReferenceGateway.stub([
-        pattern("Orb of Annulment", :currency, [
-          observation("Necropolis", [{0, 3}, {1, 4}]),
-          observation("Affliction", [{0, 2.7}, {1, 5}]),
-          observation("Ancestor", [{0, 8.8}, {1, 6}])
-        ])
-      ])
-
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
-
-      assert candidate.confidence_total == 3
-      # Ancestor's own observation dropped (8.8 -> 6), so only 2 of the 3 rose.
-      assert candidate.confidence_rising == 2
     end
 
     test "is :unknown_league_start when the selected league's start_at was never captured" do
       league_schema = insert_league!("Private League", nil)
 
       StubHistoricalPatternReferenceGateway.stub([
-        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}])
       ])
 
-      assert HistoricalInvestment.compute_candidates(league_entity(league_schema), 40) ==
+      assert HistoricalInvestment.compute_candidates(league_entity(league_schema)) ==
                :unknown_league_start
     end
   end
 
-  describe "compute_candidates/2 live price cross-check" do
+  describe "sort_by_horizon/3" do
+    # `chaos` is deliberately given the OPPOSITE ordering from `gain_pct`
+    # in these fixtures -- if sort_by_horizon/3 ever regresses back to
+    # ranking by raw chaos value (a real bug found via manual verification:
+    # a 60,000c Mirror of Kalandra sorted first purely because it's an
+    # expensive item, not because it was actually rising), these tests
+    # would fail instead of silently passing on a coincidence.
+    defp candidate_with_day_1(name, gain_pct_or_nil) do
+      horizons =
+        case gain_pct_or_nil do
+          nil -> %{day_1: nil}
+          gain_pct -> %{day_1: %{days: 1, chaos: 1000.0 - gain_pct, gain_pct: gain_pct}}
+        end
+
+      %{pattern: pattern(name, :currency, [{"Necropolis", [{0, 1}]}]), horizons: horizons}
+    end
+
+    test "sorts by gain %, not raw chaos value, descending by default" do
+      candidates = [
+        candidate_with_day_1("Low", 10.0),
+        candidate_with_day_1("High", 100.0),
+        candidate_with_day_1("Mid", 50.0)
+      ]
+
+      sorted = HistoricalInvestment.sort_by_horizon(candidates, :day_1)
+      assert Enum.map(sorted, & &1.pattern.currency.display_name) == ["High", "Mid", "Low"]
+    end
+
+    test "ascending flips the order" do
+      candidates = [candidate_with_day_1("Low", 10.0), candidate_with_day_1("High", 100.0)]
+
+      sorted = HistoricalInvestment.sort_by_horizon(candidates, :day_1, :asc)
+      assert Enum.map(sorted, & &1.pattern.currency.display_name) == ["Low", "High"]
+    end
+
+    test "a candidate with no data at that horizon sorts last, in either direction" do
+      candidates = [
+        candidate_with_day_1("NoData", nil),
+        candidate_with_day_1("High", 100.0),
+        candidate_with_day_1("Low", 10.0)
+      ]
+
+      assert HistoricalInvestment.sort_by_horizon(candidates, :day_1, :desc)
+             |> Enum.map(& &1.pattern.currency.display_name) == ["High", "Low", "NoData"]
+
+      assert HistoricalInvestment.sort_by_horizon(candidates, :day_1, :asc)
+             |> Enum.map(& &1.pattern.currency.display_name) == ["Low", "High", "NoData"]
+    end
+  end
+
+  describe "compute_candidates/1 live price cross-check" do
     test "resolves today's real live chaos price when the item is actively trading" do
       StubClock.stub(~U[2026-08-09 00:00:00Z])
       league_schema = insert_league!("Necropolis", ~U[2026-08-09 00:00:00Z])
@@ -328,11 +358,10 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
       activate_generation!(1)
 
       StubHistoricalPatternReferenceGateway.stub([
-        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}])
       ])
 
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
       # (1/4 + 1/3) / 2 = 0.2917 chaos per Exalted Orb at the quoted extremes.
       assert {:ok, live_price} = candidate.live_price
@@ -345,16 +374,15 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
       activate_generation!(1)
 
       StubHistoricalPatternReferenceGateway.stub([
-        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}])
       ])
 
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
       assert candidate.live_price == :not_traded_this_refresh
     end
 
-    test "a snapshot with a zero ratio is skipped, not a crash", %{} do
+    test "a snapshot with a zero ratio is skipped, not a crash" do
       # Regression test: a real Allflame market snapshot with a zero ratio
       # on one side crashed the whole LiveView process with an
       # ArithmeticError (division by zero) during manual verification --
@@ -378,11 +406,10 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
       activate_generation!(1)
 
       StubHistoricalPatternReferenceGateway.stub([
-        pattern("Exalted Orb", :currency, [observation("Necropolis", [{0, 3}, {1, 9}])])
+        pattern("Exalted Orb", :currency, [{"Necropolis", [{0, 3}, {1, 9}]}])
       ])
 
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
       assert candidate.live_price == :not_traded_this_refresh
     end
@@ -394,12 +421,11 @@ defmodule PoeFlipFinder.HistoricalInvestmentTest do
 
       StubHistoricalPatternReferenceGateway.stub([
         pattern("Large Cluster Jewel: 12% increased Fire Damage", :cluster_jewels, [
-          observation("Necropolis", [{0, 2.2}, {1, 10}])
+          {"Necropolis", [{0, 2.2}, {1, 10}]}
         ])
       ])
 
-      {:ok, [candidate]} =
-        HistoricalInvestment.compute_candidates(league_entity(league_schema), 40)
+      {:ok, [candidate]} = HistoricalInvestment.compute_candidates(league_entity(league_schema))
 
       assert candidate.live_price == :no_live_market
     end

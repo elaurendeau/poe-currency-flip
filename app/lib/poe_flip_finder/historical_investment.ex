@@ -1,45 +1,48 @@
 defmodule PoeFlipFinder.HistoricalInvestment do
   @moduledoc """
-  Answers "which of the sampled historical patterns has real evidence for
-  what happens next, starting from where the selected league actually is
-  right now" -- docs/PRD.md § 7.14 Feature N.
+  Ranks historical patterns by what their most-recently-sampled league did
+  next from wherever the selected league currently is -- 1 day, 3 days, 1
+  week, and 2 weeks out, per docs/PRD.md § 7.14. Every number is a real
+  poe-antiquary observation from that one league (no interpolation, no
+  cross-league averaging or "best of" cherry-picking).
 
-  Deliberately day-relative and evidence-only: every number is a real
-  poe-antiquary observation (no interpolation), and a pattern only appears
-  when at least one sampled league has a real price at both the current
-  league-day and the day after it. Where the pattern's category is one
-  this app's own Currency Exchange ingestion already tracks, today's real
-  live price is resolved from the same `exchange_market_snapshot` data
-  Features A/B/C/E already read -- no new external dependency for that
-  half.
+  `HistoricalPricePattern.league_observations` is authored
+  most-recent-league-first (verified: every entry in the bundled
+  reference data has its newest sampled league at index 0) -- this
+  context always reads `List.first/1` as "the last league" a candidate's
+  numbers and trajectory graph are keyed to. A pattern whose last league
+  has no real price at the current day doesn't fall back to an older
+  league; it's simply excluded, so every displayed number stays traceable
+  to one real, named league.
+
+  Where the pattern's category is one this app's own Currency Exchange
+  ingestion already tracks, today's real live price is resolved from the
+  same `exchange_market_snapshot` data Features A/B/C/E already read --
+  no new external dependency for that half.
   """
 
   alias PoeFlipFinder.{BaseCurrencyIds, Currency, DivineChaosRate, HistoricalPricePattern, League}
-  alias PoeFlipFinder.HistoricalPricePattern.LeagueObservation
+  alias PoeFlipFinder.HistoricalPricePattern.{DayPrice, LeagueObservation}
 
   # Categories poe-antiquary has real data for but that never trade on the
   # Currency Exchange (docs/DATA_SOURCES.md § Historical League Price
   # Archive) -- a live cross-check is never attempted for these.
   @historical_only_categories [:cluster_jewels]
 
-  @type league_evidence :: %{
-          league: String.t(),
-          day_chaos: float(),
-          next_day_chaos: float(),
-          gain_pct: float(),
-          units: non_neg_integer(),
-          affordable: boolean(),
-          projected_value_chaos: float() | nil
-        }
+  # {assign key, days out}. Order here is display/sort order, per docs/PRD.md § 7.14.
+  @horizons [day_1: 1, day_3: 3, week_1: 7, week_2: 14]
 
+  @type horizon_key :: :day_1 | :day_3 | :week_1 | :week_2
+  @type horizon_value :: %{days: pos_integer(), chaos: float(), gain_pct: float()}
   @type live_price :: {:ok, float()} | :no_live_market | :not_traded_this_refresh
 
   @type candidate :: %{
           pattern: HistoricalPricePattern.t(),
-          league_evidence: [league_evidence()],
-          confidence_total: pos_integer(),
-          confidence_rising: non_neg_integer(),
-          best_gain_pct: float(),
+          league: String.t(),
+          today_day: non_neg_integer(),
+          today_chaos: float(),
+          horizons: %{horizon_key() => horizon_value() | nil},
+          trajectory: [DayPrice.t()],
           live_price: live_price()
         }
 
@@ -47,19 +50,23 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   def list_patterns, do: historical_pattern_reference_gateway().find_all()
 
   @doc """
-  The deepest league-day any sampled league has a real price for, across
-  every curated pattern. This is an inherent scope boundary, not a
-  configurable setting: a league this many days old or older will never
-  find day/day+1 evidence, no matter how many candidates exist, since the
-  sample simply doesn't reach that far yet. Used to make that boundary
-  explicit in the UI rather than let it read as "nothing is worth buying."
-  `nil` only if the reference data is completely empty.
+  The deepest league-day the *last* (most recent) sampled league has a
+  real price for, across every curated pattern -- an inherent scope
+  boundary, not a configurable setting: a league this many days old or
+  older will never find a "today" price to build a candidate from, no
+  matter how many patterns exist. Used to make that boundary explicit in
+  the UI rather than let an empty result read as "nothing is worth
+  buying." `nil` only if the reference data is completely empty.
   """
   @spec max_sampled_day() :: non_neg_integer() | nil
   def max_sampled_day do
     list_patterns()
-    |> Enum.flat_map(& &1.league_observations)
-    |> Enum.flat_map(& &1.day_prices)
+    |> Enum.flat_map(fn pattern ->
+      case List.first(pattern.league_observations) do
+        nil -> []
+        observation -> observation.day_prices
+      end
+    end)
     |> Enum.map(& &1.day)
     |> Enum.max(fn -> nil end)
   end
@@ -94,15 +101,13 @@ defmodule PoeFlipFinder.HistoricalInvestment do
   end
 
   @doc """
-  Ranked candidates for `league` at `investment_amount` Chaos, evaluated
-  as of whatever day of `league` it currently is. `:unknown_league_start`
+  Candidates for `league`, evaluated as of whatever day of `league` it
+  currently is, unsorted (see `sort_by_horizon/3`). `:unknown_league_start`
   when `league.start_at` hasn't been captured -- the caller decides how to
   render that, this never falls back to a guessed day.
   """
-  @spec compute_candidates(League.t(), number()) ::
-          {:ok, [candidate()]} | :unknown_league_start
-  def compute_candidates(%League{} = league, investment_amount)
-      when is_number(investment_amount) and investment_amount > 0 do
+  @spec compute_candidates(League.t()) :: {:ok, [candidate()]} | :unknown_league_start
+  def compute_candidates(%League{} = league) do
     case current_league_day(league) do
       :unknown ->
         :unknown_league_start
@@ -113,55 +118,61 @@ defmodule PoeFlipFinder.HistoricalInvestment do
 
         candidates =
           list_patterns()
-          |> Enum.map(&build_candidate(&1, day, investment_amount, snapshots, rate))
-          |> Enum.filter(&(&1.league_evidence != []))
-          |> Enum.sort_by(& &1.best_gain_pct, :desc)
+          |> Enum.map(&build_candidate(&1, day, snapshots, rate))
+          |> Enum.reject(&is_nil/1)
 
         {:ok, candidates}
     end
   end
 
-  defp build_candidate(
-         %HistoricalPricePattern{} = pattern,
-         day,
-         investment_amount,
-         snapshots,
-         rate
-       ) do
-    evidence =
-      pattern.league_observations
-      |> Enum.map(&evidence_for_day(&1, day, investment_amount))
-      |> Enum.reject(&is_nil/1)
+  @doc """
+  Sorts `candidates` by their value at `horizon_key` (e.g. `:day_1`),
+  descending by default (biggest riser first). Ranks by that horizon's
+  `gain_pct`, not its raw `chaos` value -- a candidate's absolute chaos
+  price is a function of the item's own denomination (a Mirror of
+  Kalandra "moving" 5% is still a bigger number than a whole Chaos Orb),
+  not of whether it's actually worth watching. Candidates with no real
+  data at that horizon sort after every candidate that has some, in
+  either direction -- "unknown" is never treated as "worst."
+  """
+  @spec sort_by_horizon([candidate()], horizon_key(), :asc | :desc) :: [candidate()]
+  def sort_by_horizon(candidates, horizon_key, direction \\ :desc) do
+    {with_value, without_value} =
+      Enum.split_with(candidates, &(!is_nil(&1.horizons[horizon_key])))
 
-    %{
-      pattern: pattern,
-      league_evidence: evidence,
-      confidence_total: length(evidence),
-      confidence_rising: Enum.count(evidence, &(&1.gain_pct > 0)),
-      best_gain_pct: evidence |> Enum.map(& &1.gain_pct) |> Enum.max(fn -> 0.0 end),
-      live_price: resolve_live_price(pattern.currency, snapshots, rate)
-    }
+    Enum.sort_by(with_value, & &1.horizons[horizon_key].gain_pct, direction) ++ without_value
   end
 
-  # nil when this league observation has no real price at both `day` and
-  # `day + 1` -- never interpolated, never a stale nearby day standing in.
-  defp evidence_for_day(%LeagueObservation{} = observation, day, investment_amount) do
-    with %{chaos: day_chaos} <- find_day(observation, day),
-         %{chaos: next_day_chaos} <- find_day(observation, day + 1) do
-      units = trunc(investment_amount / day_chaos)
-
+  defp build_candidate(%HistoricalPricePattern{} = pattern, day, snapshots, rate) do
+    with observation when not is_nil(observation) <- List.first(pattern.league_observations),
+         %{chaos: today_chaos} <- find_day(observation, day) do
       %{
+        pattern: pattern,
         league: observation.league,
-        day_chaos: day_chaos,
-        next_day_chaos: next_day_chaos,
-        gain_pct: (next_day_chaos - day_chaos) / day_chaos * 100,
-        units: units,
-        affordable: units > 0,
-        projected_value_chaos: if(units > 0, do: units * next_day_chaos, else: nil)
+        today_day: day,
+        today_chaos: today_chaos,
+        horizons: build_horizons(observation, day, today_chaos),
+        trajectory: observation.day_prices,
+        live_price: resolve_live_price(pattern.currency, snapshots, rate)
       }
     else
-      nil -> nil
+      _ -> nil
     end
+  end
+
+  defp build_horizons(observation, today_day, today_chaos) do
+    Map.new(@horizons, fn {key, offset} ->
+      value =
+        case find_day(observation, today_day + offset) do
+          nil ->
+            nil
+
+          %{chaos: chaos} ->
+            %{days: offset, chaos: chaos, gain_pct: (chaos - today_chaos) / today_chaos * 100}
+        end
+
+      {key, value}
+    end)
   end
 
   defp find_day(%LeagueObservation{day_prices: day_prices}, day) do

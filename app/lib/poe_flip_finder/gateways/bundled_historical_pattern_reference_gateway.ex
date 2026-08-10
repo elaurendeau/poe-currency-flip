@@ -16,6 +16,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   @behaviour PoeFlipFinder.HistoricalPatternReferenceGateway
 
   alias PoeFlipFinder.{Currency, HistoricalPricePattern}
+  alias PoeFlipFinder.Gateways.IconByDisplayNameResolver
   alias PoeFlipFinder.HistoricalPricePattern.{DayPrice, LeagueObservation}
 
   @catalog_resource_path "reference-data/historical-investment-patterns.json"
@@ -70,8 +71,32 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
       id: nil,
       external_id: nil,
       display_name: name,
-      icon_url: nil,
-      category: String.to_existing_atom(raw_category)
+      icon_url: IconByDisplayNameResolver.resolve(name),
+      category: to_category(raw_category)
     }
+  end
+
+  # Deliberately NOT String.to_existing_atom/1: whether ":cards" (etc.) is
+  # already interned depends on which other modules happened to load
+  # first in the current run -- confirmed to raise a real
+  # ArgumentError ("not an already existing atom") when this gateway's
+  # own test file runs in isolation, since nothing had referenced that
+  # atom yet. An explicit map is immune to load order and, per
+  # docs/CODE_STYLE.md's error-handling section, fails loudly with a
+  # specific error on a genuinely unrecognized category rather than
+  # crashing on an unrelated-looking ArgumentError.
+  @known_categories %{
+    "currency" => :currency,
+    "cards" => :cards,
+    "essences" => :essences,
+    "beasts" => :beasts,
+    "ancestor" => :ancestor,
+    "oils" => :oils,
+    "cluster_jewels" => :cluster_jewels
+  }
+
+  defp to_category(raw_category) do
+    Map.get(@known_categories, raw_category) ||
+      raise ArgumentError, "unrecognized Historical Investment category: #{inspect(raw_category)}"
   end
 end

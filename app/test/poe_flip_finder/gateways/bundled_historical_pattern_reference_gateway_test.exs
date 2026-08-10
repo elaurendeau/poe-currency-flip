@@ -20,6 +20,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     assert exalted.currency.external_id == nil
     assert exalted.currency.category == :currency
     assert length(exalted.league_observations) == 4
+    assert exalted.currency.icon_url =~ "CurrencyAddModToRare.png"
 
     necropolis = Enum.find(exalted.league_observations, &(&1.league == "Necropolis"))
     day0 = Enum.find(necropolis.day_prices, &(&1.day == 0))
@@ -33,6 +34,10 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     jewel = Enum.find(patterns, &(&1.currency.display_name =~ "Cluster Jewel"))
 
     assert jewel.currency.category == :cluster_jewels
+    # Cluster Jewels never trade on the Currency Exchange, so GGG's own
+    # Item Icons catalog has no entry for them at all -- nil is the
+    # correct, honest result here, not a resolution bug.
+    assert jewel.currency.icon_url == nil
   end
 
   test "captures a real league observation that doesn't start at day 0 (Farrul in Affliction)" do
@@ -69,5 +74,34 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     assert day0.chaos == 0.09
     assert day1.day == 1
     assert day1.chaos == 0.17
+  end
+
+  test "normalize/1 maps every real category string used in the bundled data, not just :currency" do
+    # Regression test: category parsing originally used
+    # String.to_existing_atom/1, which raised a real ArgumentError ("not
+    # an already existing atom") when this exact test file ran in
+    # isolation -- whether e.g. :cards was already interned depended on
+    # which other modules happened to load first in the run. An explicit
+    # map fixes it; this asserts every category the real bundled JSON
+    # actually uses round-trips correctly regardless of load order.
+    for category <- ~w(currency cards essences beasts ancestor oils cluster_jewels) do
+      raw = [%{"currencyName" => "Test Item", "category" => category, "leagueObservations" => []}]
+      [pattern] = BundledHistoricalPatternReferenceGateway.normalize(raw)
+      assert pattern.currency.category == String.to_atom(category)
+    end
+  end
+
+  test "normalize/1 raises a specific, loud error on an unrecognized category" do
+    raw = [
+      %{
+        "currencyName" => "Mystery Item",
+        "category" => "not_a_real_category",
+        "leagueObservations" => []
+      }
+    ]
+
+    assert_raise ArgumentError, ~r/unrecognized Historical Investment category/, fn ->
+      BundledHistoricalPatternReferenceGateway.normalize(raw)
+    end
   end
 end

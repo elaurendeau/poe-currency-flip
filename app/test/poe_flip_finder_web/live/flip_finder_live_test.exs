@@ -555,7 +555,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert render(view) =~ ~s(data-route-key="vendor_recipe|)
   end
 
-  test "the Historical Investment tab shows day-relative ranked candidates from the real bundled data",
+  test "the Historical Investment tab shows day-relative candidates with icons, live price, and 4 horizons",
        %{conn: conn} do
     # "Necropolis" and start_at=now (day 0) line up with real entries in
     # priv/reference-data/historical-investment-patterns.json -- this
@@ -573,18 +573,18 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     assert html =~ "Day 0"
     assert html =~ "Exalted Orb"
-    # Real Necropolis day-0 (3c) -> day-1 (9c) evidence, at the 40c default.
-    assert html =~ "13 units"
+    assert html =~ "Necropolis, day 0"
+    # Real Necropolis day-0 (3c), day-1 (9c), day-3 (14.72c), day-7/14 (10c each).
     assert html =~ "+200%"
-    # 4 sampled leagues have day-0/day-1 evidence for Exalted Orb; only
-    # Necropolis and Affliction actually rose (Ancestor/Crucible declined).
-    assert html =~ "2 of 4 sampled leagues rose"
+    assert html =~ "+391%"
+    assert html =~ "+233%"
+    # An icon resolved from the real bundled Item Icons catalog by name.
+    assert html =~ "CurrencyAddModToRare.png"
+    # A trajectory sparkline (SVG), per docs/PRD.md § 7.14.
+    assert html =~ "<svg" and html =~ "sparkline"
   end
 
-  test "typing an investment amount recomputes affordability for the Historical Investment tab",
-       %{
-         conn: conn
-       } do
+  test "the Historical Investment tab respects the shared category drawer filter", %{conn: conn} do
     insert_league!("Necropolis",
       is_current: true,
       start_at: DateTime.utc_now() |> DateTime.truncate(:second)
@@ -593,19 +593,17 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     view |> element("button.tab-button", "Historical Investment") |> render_click()
 
-    # 3c exactly affords 1 real Necropolis-day-0 Exalted Orb (3c each).
-    html =
-      view
-      |> form("form[phx-change='set_investment_amount']")
-      |> render_change(%{"value" => "3"})
+    assert render(view) =~ "Exalted Orb"
 
-    assert html =~ "1 unit"
-    refute html =~ "13 units"
+    html =
+      render_click(view, "toggle_category", %{"category" => "currency"})
+
+    refute html =~ "Exalted Orb"
+    # A non-currency category (e.g. a Cluster Jewel) stays visible.
+    assert html =~ "Cluster Jewel"
   end
 
-  test "an amount too small for even 1 unit shows the explicit affordability state, not 0c", %{
-    conn: conn
-  } do
+  test "toggle_historical_sort flips the Next day sort direction", %{conn: conn} do
     insert_league!("Necropolis",
       is_current: true,
       start_at: DateTime.utc_now() |> DateTime.truncate(:second)
@@ -614,12 +612,17 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     {:ok, view, _html} = live(conn, "/")
     view |> element("button.tab-button", "Historical Investment") |> render_click()
 
-    html =
-      view
-      |> form("form[phx-change='set_investment_amount']")
-      |> render_change(%{"value" => "0.01"})
+    # Descending by default -- the best Next-day riser should render before a worse one.
+    html = render(view)
+    assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Exalted Orb")
+    fire_damage_index = :binary.match(html, "Fire Damage") |> elem(0)
+    exalted_index = :binary.match(html, "Exalted Orb") |> elem(0)
+    assert fire_damage_index < exalted_index
 
-    assert html =~ "not enough for 1"
+    flipped_html = view |> element(".historical-sort") |> render_click()
+    flipped_fire_damage_index = :binary.match(flipped_html, "Fire Damage") |> elem(0)
+    flipped_exalted_index = :binary.match(flipped_html, "Exalted Orb") |> elem(0)
+    assert flipped_exalted_index < flipped_fire_damage_index
   end
 
   test "a league with no captured start time shows the explicit unknown state, never a guessed day",
@@ -666,7 +669,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     assert has_element?(view, ".category-drawer")
     # 23 categories, all selected by default (docs/PRD.md § 7.13).
-    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+    # 24 categories (23 GGG-tradeable + Cluster Jewels, docs/PRD.md § 7.14), all selected by default.
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 24
     assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
   end
 
@@ -685,7 +689,9 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     html = view |> element(".category-drawer-action", "Select all") |> render_click()
     assert count_rows(html) == 1
-    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+
+    # 24 categories (23 GGG-tradeable + Cluster Jewels, docs/PRD.md § 7.14), all selected by default.
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 24
   end
 
   test "toggle_category hides and reshows matching rows without affecting other categories", %{

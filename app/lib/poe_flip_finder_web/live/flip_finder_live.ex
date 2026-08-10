@@ -55,10 +55,13 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:opportunities_error, false)
       # docs/PRD.md § 7.14 Feature N -- not scoped by enabled_techniques
       # (Historical Investment has its own content, not a filtered
-      # table row set), recomputed whenever selected_league or
-      # investment_amount changes via load_historical_candidates/1.
-      |> assign(:investment_amount, 40.0)
+      # table row set), recomputed whenever selected_league changes via
+      # load_historical_candidates/1. It IS scoped by enabled_categories,
+      # same shared drawer state as the other two tabs -- applied at
+      # render time by HistoricalInvestmentPresenter.build_display_list/2,
+      # mirroring FlipOpportunityTablePresenter's own filter+sort split.
       |> assign(:historical_candidates, :no_league_selected)
+      |> assign(:historical_sort_direction, :desc)
       |> assign(:league_elapsed, :unknown)
       |> assign(:max_sampled_day, HistoricalInvestment.max_sampled_day())
       |> assign(:enabled_techniques, %{
@@ -138,14 +141,15 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
      |> load_historical_candidates()}
   end
 
-  def handle_event("set_investment_amount", %{"value" => value}, socket) do
+  def handle_event("toggle_historical_sort", _params, socket) do
     socket =
-      case parse_finite_number(value) do
-        {:ok, number} when number > 0 -> assign(socket, :investment_amount, number)
-        _ -> socket
-      end
+      assign(
+        socket,
+        :historical_sort_direction,
+        flip_direction(socket.assigns.historical_sort_direction)
+      )
 
-    {:noreply, socket |> load_historical_candidates() |> persist_display_preferences()}
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("refresh_leagues", _params, socket) do
@@ -283,8 +287,12 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
          parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
        thresholds: parse_thresholds(params["thresholds"]),
        max_start_chaos: parse_max_start_chaos(params["max_start_chaos"]),
-       investment_amount:
-         parse_investment_amount(params["investment_amount"], socket.assigns.investment_amount)
+       historical_sort_direction:
+         parse_atom_in(
+           params["historical_sort_direction"],
+           @sort_directions,
+           socket.assigns.historical_sort_direction
+         )
      )
      |> load_historical_candidates()}
   end
@@ -499,11 +507,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         assign(socket, historical_candidates: :no_league_selected, league_elapsed: :unknown)
 
       league ->
-        candidates =
-          HistoricalInvestment.compute_candidates(league, socket.assigns.investment_amount)
-
         assign(socket,
-          historical_candidates: candidates,
+          historical_candidates: HistoricalInvestment.compute_candidates(league),
           league_elapsed: HistoricalInvestment.current_league_elapsed(league)
         )
     end
@@ -527,6 +532,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   defp flip_direction(:desc), do: :asc
   defp flip_direction(:asc), do: :desc
+
+  defp horizon_gain_class(%{gain_pct: pct}) when pct > 0, do: "up"
+  defp horizon_gain_class(%{gain_pct: pct}) when pct < 0, do: "down"
+  defp horizon_gain_class(_no_data_or_flat), do: nil
 
   defp toggle_set_membership(set, value) do
     if MapSet.member?(set, value), do: MapSet.delete(set, value), else: MapSet.put(set, value)
@@ -554,7 +563,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       sort_direction: socket.assigns.sort_direction,
       thresholds: socket.assigns.thresholds,
       max_start_chaos: socket.assigns.max_start_chaos,
-      investment_amount: socket.assigns.investment_amount
+      historical_sort_direction: socket.assigns.historical_sort_direction
     })
   end
 
@@ -607,18 +616,6 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp parse_max_start_chaos(_invalid), do: nil
-
-  # Falls back to whatever amount is already in effect, never to a hidden
-  # "0" default -- a corrupted/garbage stored value must never silently
-  # zero out the field per docs/PRD.md § 7.14.
-  defp parse_investment_amount(value, current) when is_binary(value) or is_number(value) do
-    case parse_finite_number(to_string(value)) do
-      {:ok, number} when number > 0 -> number
-      _ -> current
-    end
-  end
-
-  defp parse_investment_amount(_invalid, current), do: current
 
   # docs/PRD.md § 7.6/7.7: token-based so a stale auto-dismiss timer from a
   # superseded banner (e.g. the in-flight message's own safety-net timer,
@@ -767,6 +764,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       {:essences, "Essences"},
       {:currency, "Currency"},
       {:beasts, "Beasts"},
+      {:cluster_jewels, "Cluster Jewels"},
       {:map_key, "Maps"},
       {:heist, "Heist Contracts & Blueprints"},
       {:runegrafts, "Runegrafts"},
@@ -930,6 +928,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     <.stroke_icon>
       <circle cx="7" cy="8" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="17" cy="8" r="2" />
       <path d="M8 15c0-3 2-4 4-4s4 1 4 4-2 5-4 5-4-2-4-5z" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :cluster_jewels} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <polygon points="12 3 19 8 16.5 20 7.5 20 5 8" />
     </.stroke_icon>
     """
   end
