@@ -19,11 +19,20 @@ defmodule PoeFlipFinderWeb.Endpoint do
   #
   # You should set gzip to true if you are running phx.digest
   # when deploying your static files in production.
+  #
+  # `only` matches literal top-level filenames like "favicon.svg", but in
+  # prod `~p"/favicon.svg"` renders the digested name phx.digest actually
+  # writes to disk (e.g. "favicon-<hash>.svg?vsn=d") -- `only` alone
+  # rejects that with a 404, so `only_matching` (a documented Plug.Static
+  # option for exactly this "digested files at the root" case) is needed
+  # too, the same way "assets" already covers digested files nested a
+  # directory down.
   plug Plug.Static,
     at: "/",
     from: :poe_flip_finder,
     gzip: false,
-    only: PoeFlipFinderWeb.static_paths()
+    only: PoeFlipFinderWeb.static_paths(),
+    only_matching: ["favicon"]
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
