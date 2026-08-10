@@ -1293,7 +1293,9 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp currency_icon(%{amount: %{currency: %{icon_url: nil}}} = assigns) do
-    ~H""
+    ~H"""
+    <.unknown_item_icon />
+    """
   end
 
   defp currency_icon(assigns) do
@@ -1316,6 +1318,29 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     >
       <rect x="4" y="6" width="12" height="16" rx="2" transform="rotate(-8 10 14)" />
       <rect x="9" y="4" width="12" height="16" rx="2" transform="rotate(8 15 12)" />
+    </svg>
+    """
+  end
+
+  # Fallback for any currency this app has no real icon_url for and that
+  # isn't a divination card (which always gets the card-suit glyph above)
+  # -- a blank grid cell there reads as broken, not "no icon", so every
+  # icon slot always renders something.
+  defp unknown_item_icon(assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      class="unknown-item-icon"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1-1.5 2.2" />
+      <line x1="12" y1="17" x2="12" y2="17.01" />
     </svg>
     """
   end

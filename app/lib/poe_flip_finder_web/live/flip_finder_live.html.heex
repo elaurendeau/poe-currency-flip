@@ -113,7 +113,7 @@
 
   <main class="app-main">
     <%= if @selected_league do %>
-      <div class="panel">
+      <div class={"panel#{if @active_tab == :historical, do: " panel--wide"}"}>
         <div class="tab-bar">
           <button
             :for={{tab, label} <- tab_options()}
@@ -172,7 +172,7 @@
                   <span>Trajectory</span>
                 </div>
                 <div class="historical-candidates">
-                  <div :for={candidate <- candidates} class="grid historical-row">
+                  <div :for={candidate <- candidates} class="grid historical-grid historical-row">
                     <.currency_icon amount={%{currency: candidate.pattern.currency}} />
                     <div class="historical-name">
                       <span class="candidate-name">

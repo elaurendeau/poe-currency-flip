@@ -102,6 +102,10 @@ body {
   margin: 0 auto;
 }
 
+.panel--wide {
+  max-width: 980px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 80px 1fr 80px 70px 80px 70px;
@@ -302,7 +306,8 @@ body {
 }
 
 .cur img,
-.cur .divination-card-icon {
+.cur .divination-card-icon,
+.cur .unknown-item-icon {
   width: 22px;
   height: 22px;
   object-fit: contain;
@@ -318,7 +323,8 @@ body {
 }
 
 .via-icons img,
-.via-icons .divination-card-icon {
+.via-icons .divination-card-icon,
+.via-icons .unknown-item-icon {
   width: 20px;
   height: 20px;
   object-fit: contain;
@@ -352,7 +358,8 @@ body {
 }
 
 .profit img,
-.profit .divination-card-icon {
+.profit .divination-card-icon,
+.profit .unknown-item-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;
@@ -852,7 +859,11 @@ body {
 }
 
 .historical-grid {
-  grid-template-columns: 28px 1.6fr 64px 66px 66px 66px 66px 84px;
+  grid-template-columns: 32px minmax(180px, 1fr) 72px 80px 80px 80px 80px 100px;
+}
+
+.historical-grid > * {
+  min-width: 0;
 }
 
 .historical-grid.header-row span {
@@ -882,10 +893,17 @@ body {
   border-bottom: 1px solid #1e2329;
 }
 
-.historical-row img {
+.historical-row > img,
+.historical-row > .divination-card-icon,
+.historical-row > .unknown-item-icon {
   width: 24px;
   height: 24px;
   object-fit: contain;
+  justify-self: center;
+}
+
+.unknown-item-icon {
+  color: #525a63;
 }
 
 .historical-name {
@@ -908,6 +926,9 @@ body {
   font-size: 10.5px;
   color: var(--text-dim);
   font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .historical-live {
@@ -937,9 +958,10 @@ body {
 }
 
 .sparkline {
-  width: 100%;
+  width: 100px;
   height: 26px;
   color: #5fa8d0;
+  justify-self: center;
 }
 
 .sparkline-marker {
