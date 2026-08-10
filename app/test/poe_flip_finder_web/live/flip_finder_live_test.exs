@@ -613,16 +613,18 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     view |> element("button.tab-button", "Historical Investment") |> render_click()
 
     # Descending by default -- the best Next-day riser should render before a worse one.
+    # At day 0 in the bundled reference data, Exalted Orb's real day0->day1 move
+    # (3c -> 9c, +200%) beats the Fire Damage cluster jewel's (3.6c -> 10c, +177.8%).
     html = render(view)
     assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Exalted Orb")
     fire_damage_index = :binary.match(html, "Fire Damage") |> elem(0)
     exalted_index = :binary.match(html, "Exalted Orb") |> elem(0)
-    assert fire_damage_index < exalted_index
+    assert exalted_index < fire_damage_index
 
     flipped_html = view |> element(".historical-sort") |> render_click()
     flipped_fire_damage_index = :binary.match(flipped_html, "Fire Damage") |> elem(0)
     flipped_exalted_index = :binary.match(flipped_html, "Exalted Orb") |> elem(0)
-    assert flipped_exalted_index < flipped_fire_damage_index
+    assert flipped_fire_damage_index < flipped_exalted_index
   end
 
   test "a league with no captured start time shows the explicit unknown state, never a guessed day",

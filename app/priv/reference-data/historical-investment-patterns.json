@@ -8,11 +8,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 3
-          },
-          {
-            "day": 0,
-            "chaos": 3
+            "chaos": 3.0
           },
           {
             "day": 1,
@@ -494,11 +490,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 3
-          },
-          {
-            "day": 0,
-            "chaos": 3
+            "chaos": 3.0
           },
           {
             "day": 1,
@@ -728,14 +720,6 @@
           {
             "day": 5,
             "chaos": 11.67
-          },
-          {
-            "day": 6,
-            "chaos": 0.18
-          },
-          {
-            "day": 7,
-            "chaos": 0.16
           },
           {
             "day": 8,
@@ -1458,11 +1442,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 0.09
-          },
-          {
-            "day": 0,
-            "chaos": 0.1
+            "chaos": 0.095
           },
           {
             "day": 1,
@@ -2422,11 +2402,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 38500
-          },
-          {
-            "day": 0,
-            "chaos": 52200
+            "chaos": 45350.0
           },
           {
             "day": 1,
@@ -3382,11 +3358,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 2249.55
-          },
-          {
-            "day": 0,
-            "chaos": 506.9
+            "chaos": 1378.2250000000001
           },
           {
             "day": 1,
@@ -3771,11 +3743,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 38
-          },
-          {
-            "day": 0,
-            "chaos": 88
+            "chaos": 63.0
           },
           {
             "day": 1,
@@ -4072,10 +4040,6 @@
         "league": "Ancestor",
         "days": [
           {
-            "day": 0,
-            "chaos": 19.4
-          },
-          {
             "day": 1,
             "chaos": 108
           },
@@ -4257,11 +4221,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 5.3
-          },
-          {
-            "day": 0,
-            "chaos": 2
+            "chaos": 3.65
           },
           {
             "day": 1,
@@ -5221,11 +5181,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 0.25
+            "chaos": 0.625
           },
           {
             "day": 1,
@@ -5707,11 +5663,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 0.5
+            "chaos": 0.75
           },
           {
             "day": 1,
@@ -6193,11 +6145,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 0.33
+            "chaos": 0.665
           },
           {
             "day": 1,
@@ -6679,11 +6627,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 0.4
+            "chaos": 0.7
           },
           {
             "day": 1,
@@ -6891,10 +6835,6 @@
         "league": "Affliction",
         "days": [
           {
-            "day": 0,
-            "chaos": 2
-          },
-          {
             "day": 1,
             "chaos": 0.37
           },
@@ -6979,10 +6919,6 @@
       {
         "league": "Ancestor",
         "days": [
-          {
-            "day": 0,
-            "chaos": 2
-          },
           {
             "day": 1,
             "chaos": 0.36
@@ -7373,10 +7309,6 @@
         "league": "Affliction",
         "days": [
           {
-            "day": 0,
-            "chaos": 1
-          },
-          {
             "day": 1,
             "chaos": 0.17
           },
@@ -7461,10 +7393,6 @@
       {
         "league": "Ancestor",
         "days": [
-          {
-            "day": 0,
-            "chaos": 1
-          },
           {
             "day": 1,
             "chaos": 0.14
@@ -7647,11 +7575,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 4.15
-          },
-          {
-            "day": 0,
-            "chaos": 3
+            "chaos": 3.575
           },
           {
             "day": 1,
@@ -8611,11 +8535,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 8
-          },
-          {
-            "day": 0,
-            "chaos": 13
+            "chaos": 10.5
           },
           {
             "day": 1,
@@ -9486,11 +9406,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 4
-          },
-          {
-            "day": 0,
-            "chaos": 4
+            "chaos": 4.0
           },
           {
             "day": 1,
@@ -9968,11 +9884,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 1
+            "chaos": 1.0
           },
           {
             "day": 1,
@@ -15636,11 +15548,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 20
-          },
-          {
-            "day": 0,
-            "chaos": 87.58
+            "chaos": 53.79
           },
           {
             "day": 1,
@@ -16536,11 +16444,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 2
-          },
-          {
-            "day": 0,
-            "chaos": 3
+            "chaos": 2.5
           },
           {
             "day": 1,
@@ -17185,11 +17089,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 5
-          },
-          {
-            "day": 0,
-            "chaos": 3
+            "chaos": 4.0
           },
           {
             "day": 1,
@@ -17404,11 +17304,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 1
+            "chaos": 1.0
           },
           {
             "day": 1,
@@ -17623,11 +17519,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 1
+            "chaos": 1.0
           },
           {
             "day": 1,
@@ -17842,11 +17734,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 4
-          },
-          {
-            "day": 0,
-            "chaos": 2
+            "chaos": 3.0
           },
           {
             "day": 1,
@@ -18061,11 +17949,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 1
+            "chaos": 1.0
           },
           {
             "day": 1,
@@ -18280,11 +18164,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 1
-          },
-          {
-            "day": 0,
-            "chaos": 1
+            "chaos": 1.0
           },
           {
             "day": 1,
@@ -18491,7 +18371,7 @@
     ]
   },
   {
-    "currencyName": "Medium Cluster Jewel (8 passives, Lv50): 12% increased Fire Damage",
+    "currencyName": "Large Cluster Jewel (8 passives, Lv50): 12% increased Fire Damage",
     "category": "cluster_jewels",
     "leagueObservations": [
       {
@@ -18499,7 +18379,7 @@
         "days": [
           {
             "day": 0,
-            "chaos": 2.2
+            "chaos": 3.6
           },
           {
             "day": 1,
@@ -18580,6 +18460,126 @@
           {
             "day": 20,
             "chaos": 319.09
+          },
+          {
+            "day": 21,
+            "chaos": 317.4
+          },
+          {
+            "day": 22,
+            "chaos": 298.5
+          },
+          {
+            "day": 23,
+            "chaos": 277.44
+          },
+          {
+            "day": 24,
+            "chaos": 254.57
+          },
+          {
+            "day": 25,
+            "chaos": 206.3
+          },
+          {
+            "day": 26,
+            "chaos": 241.02
+          },
+          {
+            "day": 27,
+            "chaos": 239.05
+          },
+          {
+            "day": 28,
+            "chaos": 251.52
+          },
+          {
+            "day": 29,
+            "chaos": 278.91
+          },
+          {
+            "day": 30,
+            "chaos": 299.1
+          },
+          {
+            "day": 31,
+            "chaos": 361.79
+          },
+          {
+            "day": 32,
+            "chaos": 383.9
+          },
+          {
+            "day": 33,
+            "chaos": 391.59
+          },
+          {
+            "day": 34,
+            "chaos": 261.4
+          },
+          {
+            "day": 35,
+            "chaos": 377.49
+          },
+          {
+            "day": 36,
+            "chaos": 261.07
+          },
+          {
+            "day": 37,
+            "chaos": 261.76
+          },
+          {
+            "day": 38,
+            "chaos": 315.41
+          },
+          {
+            "day": 39,
+            "chaos": 278.22
+          },
+          {
+            "day": 40,
+            "chaos": 323.81
+          },
+          {
+            "day": 41,
+            "chaos": 313.58
+          },
+          {
+            "day": 42,
+            "chaos": 294.06
+          },
+          {
+            "day": 43,
+            "chaos": 300.64
+          },
+          {
+            "day": 44,
+            "chaos": 298.54
+          },
+          {
+            "day": 45,
+            "chaos": 288.1
+          },
+          {
+            "day": 46,
+            "chaos": 283.32
+          },
+          {
+            "day": 47,
+            "chaos": 277.61
+          },
+          {
+            "day": 48,
+            "chaos": 259.18
+          },
+          {
+            "day": 49,
+            "chaos": 279.04
+          },
+          {
+            "day": 50,
+            "chaos": 277.06
           }
         ]
       },
@@ -18892,26 +18892,6 @@
             "chaos": 997.61
           },
           {
-            "day": 8,
-            "chaos": 8
-          },
-          {
-            "day": 9,
-            "chaos": 8.7
-          },
-          {
-            "day": 10,
-            "chaos": 10
-          },
-          {
-            "day": 11,
-            "chaos": 10
-          },
-          {
-            "day": 12,
-            "chaos": 14.9
-          },
-          {
             "day": 13,
             "chaos": 774.45
           },
@@ -18942,6 +18922,126 @@
           {
             "day": 20,
             "chaos": 205.82
+          },
+          {
+            "day": 21,
+            "chaos": 201.8
+          },
+          {
+            "day": 22,
+            "chaos": 240
+          },
+          {
+            "day": 23,
+            "chaos": 200
+          },
+          {
+            "day": 24,
+            "chaos": 175
+          },
+          {
+            "day": 25,
+            "chaos": 175.54
+          },
+          {
+            "day": 26,
+            "chaos": 180
+          },
+          {
+            "day": 27,
+            "chaos": 171.83
+          },
+          {
+            "day": 28,
+            "chaos": 162.6
+          },
+          {
+            "day": 29,
+            "chaos": 154.52
+          },
+          {
+            "day": 30,
+            "chaos": 150.78
+          },
+          {
+            "day": 31,
+            "chaos": 168.83
+          },
+          {
+            "day": 32,
+            "chaos": 182.74
+          },
+          {
+            "day": 33,
+            "chaos": 169.69
+          },
+          {
+            "day": 34,
+            "chaos": 169.76
+          },
+          {
+            "day": 35,
+            "chaos": 188.12
+          },
+          {
+            "day": 36,
+            "chaos": 182.74
+          },
+          {
+            "day": 37,
+            "chaos": 183.34
+          },
+          {
+            "day": 38,
+            "chaos": 170.9
+          },
+          {
+            "day": 39,
+            "chaos": 159.59
+          },
+          {
+            "day": 40,
+            "chaos": 161.38
+          },
+          {
+            "day": 41,
+            "chaos": 139.02
+          },
+          {
+            "day": 42,
+            "chaos": 140.03
+          },
+          {
+            "day": 43,
+            "chaos": 140.82
+          },
+          {
+            "day": 44,
+            "chaos": 143.28
+          },
+          {
+            "day": 45,
+            "chaos": 144.05
+          },
+          {
+            "day": 46,
+            "chaos": 144.35
+          },
+          {
+            "day": 47,
+            "chaos": 143.85
+          },
+          {
+            "day": 48,
+            "chaos": 142.53
+          },
+          {
+            "day": 49,
+            "chaos": 139.65
+          },
+          {
+            "day": 50,
+            "chaos": 138.53
           }
         ]
       },
@@ -19203,7 +19303,7 @@
     ]
   },
   {
-    "currencyName": "Medium Cluster Jewel (8 passives, Lv84): 10% increased Elemental Damage",
+    "currencyName": "Large Cluster Jewel (8 passives, Lv84): 10% increased Elemental Damage",
     "category": "cluster_jewels",
     "leagueObservations": [
       {
@@ -19291,6 +19391,126 @@
           },
           {
             "day": 20,
+            "chaos": 20
+          },
+          {
+            "day": 21,
+            "chaos": 20
+          },
+          {
+            "day": 22,
+            "chaos": 19.35
+          },
+          {
+            "day": 23,
+            "chaos": 19
+          },
+          {
+            "day": 24,
+            "chaos": 20
+          },
+          {
+            "day": 25,
+            "chaos": 20
+          },
+          {
+            "day": 26,
+            "chaos": 15
+          },
+          {
+            "day": 27,
+            "chaos": 15
+          },
+          {
+            "day": 28,
+            "chaos": 18
+          },
+          {
+            "day": 29,
+            "chaos": 20
+          },
+          {
+            "day": 30,
+            "chaos": 19
+          },
+          {
+            "day": 31,
+            "chaos": 19
+          },
+          {
+            "day": 32,
+            "chaos": 20
+          },
+          {
+            "day": 33,
+            "chaos": 20
+          },
+          {
+            "day": 34,
+            "chaos": 19
+          },
+          {
+            "day": 35,
+            "chaos": 20
+          },
+          {
+            "day": 36,
+            "chaos": 20
+          },
+          {
+            "day": 37,
+            "chaos": 19
+          },
+          {
+            "day": 38,
+            "chaos": 17.1
+          },
+          {
+            "day": 39,
+            "chaos": 20
+          },
+          {
+            "day": 40,
+            "chaos": 18
+          },
+          {
+            "day": 41,
+            "chaos": 19
+          },
+          {
+            "day": 42,
+            "chaos": 20
+          },
+          {
+            "day": 43,
+            "chaos": 20
+          },
+          {
+            "day": 44,
+            "chaos": 20
+          },
+          {
+            "day": 45,
+            "chaos": 20
+          },
+          {
+            "day": 46,
+            "chaos": 20
+          },
+          {
+            "day": 47,
+            "chaos": 19.8
+          },
+          {
+            "day": 48,
+            "chaos": 20
+          },
+          {
+            "day": 49,
+            "chaos": 20
+          },
+          {
+            "day": 50,
             "chaos": 20
           }
         ]
@@ -19553,7 +19773,7 @@
     ]
   },
   {
-    "currencyName": "Medium Cluster Jewel (8 passives, Lv75): 10% increased Elemental Damage",
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): 10% increased Elemental Damage",
     "category": "cluster_jewels",
     "leagueObservations": [
       {
@@ -19642,6 +19862,126 @@
           {
             "day": 20,
             "chaos": 22
+          },
+          {
+            "day": 21,
+            "chaos": 25
+          },
+          {
+            "day": 22,
+            "chaos": 15
+          },
+          {
+            "day": 23,
+            "chaos": 19
+          },
+          {
+            "day": 24,
+            "chaos": 15
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 10.7
+          },
+          {
+            "day": 27,
+            "chaos": 15
+          },
+          {
+            "day": 28,
+            "chaos": 15
+          },
+          {
+            "day": 29,
+            "chaos": 15
+          },
+          {
+            "day": 30,
+            "chaos": 15
+          },
+          {
+            "day": 31,
+            "chaos": 15
+          },
+          {
+            "day": 32,
+            "chaos": 11.35
+          },
+          {
+            "day": 33,
+            "chaos": 15
+          },
+          {
+            "day": 34,
+            "chaos": 17.6
+          },
+          {
+            "day": 35,
+            "chaos": 20
+          },
+          {
+            "day": 36,
+            "chaos": 20
+          },
+          {
+            "day": 37,
+            "chaos": 19.2
+          },
+          {
+            "day": 38,
+            "chaos": 15
+          },
+          {
+            "day": 39,
+            "chaos": 20
+          },
+          {
+            "day": 40,
+            "chaos": 17.6
+          },
+          {
+            "day": 41,
+            "chaos": 20
+          },
+          {
+            "day": 42,
+            "chaos": 20
+          },
+          {
+            "day": 43,
+            "chaos": 19.1
+          },
+          {
+            "day": 44,
+            "chaos": 25
+          },
+          {
+            "day": 45,
+            "chaos": 15
+          },
+          {
+            "day": 46,
+            "chaos": 16.65
+          },
+          {
+            "day": 47,
+            "chaos": 20
+          },
+          {
+            "day": 48,
+            "chaos": 14.9
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
           }
         ]
       },
@@ -21311,6 +21651,4091 @@
           {
             "day": 20,
             "chaos": 2.14
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): 10% increased Spell Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2.1
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 3
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 6.2
+          },
+          {
+            "day": 16,
+            "chaos": 5
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 6
+          },
+          {
+            "day": 19,
+            "chaos": 5
+          },
+          {
+            "day": 20,
+            "chaos": 5
+          },
+          {
+            "day": 21,
+            "chaos": 5
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 5.03
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 7.05
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 6
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5.05
+          },
+          {
+            "day": 39,
+            "chaos": 5
+          },
+          {
+            "day": 40,
+            "chaos": 5
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 5
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 5
+          },
+          {
+            "day": 45,
+            "chaos": 8
+          },
+          {
+            "day": 46,
+            "chaos": 8
+          },
+          {
+            "day": 47,
+            "chaos": 5.05
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 7.85
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): Minions have 12% increased maximum Life",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 3
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 5.75
+          },
+          {
+            "day": 16,
+            "chaos": 5
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 8
+          },
+          {
+            "day": 19,
+            "chaos": 7
+          },
+          {
+            "day": 20,
+            "chaos": 6
+          },
+          {
+            "day": 21,
+            "chaos": 5
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 5
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 5
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5
+          },
+          {
+            "day": 39,
+            "chaos": 5
+          },
+          {
+            "day": 40,
+            "chaos": 5
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 5
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 6.2
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 5.1
+          },
+          {
+            "day": 47,
+            "chaos": 5.95
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 5
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): 12% increased Cold Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 3
+          },
+          {
+            "day": 1,
+            "chaos": 3
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5.5
+          },
+          {
+            "day": 6,
+            "chaos": 10
+          },
+          {
+            "day": 7,
+            "chaos": 10
+          },
+          {
+            "day": 8,
+            "chaos": 10
+          },
+          {
+            "day": 9,
+            "chaos": 10
+          },
+          {
+            "day": 10,
+            "chaos": 10
+          },
+          {
+            "day": 11,
+            "chaos": 10
+          },
+          {
+            "day": 12,
+            "chaos": 15
+          },
+          {
+            "day": 13,
+            "chaos": 15
+          },
+          {
+            "day": 14,
+            "chaos": 15
+          },
+          {
+            "day": 15,
+            "chaos": 15
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 15
+          },
+          {
+            "day": 18,
+            "chaos": 13.55
+          },
+          {
+            "day": 19,
+            "chaos": 15
+          },
+          {
+            "day": 20,
+            "chaos": 15
+          },
+          {
+            "day": 21,
+            "chaos": 15
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 13.78
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 10
+          },
+          {
+            "day": 27,
+            "chaos": 14
+          },
+          {
+            "day": 28,
+            "chaos": 15
+          },
+          {
+            "day": 29,
+            "chaos": 13.55
+          },
+          {
+            "day": 30,
+            "chaos": 15
+          },
+          {
+            "day": 31,
+            "chaos": 10.2
+          },
+          {
+            "day": 32,
+            "chaos": 10
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 15
+          },
+          {
+            "day": 35,
+            "chaos": 15
+          },
+          {
+            "day": 36,
+            "chaos": 15
+          },
+          {
+            "day": 37,
+            "chaos": 15
+          },
+          {
+            "day": 38,
+            "chaos": 20
+          },
+          {
+            "day": 39,
+            "chaos": 19
+          },
+          {
+            "day": 40,
+            "chaos": 20
+          },
+          {
+            "day": 41,
+            "chaos": 15.7
+          },
+          {
+            "day": 42,
+            "chaos": 14
+          },
+          {
+            "day": 43,
+            "chaos": 20
+          },
+          {
+            "day": 44,
+            "chaos": 20
+          },
+          {
+            "day": 45,
+            "chaos": 20
+          },
+          {
+            "day": 46,
+            "chaos": 14.97
+          },
+          {
+            "day": 47,
+            "chaos": 20
+          },
+          {
+            "day": 48,
+            "chaos": 15
+          },
+          {
+            "day": 49,
+            "chaos": 17.9
+          },
+          {
+            "day": 50,
+            "chaos": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): Minions deal 10% increased Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 7.1
+          },
+          {
+            "day": 1,
+            "chaos": 8
+          },
+          {
+            "day": 2,
+            "chaos": 10
+          },
+          {
+            "day": 3,
+            "chaos": 10
+          },
+          {
+            "day": 4,
+            "chaos": 10
+          },
+          {
+            "day": 5,
+            "chaos": 10
+          },
+          {
+            "day": 6,
+            "chaos": 10
+          },
+          {
+            "day": 7,
+            "chaos": 10
+          },
+          {
+            "day": 8,
+            "chaos": 10
+          },
+          {
+            "day": 9,
+            "chaos": 10
+          },
+          {
+            "day": 10,
+            "chaos": 10
+          },
+          {
+            "day": 11,
+            "chaos": 10
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 10
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 8
+          },
+          {
+            "day": 24,
+            "chaos": 8.4
+          },
+          {
+            "day": 25,
+            "chaos": 9
+          },
+          {
+            "day": 26,
+            "chaos": 10
+          },
+          {
+            "day": 27,
+            "chaos": 10
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 8.3
+          },
+          {
+            "day": 30,
+            "chaos": 9
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 7.1
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 8.2
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 9
+          },
+          {
+            "day": 38,
+            "chaos": 10
+          },
+          {
+            "day": 39,
+            "chaos": 10
+          },
+          {
+            "day": 40,
+            "chaos": 10
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 10
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 8
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): 12% increased Lightning Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 4
+          },
+          {
+            "day": 1,
+            "chaos": 5
+          },
+          {
+            "day": 2,
+            "chaos": 10
+          },
+          {
+            "day": 3,
+            "chaos": 10
+          },
+          {
+            "day": 4,
+            "chaos": 10
+          },
+          {
+            "day": 5,
+            "chaos": 10
+          },
+          {
+            "day": 6,
+            "chaos": 14.31
+          },
+          {
+            "day": 7,
+            "chaos": 15
+          },
+          {
+            "day": 8,
+            "chaos": 15
+          },
+          {
+            "day": 9,
+            "chaos": 15
+          },
+          {
+            "day": 10,
+            "chaos": 15
+          },
+          {
+            "day": 11,
+            "chaos": 20
+          },
+          {
+            "day": 12,
+            "chaos": 20
+          },
+          {
+            "day": 13,
+            "chaos": 20
+          },
+          {
+            "day": 14,
+            "chaos": 20
+          },
+          {
+            "day": 15,
+            "chaos": 25
+          },
+          {
+            "day": 16,
+            "chaos": 25
+          },
+          {
+            "day": 17,
+            "chaos": 30
+          },
+          {
+            "day": 18,
+            "chaos": 30
+          },
+          {
+            "day": 19,
+            "chaos": 25
+          },
+          {
+            "day": 20,
+            "chaos": 24.3
+          },
+          {
+            "day": 21,
+            "chaos": 25
+          },
+          {
+            "day": 22,
+            "chaos": 20
+          },
+          {
+            "day": 23,
+            "chaos": 25
+          },
+          {
+            "day": 24,
+            "chaos": 20.15
+          },
+          {
+            "day": 25,
+            "chaos": 20
+          },
+          {
+            "day": 26,
+            "chaos": 20
+          },
+          {
+            "day": 27,
+            "chaos": 20
+          },
+          {
+            "day": 28,
+            "chaos": 20
+          },
+          {
+            "day": 29,
+            "chaos": 25
+          },
+          {
+            "day": 30,
+            "chaos": 30
+          },
+          {
+            "day": 31,
+            "chaos": 25
+          },
+          {
+            "day": 32,
+            "chaos": 20
+          },
+          {
+            "day": 33,
+            "chaos": 30
+          },
+          {
+            "day": 34,
+            "chaos": 35
+          },
+          {
+            "day": 35,
+            "chaos": 30
+          },
+          {
+            "day": 36,
+            "chaos": 30.3
+          },
+          {
+            "day": 37,
+            "chaos": 34.5
+          },
+          {
+            "day": 38,
+            "chaos": 30
+          },
+          {
+            "day": 39,
+            "chaos": 25
+          },
+          {
+            "day": 40,
+            "chaos": 25.4
+          },
+          {
+            "day": 41,
+            "chaos": 30
+          },
+          {
+            "day": 42,
+            "chaos": 39.2
+          },
+          {
+            "day": 43,
+            "chaos": 39.4
+          },
+          {
+            "day": 44,
+            "chaos": 39.75
+          },
+          {
+            "day": 45,
+            "chaos": 29.6
+          },
+          {
+            "day": 46,
+            "chaos": 32.75
+          },
+          {
+            "day": 47,
+            "chaos": 42.5
+          },
+          {
+            "day": 48,
+            "chaos": 28.1
+          },
+          {
+            "day": 49,
+            "chaos": 45
+          },
+          {
+            "day": 50,
+            "chaos": 36
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (5 passives, Lv75): 10% increased Projectile Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 4
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 6.3
+          },
+          {
+            "day": 9,
+            "chaos": 6
+          },
+          {
+            "day": 10,
+            "chaos": 6.9
+          },
+          {
+            "day": 11,
+            "chaos": 8.8
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 10
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 10
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 10
+          },
+          {
+            "day": 27,
+            "chaos": 10
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 10
+          },
+          {
+            "day": 30,
+            "chaos": 10
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 9.1
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 9.3
+          },
+          {
+            "day": 35,
+            "chaos": 10
+          },
+          {
+            "day": 36,
+            "chaos": 8.3
+          },
+          {
+            "day": 37,
+            "chaos": 10
+          },
+          {
+            "day": 38,
+            "chaos": 10
+          },
+          {
+            "day": 39,
+            "chaos": 9.73
+          },
+          {
+            "day": 40,
+            "chaos": 9
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 9.9
+          },
+          {
+            "day": 43,
+            "chaos": 9
+          },
+          {
+            "day": 44,
+            "chaos": 9.55
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (8 passives, Lv75): 10% increased Attack Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 3
+          },
+          {
+            "day": 4,
+            "chaos": 4.44
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 5
+          },
+          {
+            "day": 16,
+            "chaos": 5
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 5
+          },
+          {
+            "day": 19,
+            "chaos": 5
+          },
+          {
+            "day": 20,
+            "chaos": 5
+          },
+          {
+            "day": 21,
+            "chaos": 5
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 5
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 5
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5
+          },
+          {
+            "day": 39,
+            "chaos": 5
+          },
+          {
+            "day": 40,
+            "chaos": 5
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 5
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 5
+          },
+          {
+            "day": 45,
+            "chaos": 7.7
+          },
+          {
+            "day": 46,
+            "chaos": 5
+          },
+          {
+            "day": 47,
+            "chaos": 5
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 5
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 10% increased Projectile Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2.2
+          },
+          {
+            "day": 1,
+            "chaos": 3
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 7
+          },
+          {
+            "day": 8,
+            "chaos": 10
+          },
+          {
+            "day": 9,
+            "chaos": 8
+          },
+          {
+            "day": 10,
+            "chaos": 9
+          },
+          {
+            "day": 11,
+            "chaos": 9.8
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 10
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 10
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 10
+          },
+          {
+            "day": 27,
+            "chaos": 10
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 10
+          },
+          {
+            "day": 30,
+            "chaos": 10
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 10
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 10
+          },
+          {
+            "day": 36,
+            "chaos": 10
+          },
+          {
+            "day": 37,
+            "chaos": 10
+          },
+          {
+            "day": 38,
+            "chaos": 10
+          },
+          {
+            "day": 39,
+            "chaos": 10
+          },
+          {
+            "day": 40,
+            "chaos": 10
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 10
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 10
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (5 passives, Lv75): Minions have 12% increased maximum Life",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 4
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 5
+          },
+          {
+            "day": 16,
+            "chaos": 5
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 5
+          },
+          {
+            "day": 19,
+            "chaos": 5
+          },
+          {
+            "day": 20,
+            "chaos": 5
+          },
+          {
+            "day": 21,
+            "chaos": 5
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 5
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 5
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5
+          },
+          {
+            "day": 39,
+            "chaos": 5
+          },
+          {
+            "day": 40,
+            "chaos": 5
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 5
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 5
+          },
+          {
+            "day": 45,
+            "chaos": 5
+          },
+          {
+            "day": 46,
+            "chaos": 5
+          },
+          {
+            "day": 47,
+            "chaos": 5
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 5
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Large Cluster Jewel (12 passives, Lv75): Minions deal 10% increased Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 5
+          },
+          {
+            "day": 1,
+            "chaos": 5
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 6
+          },
+          {
+            "day": 4,
+            "chaos": 6
+          },
+          {
+            "day": 5,
+            "chaos": 10
+          },
+          {
+            "day": 6,
+            "chaos": 10
+          },
+          {
+            "day": 7,
+            "chaos": 10
+          },
+          {
+            "day": 8,
+            "chaos": 10
+          },
+          {
+            "day": 9,
+            "chaos": 10
+          },
+          {
+            "day": 10,
+            "chaos": 10
+          },
+          {
+            "day": 11,
+            "chaos": 10
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 8
+          },
+          {
+            "day": 22,
+            "chaos": 6
+          },
+          {
+            "day": 23,
+            "chaos": 8
+          },
+          {
+            "day": 24,
+            "chaos": 8
+          },
+          {
+            "day": 25,
+            "chaos": 8
+          },
+          {
+            "day": 26,
+            "chaos": 7
+          },
+          {
+            "day": 27,
+            "chaos": 7.3
+          },
+          {
+            "day": 28,
+            "chaos": 8
+          },
+          {
+            "day": 29,
+            "chaos": 8
+          },
+          {
+            "day": 30,
+            "chaos": 5.4
+          },
+          {
+            "day": 31,
+            "chaos": 8.65
+          },
+          {
+            "day": 32,
+            "chaos": 8
+          },
+          {
+            "day": 33,
+            "chaos": 9
+          },
+          {
+            "day": 34,
+            "chaos": 9
+          },
+          {
+            "day": 35,
+            "chaos": 7.6
+          },
+          {
+            "day": 36,
+            "chaos": 7
+          },
+          {
+            "day": 37,
+            "chaos": 8
+          },
+          {
+            "day": 38,
+            "chaos": 8.05
+          },
+          {
+            "day": 39,
+            "chaos": 8.9
+          },
+          {
+            "day": 40,
+            "chaos": 7.91
+          },
+          {
+            "day": 41,
+            "chaos": 8
+          },
+          {
+            "day": 42,
+            "chaos": 8
+          },
+          {
+            "day": 43,
+            "chaos": 9
+          },
+          {
+            "day": 44,
+            "chaos": 9.65
+          },
+          {
+            "day": 45,
+            "chaos": 9
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 8
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 9.91
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (5 passives, Lv75): 10% increased Area Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 1
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 2.44
+          },
+          {
+            "day": 3,
+            "chaos": 3
+          },
+          {
+            "day": 4,
+            "chaos": 4
+          },
+          {
+            "day": 5,
+            "chaos": 4.91
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 5
+          },
+          {
+            "day": 16,
+            "chaos": 5
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 6
+          },
+          {
+            "day": 19,
+            "chaos": 5
+          },
+          {
+            "day": 20,
+            "chaos": 5
+          },
+          {
+            "day": 21,
+            "chaos": 5
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 5
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 5
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5
+          },
+          {
+            "day": 39,
+            "chaos": 5
+          },
+          {
+            "day": 40,
+            "chaos": 5
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 5
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 5
+          },
+          {
+            "day": 45,
+            "chaos": 5
+          },
+          {
+            "day": 46,
+            "chaos": 5
+          },
+          {
+            "day": 47,
+            "chaos": 5
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 5
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 15% increased Critical Strike Chance",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3.7
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 6
+          },
+          {
+            "day": 7,
+            "chaos": 7
+          },
+          {
+            "day": 8,
+            "chaos": 9
+          },
+          {
+            "day": 9,
+            "chaos": 10
+          },
+          {
+            "day": 10,
+            "chaos": 10
+          },
+          {
+            "day": 11,
+            "chaos": 10
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 9.31
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 9.9
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 10
+          },
+          {
+            "day": 24,
+            "chaos": 9
+          },
+          {
+            "day": 25,
+            "chaos": 8
+          },
+          {
+            "day": 26,
+            "chaos": 7.01
+          },
+          {
+            "day": 27,
+            "chaos": 7.41
+          },
+          {
+            "day": 28,
+            "chaos": 9.6
+          },
+          {
+            "day": 29,
+            "chaos": 8
+          },
+          {
+            "day": 30,
+            "chaos": 8
+          },
+          {
+            "day": 31,
+            "chaos": 8.3
+          },
+          {
+            "day": 32,
+            "chaos": 9.1
+          },
+          {
+            "day": 33,
+            "chaos": 8
+          },
+          {
+            "day": 34,
+            "chaos": 9
+          },
+          {
+            "day": 35,
+            "chaos": 8
+          },
+          {
+            "day": 36,
+            "chaos": 6.04
+          },
+          {
+            "day": 37,
+            "chaos": 8.4
+          },
+          {
+            "day": 38,
+            "chaos": 9
+          },
+          {
+            "day": 39,
+            "chaos": 10
+          },
+          {
+            "day": 40,
+            "chaos": 10
+          },
+          {
+            "day": 41,
+            "chaos": 7.2
+          },
+          {
+            "day": 42,
+            "chaos": 8.4
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 9.04
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 9
+          },
+          {
+            "day": 49,
+            "chaos": 8
+          },
+          {
+            "day": 50,
+            "chaos": 6.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (5 passives, Lv75): 15% increased Critical Strike Chance",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 4
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 8.9
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 8
+          },
+          {
+            "day": 15,
+            "chaos": 6.05
+          },
+          {
+            "day": 16,
+            "chaos": 8
+          },
+          {
+            "day": 17,
+            "chaos": 5
+          },
+          {
+            "day": 18,
+            "chaos": 7
+          },
+          {
+            "day": 19,
+            "chaos": 9
+          },
+          {
+            "day": 20,
+            "chaos": 8
+          },
+          {
+            "day": 21,
+            "chaos": 6
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 7
+          },
+          {
+            "day": 24,
+            "chaos": 8
+          },
+          {
+            "day": 25,
+            "chaos": 5
+          },
+          {
+            "day": 26,
+            "chaos": 5
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 5
+          },
+          {
+            "day": 29,
+            "chaos": 5
+          },
+          {
+            "day": 30,
+            "chaos": 5.45
+          },
+          {
+            "day": 31,
+            "chaos": 5.69
+          },
+          {
+            "day": 32,
+            "chaos": 7.35
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 6.4
+          },
+          {
+            "day": 35,
+            "chaos": 5
+          },
+          {
+            "day": 36,
+            "chaos": 5
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 5
+          },
+          {
+            "day": 39,
+            "chaos": 6.25
+          },
+          {
+            "day": 40,
+            "chaos": 9
+          },
+          {
+            "day": 41,
+            "chaos": 5.45
+          },
+          {
+            "day": 42,
+            "chaos": 7
+          },
+          {
+            "day": 43,
+            "chaos": 5
+          },
+          {
+            "day": 44,
+            "chaos": 6
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 8.45
+          },
+          {
+            "day": 47,
+            "chaos": 9
+          },
+          {
+            "day": 48,
+            "chaos": 9.89
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 6% increased Flask Effect Duration",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 3
+          },
+          {
+            "day": 2,
+            "chaos": 4
+          },
+          {
+            "day": 3,
+            "chaos": 4.8
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 9.2
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 10
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 10
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 9.3
+          },
+          {
+            "day": 27,
+            "chaos": 8
+          },
+          {
+            "day": 28,
+            "chaos": 8
+          },
+          {
+            "day": 29,
+            "chaos": 8.08
+          },
+          {
+            "day": 30,
+            "chaos": 8
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 7
+          },
+          {
+            "day": 33,
+            "chaos": 7
+          },
+          {
+            "day": 34,
+            "chaos": 9.35
+          },
+          {
+            "day": 35,
+            "chaos": 9
+          },
+          {
+            "day": 36,
+            "chaos": 9.59
+          },
+          {
+            "day": 37,
+            "chaos": 10
+          },
+          {
+            "day": 38,
+            "chaos": 8
+          },
+          {
+            "day": 39,
+            "chaos": 10
+          },
+          {
+            "day": 40,
+            "chaos": 10
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 9
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 9.7
+          },
+          {
+            "day": 45,
+            "chaos": 9
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 10% increased Area Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 1
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 3
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 5
+          },
+          {
+            "day": 16,
+            "chaos": 6
+          },
+          {
+            "day": 17,
+            "chaos": 6
+          },
+          {
+            "day": 18,
+            "chaos": 7.4
+          },
+          {
+            "day": 19,
+            "chaos": 8
+          },
+          {
+            "day": 20,
+            "chaos": 6
+          },
+          {
+            "day": 21,
+            "chaos": 6
+          },
+          {
+            "day": 22,
+            "chaos": 5
+          },
+          {
+            "day": 23,
+            "chaos": 5
+          },
+          {
+            "day": 24,
+            "chaos": 5.6
+          },
+          {
+            "day": 25,
+            "chaos": 7
+          },
+          {
+            "day": 26,
+            "chaos": 7
+          },
+          {
+            "day": 27,
+            "chaos": 5
+          },
+          {
+            "day": 28,
+            "chaos": 6.3
+          },
+          {
+            "day": 29,
+            "chaos": 5.2
+          },
+          {
+            "day": 30,
+            "chaos": 5
+          },
+          {
+            "day": 31,
+            "chaos": 6.95
+          },
+          {
+            "day": 32,
+            "chaos": 5
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 5
+          },
+          {
+            "day": 35,
+            "chaos": 6.7
+          },
+          {
+            "day": 36,
+            "chaos": 5.85
+          },
+          {
+            "day": 37,
+            "chaos": 5
+          },
+          {
+            "day": 38,
+            "chaos": 6.8
+          },
+          {
+            "day": 39,
+            "chaos": 6.3
+          },
+          {
+            "day": 40,
+            "chaos": 6
+          },
+          {
+            "day": 41,
+            "chaos": 5
+          },
+          {
+            "day": 42,
+            "chaos": 6
+          },
+          {
+            "day": 43,
+            "chaos": 6
+          },
+          {
+            "day": 44,
+            "chaos": 9
+          },
+          {
+            "day": 45,
+            "chaos": 9.9
+          },
+          {
+            "day": 46,
+            "chaos": 8
+          },
+          {
+            "day": 47,
+            "chaos": 9
+          },
+          {
+            "day": 48,
+            "chaos": 5
+          },
+          {
+            "day": 49,
+            "chaos": 5
+          },
+          {
+            "day": 50,
+            "chaos": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 12% increased Burning Damage",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 5
+          },
+          {
+            "day": 1,
+            "chaos": 5
+          },
+          {
+            "day": 2,
+            "chaos": 8
+          },
+          {
+            "day": 3,
+            "chaos": 10
+          },
+          {
+            "day": 4,
+            "chaos": 10
+          },
+          {
+            "day": 5,
+            "chaos": 10
+          },
+          {
+            "day": 6,
+            "chaos": 10
+          },
+          {
+            "day": 7,
+            "chaos": 10
+          },
+          {
+            "day": 8,
+            "chaos": 10.3
+          },
+          {
+            "day": 9,
+            "chaos": 12
+          },
+          {
+            "day": 10,
+            "chaos": 15
+          },
+          {
+            "day": 11,
+            "chaos": 15
+          },
+          {
+            "day": 12,
+            "chaos": 15
+          },
+          {
+            "day": 13,
+            "chaos": 15
+          },
+          {
+            "day": 14,
+            "chaos": 15
+          },
+          {
+            "day": 15,
+            "chaos": 15
+          },
+          {
+            "day": 16,
+            "chaos": 15
+          },
+          {
+            "day": 17,
+            "chaos": 15
+          },
+          {
+            "day": 18,
+            "chaos": 15
+          },
+          {
+            "day": 19,
+            "chaos": 15
+          },
+          {
+            "day": 20,
+            "chaos": 15
+          },
+          {
+            "day": 21,
+            "chaos": 15
+          },
+          {
+            "day": 22,
+            "chaos": 15
+          },
+          {
+            "day": 23,
+            "chaos": 15
+          },
+          {
+            "day": 24,
+            "chaos": 13.05
+          },
+          {
+            "day": 25,
+            "chaos": 12.4
+          },
+          {
+            "day": 26,
+            "chaos": 12.05
+          },
+          {
+            "day": 27,
+            "chaos": 10
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 10
+          },
+          {
+            "day": 30,
+            "chaos": 10
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 10
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 17.5
+          },
+          {
+            "day": 36,
+            "chaos": 15
+          },
+          {
+            "day": 37,
+            "chaos": 12.8
+          },
+          {
+            "day": 38,
+            "chaos": 15
+          },
+          {
+            "day": 39,
+            "chaos": 15
+          },
+          {
+            "day": 40,
+            "chaos": 15
+          },
+          {
+            "day": 41,
+            "chaos": 15
+          },
+          {
+            "day": 42,
+            "chaos": 19
+          },
+          {
+            "day": 43,
+            "chaos": 20
+          },
+          {
+            "day": 44,
+            "chaos": 20
+          },
+          {
+            "day": 45,
+            "chaos": 19
+          },
+          {
+            "day": 46,
+            "chaos": 20
+          },
+          {
+            "day": 47,
+            "chaos": 14.17
+          },
+          {
+            "day": 48,
+            "chaos": 15
+          },
+          {
+            "day": 49,
+            "chaos": 15.45
+          },
+          {
+            "day": 50,
+            "chaos": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (4 passives, Lv75): 12% increased Chaos Damage over Time",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 3
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 7.9
+          },
+          {
+            "day": 13,
+            "chaos": 7.4
+          },
+          {
+            "day": 14,
+            "chaos": 8
+          },
+          {
+            "day": 15,
+            "chaos": 9.4
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 8.9
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 9.7
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 8.9
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 8
+          },
+          {
+            "day": 26,
+            "chaos": 7.4
+          },
+          {
+            "day": 27,
+            "chaos": 10
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 9
+          },
+          {
+            "day": 30,
+            "chaos": 8.85
+          },
+          {
+            "day": 31,
+            "chaos": 9
+          },
+          {
+            "day": 32,
+            "chaos": 8
+          },
+          {
+            "day": 33,
+            "chaos": 7.95
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 9.4
+          },
+          {
+            "day": 36,
+            "chaos": 8.35
+          },
+          {
+            "day": 37,
+            "chaos": 8
+          },
+          {
+            "day": 38,
+            "chaos": 9.1
+          },
+          {
+            "day": 39,
+            "chaos": 8
+          },
+          {
+            "day": 40,
+            "chaos": 8
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 10
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 10
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 14
+          },
+          {
+            "day": 48,
+            "chaos": 12.05
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Medium Cluster Jewel (5 passives, Lv75): 12% increased Chaos Damage over Time",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 2
+          },
+          {
+            "day": 1,
+            "chaos": 2
+          },
+          {
+            "day": 2,
+            "chaos": 3
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 5
+          },
+          {
+            "day": 6,
+            "chaos": 5
+          },
+          {
+            "day": 7,
+            "chaos": 5
+          },
+          {
+            "day": 8,
+            "chaos": 5
+          },
+          {
+            "day": 9,
+            "chaos": 5
+          },
+          {
+            "day": 10,
+            "chaos": 5
+          },
+          {
+            "day": 11,
+            "chaos": 5
+          },
+          {
+            "day": 12,
+            "chaos": 5
+          },
+          {
+            "day": 13,
+            "chaos": 5
+          },
+          {
+            "day": 14,
+            "chaos": 5
+          },
+          {
+            "day": 15,
+            "chaos": 6.05
+          },
+          {
+            "day": 16,
+            "chaos": 8
+          },
+          {
+            "day": 17,
+            "chaos": 9.52
+          },
+          {
+            "day": 18,
+            "chaos": 7
+          },
+          {
+            "day": 19,
+            "chaos": 5.85
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 9
+          },
+          {
+            "day": 22,
+            "chaos": 8
+          },
+          {
+            "day": 23,
+            "chaos": 7.4
+          },
+          {
+            "day": 24,
+            "chaos": 5
+          },
+          {
+            "day": 25,
+            "chaos": 9
+          },
+          {
+            "day": 26,
+            "chaos": 7
+          },
+          {
+            "day": 27,
+            "chaos": 8
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 5.7
+          },
+          {
+            "day": 30,
+            "chaos": 6.6
+          },
+          {
+            "day": 31,
+            "chaos": 5
+          },
+          {
+            "day": 32,
+            "chaos": 8
+          },
+          {
+            "day": 33,
+            "chaos": 5
+          },
+          {
+            "day": 34,
+            "chaos": 6.25
+          },
+          {
+            "day": 35,
+            "chaos": 7.7
+          },
+          {
+            "day": 36,
+            "chaos": 6
+          },
+          {
+            "day": 37,
+            "chaos": 8.2
+          },
+          {
+            "day": 38,
+            "chaos": 6.05
+          },
+          {
+            "day": 39,
+            "chaos": 6.25
+          },
+          {
+            "day": 40,
+            "chaos": 5.2
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 10
+          },
+          {
+            "day": 43,
+            "chaos": 7.04
+          },
+          {
+            "day": 44,
+            "chaos": 10
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "currencyName": "Small Cluster Jewel (2 passives, Lv75): 6% increased Mana Reservation Efficiency of Skills",
+    "category": "cluster_jewels",
+    "leagueObservations": [
+      {
+        "league": "Necropolis",
+        "days": [
+          {
+            "day": 0,
+            "chaos": 3
+          },
+          {
+            "day": 1,
+            "chaos": 5
+          },
+          {
+            "day": 2,
+            "chaos": 5
+          },
+          {
+            "day": 3,
+            "chaos": 5
+          },
+          {
+            "day": 4,
+            "chaos": 5
+          },
+          {
+            "day": 5,
+            "chaos": 9
+          },
+          {
+            "day": 6,
+            "chaos": 9.7
+          },
+          {
+            "day": 7,
+            "chaos": 10
+          },
+          {
+            "day": 8,
+            "chaos": 10
+          },
+          {
+            "day": 9,
+            "chaos": 10
+          },
+          {
+            "day": 10,
+            "chaos": 10
+          },
+          {
+            "day": 11,
+            "chaos": 10
+          },
+          {
+            "day": 12,
+            "chaos": 10
+          },
+          {
+            "day": 13,
+            "chaos": 10
+          },
+          {
+            "day": 14,
+            "chaos": 10
+          },
+          {
+            "day": 15,
+            "chaos": 10
+          },
+          {
+            "day": 16,
+            "chaos": 10
+          },
+          {
+            "day": 17,
+            "chaos": 10
+          },
+          {
+            "day": 18,
+            "chaos": 10
+          },
+          {
+            "day": 19,
+            "chaos": 10
+          },
+          {
+            "day": 20,
+            "chaos": 10
+          },
+          {
+            "day": 21,
+            "chaos": 10
+          },
+          {
+            "day": 22,
+            "chaos": 10
+          },
+          {
+            "day": 23,
+            "chaos": 10
+          },
+          {
+            "day": 24,
+            "chaos": 10
+          },
+          {
+            "day": 25,
+            "chaos": 10
+          },
+          {
+            "day": 26,
+            "chaos": 9.04
+          },
+          {
+            "day": 27,
+            "chaos": 9
+          },
+          {
+            "day": 28,
+            "chaos": 10
+          },
+          {
+            "day": 29,
+            "chaos": 8
+          },
+          {
+            "day": 30,
+            "chaos": 10
+          },
+          {
+            "day": 31,
+            "chaos": 10
+          },
+          {
+            "day": 32,
+            "chaos": 10
+          },
+          {
+            "day": 33,
+            "chaos": 10
+          },
+          {
+            "day": 34,
+            "chaos": 10
+          },
+          {
+            "day": 35,
+            "chaos": 10
+          },
+          {
+            "day": 36,
+            "chaos": 10
+          },
+          {
+            "day": 37,
+            "chaos": 9.99
+          },
+          {
+            "day": 38,
+            "chaos": 10
+          },
+          {
+            "day": 39,
+            "chaos": 9.72
+          },
+          {
+            "day": 40,
+            "chaos": 10
+          },
+          {
+            "day": 41,
+            "chaos": 10
+          },
+          {
+            "day": 42,
+            "chaos": 10
+          },
+          {
+            "day": 43,
+            "chaos": 10
+          },
+          {
+            "day": 44,
+            "chaos": 10
+          },
+          {
+            "day": 45,
+            "chaos": 10
+          },
+          {
+            "day": 46,
+            "chaos": 10
+          },
+          {
+            "day": 47,
+            "chaos": 10
+          },
+          {
+            "day": 48,
+            "chaos": 10
+          },
+          {
+            "day": 49,
+            "chaos": 10
+          },
+          {
+            "day": 50,
+            "chaos": 10
           }
         ]
       }
