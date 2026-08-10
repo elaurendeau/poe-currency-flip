@@ -615,16 +615,36 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     # Descending by default -- the best Next-day riser should render before a worse one.
     # At day 0 in the bundled reference data, Exalted Orb's real day0->day1 move
     # (3c -> 9c, +200%) beats the Fire Damage cluster jewel's (3.6c -> 10c, +177.8%).
+    #
+    # Matched by exact candidate-name text (via Floki), not a raw HTML
+    # substring search -- the dataset also contains "Eldritch Exalted Orb",
+    # "Hunter's Exalted Orb", etc., which a bare `String.contains?`/
+    # `:binary.match` on "Exalted Orb" would collide with once the reference
+    # data grew past a handful of curated items.
+    fire_damage_name = "Large Cluster Jewel (8 passives, Lv50): 12% increased Fire Damage"
+
     html = render(view)
     assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Exalted Orb")
-    fire_damage_index = :binary.match(html, "Fire Damage") |> elem(0)
-    exalted_index = :binary.match(html, "Exalted Orb") |> elem(0)
-    assert exalted_index < fire_damage_index
+
+    assert candidate_name_index(html, "Exalted Orb") <
+             candidate_name_index(html, fire_damage_name)
 
     flipped_html = view |> element(".historical-sort") |> render_click()
-    flipped_fire_damage_index = :binary.match(flipped_html, "Fire Damage") |> elem(0)
-    flipped_exalted_index = :binary.match(flipped_html, "Exalted Orb") |> elem(0)
-    assert flipped_fire_damage_index < flipped_exalted_index
+
+    assert candidate_name_index(flipped_html, fire_damage_name) <
+             candidate_name_index(flipped_html, "Exalted Orb")
+  end
+
+  # Exact candidate-name match (via Floki), not a raw HTML substring search --
+  # the dataset also contains "Eldritch Exalted Orb", "Hunter's Exalted Orb",
+  # etc., which a bare `String.contains?`/`:binary.match` on "Exalted Orb"
+  # would collide with once the reference data grew past a handful of items.
+  defp candidate_name_index(html, exact_name) do
+    html
+    |> Floki.parse_document!()
+    |> Floki.find(".candidate-name")
+    |> Enum.map(&(Floki.text(&1) |> String.trim()))
+    |> Enum.find_index(&(&1 == exact_name))
   end
 
   test "a league with no captured start time shows the explicit unknown state, never a guessed day",
