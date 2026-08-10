@@ -46,6 +46,17 @@ defmodule PoeFlipFinder.FlipOpportunityPresenter do
     end
   end
 
+  @doc """
+  The item description shown on hover, per docs/DATA_SOURCES.md's PoE
+  Wiki capture -- "Unknown" (never a blank/absent tooltip) when a
+  currency genuinely has no real description captured, so a hover still
+  tells the user *something* was checked rather than looking broken.
+  Never hides the item itself; only affects the tooltip text.
+  """
+  @spec format_description(String.t() | nil) :: String.t()
+  def format_description(nil), do: "Unknown"
+  def format_description(description), do: description
+
   defp sign_prefix(value) when value >= 0, do: "+"
   defp sign_prefix(_value), do: ""
 

@@ -1264,7 +1264,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
               {PoeFlipFinder.FlipOpportunityPresenter.format_quantity(amount.quantity)}
             </span>
             <.currency_icon amount={amount} />
-            {amount.currency.display_name}
+            <span
+              class="has-description"
+              title={
+                PoeFlipFinder.FlipOpportunityPresenter.format_description(amount.currency.description)
+              }
+            >
+              {amount.currency.display_name}
+            </span>
           <% end %>
         </div>
         <div class="sub">{@opportunity.detail}</div>
@@ -1293,7 +1300,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         </span>
         <.currency_icon amount={@amount} />
       </div>
-      {@amount.currency.display_name}
+      <span
+        class="has-description"
+        title={
+          PoeFlipFinder.FlipOpportunityPresenter.format_description(@amount.currency.description)
+        }
+      >
+        {@amount.currency.display_name}
+      </span>
     </div>
     """
   end

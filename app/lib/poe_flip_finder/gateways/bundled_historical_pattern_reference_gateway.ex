@@ -16,7 +16,7 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   @behaviour PoeFlipFinder.HistoricalPatternReferenceGateway
 
   alias PoeFlipFinder.{Currency, HistoricalPricePattern}
-  alias PoeFlipFinder.Gateways.IconByDisplayNameResolver
+  alias PoeFlipFinder.Gateways.{IconByDisplayNameResolver, ItemDescriptionResolver}
   alias PoeFlipFinder.HistoricalPricePattern.{DayPrice, LeagueObservation}
 
   @catalog_resource_path "reference-data/historical-investment-patterns.json"
@@ -49,12 +49,31 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   def normalize(raw_entries), do: Enum.map(raw_entries, &to_entity/1)
 
   defp to_entity(entry) do
+    name = entry["currencyName"]
+    category = to_category(entry["category"])
+
     %HistoricalPricePattern{
-      currency: placeholder_currency(entry["currencyName"], entry["category"]),
-      league_observations: Enum.map(entry["leagueObservations"], &to_observation/1),
-      description: entry["description"]
+      currency: placeholder_currency(name, category),
+      league_observations: Enum.map(entry["leagueObservations"], &to_observation/1)
     }
   end
+
+  # Cluster Jewel display names are authored as "<Size> Cluster Jewel
+  # (<passives>, Lv<level>): <notable mod text>" -- the notable text after
+  # the colon already fully describes the item's real effect, so it needs
+  # no separate wiki lookup (and wouldn't have one anyway: Cluster Jewels
+  # never trade on the Currency Exchange and aren't real "items" on the
+  # wiki the way a named currency is). Splitting the name is honest here
+  # because the mod text in the name genuinely IS the description, not a
+  # guess derived from it.
+  defp derive_description(name, :cluster_jewels) do
+    case String.split(name, ": ", parts: 2) do
+      [_prefix, notable] -> notable
+      _ -> nil
+    end
+  end
+
+  defp derive_description(_name, _category), do: nil
 
   defp to_observation(entry) do
     %LeagueObservation{
@@ -67,13 +86,14 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
     %DayPrice{day: entry["day"], chaos: entry["chaos"] * 1.0}
   end
 
-  defp placeholder_currency(name, raw_category) do
+  defp placeholder_currency(name, category) do
     %Currency{
       id: nil,
       external_id: nil,
       display_name: name,
       icon_url: IconByDisplayNameResolver.resolve(name),
-      category: to_category(raw_category)
+      category: category,
+      description: ItemDescriptionResolver.resolve(name) || derive_description(name, category)
     }
   end
 

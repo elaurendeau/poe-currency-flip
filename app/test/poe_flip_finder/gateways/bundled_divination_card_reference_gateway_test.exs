@@ -18,6 +18,12 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGatewayTest do
     reward = Enum.find(rewards, &(&1.card.display_name == "Chaotic Disposition"))
     assert reward.stack_size == 1
     assert reward.reward_currency.display_name == "Chaos Orb"
+    # A real hover description, resolved via the shared
+    # ItemDescriptionResolver -- same catalog every other
+    # Currency-hydrating gateway reads from.
+    assert reward.reward_currency.description ==
+             "Reforges a rare item with new random modifiers"
+
     assert reward.reward_quantity == 5
     assert reward.predictable == true
     assert reward.card.external_id == nil

@@ -10,7 +10,7 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGateway do
   @behaviour PoeFlipFinder.CurrencyReferenceGateway
 
   alias PoeFlipFinder.Currency
-  alias PoeFlipFinder.Gateways.Schema
+  alias PoeFlipFinder.Gateways.{ItemDescriptionResolver, Schema}
   alias PoeFlipFinder.Repo
 
   @impl true
@@ -53,7 +53,8 @@ defmodule PoeFlipFinder.Gateways.EctoCurrencyReferenceGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       icon_url: schema.icon_url,
-      category: schema.category
+      category: schema.category,
+      description: ItemDescriptionResolver.resolve(schema.display_name)
     }
   end
 end

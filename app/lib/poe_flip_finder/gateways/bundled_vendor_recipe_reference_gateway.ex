@@ -22,6 +22,7 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGateway do
   @behaviour PoeFlipFinder.VendorRecipeReferenceGateway
 
   alias PoeFlipFinder.{Currency, VendorRecipe}
+  alias PoeFlipFinder.Gateways.ItemDescriptionResolver
 
   @catalog_resource_path "reference-data/vendor-recipes.json"
   @persistent_term_key {__MODULE__, :vendor_recipes}
@@ -62,6 +63,13 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGateway do
   end
 
   defp placeholder_currency(name) do
-    %Currency{id: nil, external_id: nil, display_name: name, icon_url: nil, category: :currency}
+    %Currency{
+      id: nil,
+      external_id: nil,
+      display_name: name,
+      icon_url: nil,
+      category: :currency,
+      description: ItemDescriptionResolver.resolve(name)
+    }
   end
 end

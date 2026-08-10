@@ -555,6 +555,54 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert render(view) =~ ~s(data-route-key="vendor_recipe|)
   end
 
+  test "the Grand Exchange Flip tab shows a real hover description on currency cells", %{
+    conn: conn
+  } do
+    # Reuses the Divination Card seed for real display names ("Chaos Orb",
+    # "Divine Orb") backed by the real Ecto currency hydration path
+    # (EctoSnapshotQueryGateway), not a stub -- proves description now
+    # flows through that gateway the same way icon_url already does.
+    seed_one_divination_card_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    html = render(view)
+
+    doc = Floki.parse_document!(html)
+
+    chaos_orb_name =
+      doc
+      |> Floki.find(".has-description")
+      |> Enum.find(fn el -> Floki.text(el) =~ "Chaos Orb" end)
+
+    assert chaos_orb_name
+
+    assert Floki.attribute(chaos_orb_name, "title") == [
+             "Reforges a rare item with new random modifiers"
+           ]
+  end
+
+  test "the Vendor Flip tab shows real hover descriptions on the start currency and the via chain",
+       %{conn: conn} do
+    seed_one_vendor_recipe_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Vendor Flip") |> render_click()
+    html = render(view)
+
+    doc = Floki.parse_document!(html)
+    named = doc |> Floki.find(".has-description")
+
+    for {name, description} <- [
+          {"Chaos Orb", "Reforges a rare item with new random modifiers"},
+          {"Scroll of Wisdom", "Identifies an item"},
+          {"Portal Scroll", "Creates a portal to town"}
+        ] do
+      el = Enum.find(named, fn el -> Floki.text(el) =~ name end)
+      assert el, "expected a .has-description element for #{name}"
+      assert Floki.attribute(el, "title") == [description]
+    end
+  end
+
   test "the Historical Investment tab shows day-relative candidates with icons, live price, and 4 horizons",
        %{conn: conn} do
     # The selected/current league's own name/start_at is independent of

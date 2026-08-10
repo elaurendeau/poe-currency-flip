@@ -913,7 +913,7 @@ body {
   min-width: 0;
 }
 
-.historical-name.has-description .candidate-name {
+.has-description {
   cursor: help;
   text-decoration: underline dotted;
   text-decoration-color: var(--text-dim);

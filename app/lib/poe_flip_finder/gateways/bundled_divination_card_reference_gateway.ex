@@ -22,6 +22,7 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGateway do
   @behaviour PoeFlipFinder.DivinationCardReferenceGateway
 
   alias PoeFlipFinder.{Currency, DivinationCardReward}
+  alias PoeFlipFinder.Gateways.ItemDescriptionResolver
 
   @catalog_resource_path "reference-data/divination-card-rewards.json"
   @persistent_term_key {__MODULE__, :card_rewards}
@@ -71,7 +72,8 @@ defmodule PoeFlipFinder.Gateways.BundledDivinationCardReferenceGateway do
       external_id: nil,
       display_name: name,
       icon_url: nil,
-      category: category
+      category: category,
+      description: ItemDescriptionResolver.resolve(name)
     }
   end
 end

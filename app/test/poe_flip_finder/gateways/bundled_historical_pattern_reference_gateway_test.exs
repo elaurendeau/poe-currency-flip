@@ -23,6 +23,11 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     # docs/DATA_SOURCES.md's "past 2 leagues" rationale.
     assert length(ancient_orb.league_observations) == 2
     assert ancient_orb.currency.icon_url =~ "AncientOrb.png"
+    # A real hover description, resolved onto the placeholder Currency
+    # (not the pattern itself) by the shared ItemDescriptionResolver --
+    # same catalog every other Currency-hydrating gateway reads from.
+    assert ancient_orb.currency.description ==
+             "Reforges a unique equipment as another of the same item class"
 
     ancestors = Enum.find(ancient_orb.league_observations, &(&1.league == "Ancestors"))
     day0 = Enum.find(ancestors.day_prices, &(&1.day == 0))
@@ -40,6 +45,11 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
     # Item Icons catalog has no entry for them at all -- nil is the
     # correct, honest result here, not a resolution bug.
     assert jewel.currency.icon_url == nil
+    # Cluster Jewels have no wiki page of their own -- the notable mod
+    # text after ": " in the display name IS the real description, so it's
+    # derived from the name rather than looked up.
+    [_prefix, notable] = String.split(jewel.currency.display_name, ": ", parts: 2)
+    assert jewel.currency.description == notable
   end
 
   test "captures a real league observation that doesn't start at day 0 (Flesh of Xesht in Mirage)" do
@@ -94,6 +104,35 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGatewayTest do
       [pattern] = BundledHistoricalPatternReferenceGateway.normalize(raw)
       assert pattern.currency.category == String.to_atom(category)
     end
+  end
+
+  test "normalize/1 derives a Cluster Jewel's description from its own name, not a wiki lookup" do
+    raw = [
+      %{
+        "currencyName" =>
+          "Large Cluster Jewel (8 passives, Lv75): 10% increased Elemental Damage",
+        "category" => "cluster_jewels",
+        "leagueObservations" => []
+      }
+    ]
+
+    [pattern] = BundledHistoricalPatternReferenceGateway.normalize(raw)
+
+    assert pattern.currency.description == "10% increased Elemental Damage"
+  end
+
+  test "normalize/1 falls back to nil description when a Cluster Jewel name has no ': ' separator" do
+    raw = [
+      %{
+        "currencyName" => "Cluster Jewel",
+        "category" => "cluster_jewels",
+        "leagueObservations" => []
+      }
+    ]
+
+    [pattern] = BundledHistoricalPatternReferenceGateway.normalize(raw)
+
+    assert pattern.currency.description == nil
   end
 
   test "normalize/1 raises a specific, loud error on an unrecognized category" do
