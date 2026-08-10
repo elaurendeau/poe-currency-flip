@@ -24,6 +24,15 @@ defmodule PoeFlipFinder.HistoricalPricePattern do
   trade on the Currency Exchange (Cluster Jewels; special/transfigured
   gems) use additional atoms not in the DB check-constraint enum -- safe
   here because this placeholder Currency is never persisted via Ecto.
+
+  `description` is real mod/effect text (or, for Divination Cards, real
+  reward + flavour text) captured from the PoE Wiki's Cargo API by item
+  name -- `nil` when a pattern's own display name already fully explains
+  it (Cluster Jewels, whose name literally is the notable's mod text) or
+  when no real description was found for that item (currently Beasts,
+  whose usage lives on a wiki table this project hasn't located a query
+  path into yet -- see docs/DATA_SOURCES.md). Never fabricated: absence
+  renders as absence, not a guessed sentence.
   """
 
   alias PoeFlipFinder.Currency
@@ -52,10 +61,11 @@ defmodule PoeFlipFinder.HistoricalPricePattern do
   end
 
   @enforce_keys [:currency, :league_observations]
-  defstruct [:currency, :league_observations]
+  defstruct [:currency, :league_observations, :description]
 
   @type t :: %__MODULE__{
           currency: Currency.t(),
-          league_observations: [LeagueObservation.t()]
+          league_observations: [LeagueObservation.t()],
+          description: String.t() | nil
         }
 end

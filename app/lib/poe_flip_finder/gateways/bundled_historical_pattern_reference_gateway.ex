@@ -51,7 +51,8 @@ defmodule PoeFlipFinder.Gateways.BundledHistoricalPatternReferenceGateway do
   defp to_entity(entry) do
     %HistoricalPricePattern{
       currency: placeholder_currency(entry["currencyName"], entry["category"]),
-      league_observations: Enum.map(entry["leagueObservations"], &to_observation/1)
+      league_observations: Enum.map(entry["leagueObservations"], &to_observation/1),
+      description: entry["description"]
     }
   end
 

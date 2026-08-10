@@ -585,6 +585,37 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert html =~ "AncientOrb.png"
     # A trajectory sparkline (SVG), per docs/PRD.md § 7.14.
     assert html =~ "<svg" and html =~ "sparkline"
+    # A real hover description captured from the PoE Wiki, per
+    # docs/DATA_SOURCES.md -- not just the bare item name repeated.
+    assert html =~ "Reforges a unique equipment as another of the same item class"
+  end
+
+  test "an item with no captured description still renders, with an Unknown hover tooltip",
+       %{conn: conn} do
+    # "Acid Slitherer" (Beast) has no description captured -- Beasts'
+    # real usage lives on a PoE Wiki table this project hasn't found a
+    # query path into yet (see docs/DATA_SOURCES.md). The missing
+    # description must never hide the item itself, only fall back to an
+    # honest "Unknown" tooltip.
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "Acid Slitherer"
+
+    doc = Floki.parse_document!(html)
+
+    acid_slitherer_wrapper =
+      doc
+      |> Floki.find(".historical-name")
+      |> Enum.find(fn el -> Floki.text(el) =~ "Acid Slitherer" end)
+
+    assert acid_slitherer_wrapper
+    assert Floki.attribute(acid_slitherer_wrapper, "title") == ["Unknown"]
   end
 
   test "the Historical Investment tab respects the shared category drawer filter", %{conn: conn} do

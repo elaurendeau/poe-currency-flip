@@ -62,6 +62,17 @@ defmodule PoeFlipFinder.HistoricalInvestmentPresenter do
 
   def format_elapsed_badge(:unknown), do: "league start time unknown"
 
+  @doc """
+  The item description shown on hover, per docs/DATA_SOURCES.md's PoE
+  Wiki capture -- "Unknown" (never a blank/absent tooltip) when a
+  pattern genuinely has no real description captured, so a hover still
+  tells the user *something* was checked rather than looking broken.
+  Never hides the item itself; only affects the tooltip text.
+  """
+  @spec format_description(String.t() | nil) :: String.t()
+  def format_description(nil), do: "Unknown"
+  def format_description(description), do: description
+
   @doc "Column header text for a horizon key, docs/PRD.md § 7.14."
   @spec horizon_label(HistoricalInvestment.horizon_key()) :: String.t()
   def horizon_label(:day_1), do: "Next day"

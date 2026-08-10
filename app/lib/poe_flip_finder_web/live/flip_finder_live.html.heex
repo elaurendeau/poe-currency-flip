@@ -180,7 +180,14 @@
                 <div class="historical-candidates">
                   <div :for={candidate <- candidates} class="grid historical-grid historical-row">
                     <.currency_icon amount={%{currency: candidate.pattern.currency}} />
-                    <div class="historical-name">
+                    <div
+                      class="historical-name has-description"
+                      title={
+                        PoeFlipFinder.HistoricalInvestmentPresenter.format_description(
+                          candidate.pattern.description
+                        )
+                      }
+                    >
                       <span class="candidate-name">
                         {candidate.pattern.currency.display_name}
                       </span>

@@ -147,6 +147,24 @@ Verified facts:
 
 **Decision: captured, not live.** Same rationale as poe-antiquary below and as [Vendor Sell Rates & Recipes](#vendor-sell-rates--recipes): concluded leagues don't change, so there's no freshness reason to call this live, and every reason (no ToS, no published rate-limit contract, the Cluster Jewel throttling above) not to. Refreshed manually when the sample is worth re-capturing (e.g. when Ancestors/Mirage themselves age out of poe.ninja's rolling window and a new "past 2 leagues" pair needs capturing), never fetched at request time.
 
+## Item Descriptions (PoE Wiki Cargo API)
+
+**Source:** [poewiki.net](https://www.poewiki.net)'s Cargo query API (`/w/api.php?action=cargoquery`), a structured-data extension the wiki runs -- not page scraping.
+**Auth:** None required.
+**Last verified:** 2026-08-10, by direct testing.
+
+Backs the Historical Investment tab's hover tooltip (item names like "Runegraft of the Witchmark" don't say what the item actually does).
+
+Verified facts:
+
+- **The `items` Cargo table's `html` field carries the real, structured item-box markup** GGG's own wiki template renders, double-HTML-escaped (`&lt;span...` -- `html.unescape()` once to get real HTML, parse that). The effect text lives in `<span class="group tc -mod">...</span>`; when that's absent (e.g. Oils, which have no "mod" of their own), `<span class="group tc -help">...</span>` has the real usage text instead.
+- **Divination Cards use a completely different markup shape** (`divicard-reward`, `divicard-flavour`, `divicard-stack` spans, no `tc -mod` at all) -- discovered by fetching a real example ("House of Mirrors") before assuming Cards would parse the same way as Currency-type items.
+- **The API's returned `title.name` is HTML-entity-escaped** (`Hinekora&#039;s Lock`, not `Hinekora's Lock`) even though the query matched correctly -- silently caused 33 real successful lookups to look like 33 failed ones on the first pass, since the returned name no longer string-matched the original request name used as the dict key. Fixed by `html.unescape()`-ing the returned name before using it as a lookup key, not by re-querying.
+- **The `where` clause supports a plain `OR` of quoted `items.name="..."` clauses**, letting ~20-30 item names be looked up in a single request rather than one request per item -- confirmed by batch-querying real item names and checking the response count matched, not assumed from generic SQL-like syntax familiarity.
+- **Beasts have no matching `items` table entry at all** ("Farrul, First of the Plains" and similar returned zero rows) -- they're monster pages, not item pages, on this wiki. A `monsters` Cargo table does have them, but a `bestiary_recipes`-style table that would carry the actual "what does capturing this beast let you craft" text wasn't successfully located in the time spent looking. **Beasts are the one category with no real description captured** (208 of the 1014 catalog entries, 174 Beasts + 434 Cluster Jewels where the display name already *is* the description) -- the hover tooltip falls back to a plain "Unknown" for these rather than fabricating a description or hiding the item, per `HistoricalInvestmentPresenter.format_description/1`.
+
+**Decision: captured, not live.** Same "past leagues don't change" reasoning as the price-history sources above -- descriptions for real, existing PoE items don't change session to session either. Captured once into each pattern's `description` field in the same bundled JSON, refreshed manually alongside a future price-data recapture rather than queried per page load.
+
 ## Historical League Price Archive (poe-antiquary.xyz) — superseded, kept for reference
 
 **Source:** [poe-antiquary.xyz](https://poe-antiquary.xyz), an unofficial, unauthenticated site archiving per-item daily price history across past PoE challenge leagues.
