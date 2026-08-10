@@ -9,22 +9,24 @@ defmodule PoeFlipFinder.HistoricalInvestmentPresenter do
 
   @doc """
   Applies the shared category-drawer filter (docs/PRD.md § 7.13 Feature M)
-  and sorts by the "Next day" horizon -- the same filter+sort split
-  `FlipOpportunityTablePresenter.build_display_groups/2` uses for the
-  other two tabs, kept out of the `.heex` template per the Humble Object
-  rule.
+  and sorts by whichever horizon column is active -- the same filter+sort
+  split `FlipOpportunityTablePresenter.build_display_groups/2` uses for
+  the other two tabs, kept out of the `.heex` template per the Humble
+  Object rule.
   """
   @spec build_display_list([HistoricalInvestment.candidate()], %{
           enabled_categories: %{atom() => boolean()},
+          sort_column: HistoricalInvestment.horizon_key(),
           sort_direction: :asc | :desc
         }) :: [HistoricalInvestment.candidate()]
   def build_display_list(candidates, %{
         enabled_categories: enabled_categories,
+        sort_column: sort_column,
         sort_direction: sort_direction
       }) do
     candidates
     |> Enum.filter(&Map.get(enabled_categories, &1.pattern.currency.category, true))
-    |> HistoricalInvestment.sort_by_horizon(:day_1, sort_direction)
+    |> HistoricalInvestment.sort_by_horizon(sort_column, sort_direction)
   end
 
   @doc "Chaos amounts round to 2 decimals and drop trailing zeros -- '3c', '0.09c', '117.5c', never '117.50c'."

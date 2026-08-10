@@ -25,6 +25,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @techniques [:vendor_recipe, :exchange_spread, :divination_card, :bulk_buy]
   @sort_columns [:margin, :profit, :volume]
   @sort_directions [:asc, :desc]
+  @historical_sort_columns [:day_1, :day_3, :week_1, :week_2]
   @tabs [:grand_exchange, :vendor, :historical]
 
   # docs/PRD.md § 7.6/7.7: the in-flight duration is a safety net, not the
@@ -61,6 +62,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       # render time by HistoricalInvestmentPresenter.build_display_list/2,
       # mirroring FlipOpportunityTablePresenter's own filter+sort split.
       |> assign(:historical_candidates, :no_league_selected)
+      |> assign(:historical_sort_column, :day_1)
       |> assign(:historical_sort_direction, :desc)
       |> assign(:league_elapsed, :unknown)
       |> assign(:max_sampled_day, HistoricalInvestment.max_sampled_day())
@@ -141,12 +143,20 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
      |> load_historical_candidates()}
   end
 
-  def handle_event("toggle_historical_sort", _params, socket) do
+  def handle_event("toggle_historical_sort", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+
+    {sort_column, sort_direction} =
+      if socket.assigns.historical_sort_column == column_atom do
+        {column_atom, flip_direction(socket.assigns.historical_sort_direction)}
+      else
+        {column_atom, :desc}
+      end
+
     socket =
-      assign(
-        socket,
-        :historical_sort_direction,
-        flip_direction(socket.assigns.historical_sort_direction)
+      assign(socket,
+        historical_sort_column: sort_column,
+        historical_sort_direction: sort_direction
       )
 
     {:noreply, persist_display_preferences(socket)}
@@ -287,6 +297,12 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
          parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
        thresholds: parse_thresholds(params["thresholds"]),
        max_start_chaos: parse_max_start_chaos(params["max_start_chaos"]),
+       historical_sort_column:
+         parse_atom_in(
+           params["historical_sort_column"],
+           @historical_sort_columns,
+           socket.assigns.historical_sort_column
+         ),
        historical_sort_direction:
          parse_atom_in(
            params["historical_sort_direction"],
@@ -563,6 +579,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       sort_direction: socket.assigns.sort_direction,
       thresholds: socket.assigns.thresholds,
       max_start_chaos: socket.assigns.max_start_chaos,
+      historical_sort_column: socket.assigns.historical_sort_column,
       historical_sort_direction: socket.assigns.historical_sort_direction
     })
   end

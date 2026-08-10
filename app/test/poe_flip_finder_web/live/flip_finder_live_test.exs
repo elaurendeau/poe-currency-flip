@@ -633,10 +633,49 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert candidate_name_index(html, "Ancient Orb") <
              candidate_name_index(html, fire_damage_name)
 
-    flipped_html = view |> element(".historical-sort") |> render_click()
+    # All 4 horizon columns carry the "historical-sort" class now that
+    # each is independently clickable -- target the active one (Next day)
+    # specifically rather than the ambiguous ".historical-sort" selector.
+    flipped_html =
+      view |> element("span.historical-sort", "Next day") |> render_click()
 
     assert candidate_name_index(flipped_html, fire_damage_name) <
              candidate_name_index(flipped_html, "Ancient Orb")
+  end
+
+  test "clicking a different horizon column switches to it and defaults to descending",
+       %{conn: conn} do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert has_element?(view, "span.col-label.active", "Next day")
+
+    view |> element("span.historical-sort", "Next 3 days") |> render_click()
+
+    assert has_element?(view, "span.col-label.active", "Next 3 days")
+    refute has_element?(view, "span.col-label.active", "Next day")
+
+    assert_push_event(view, "persist_display_preferences", %{
+      historical_sort_column: :day_3,
+      historical_sort_direction: :desc
+    })
+
+    # Clicking the now-active "Next 3 days" header again flips its
+    # direction rather than resetting to "Next day" -- same
+    # already-active-column branch toggle_sort's own tests cover for the
+    # other tabs' sort columns.
+    view |> element("span.historical-sort", "Next 3 days") |> render_click()
+    assert has_element?(view, "span.col-label.active", "Next 3 days")
+
+    assert_push_event(view, "persist_display_preferences", %{
+      historical_sort_column: :day_3,
+      historical_sort_direction: :asc
+    })
   end
 
   # Exact candidate-name match (via Floki), not a raw HTML substring search --

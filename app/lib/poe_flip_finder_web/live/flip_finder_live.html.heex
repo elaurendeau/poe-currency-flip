@@ -153,6 +153,7 @@
                     raw_candidates,
                     %{
                       enabled_categories: @enabled_categories,
+                      sort_column: @historical_sort_column,
                       sort_direction: @historical_sort_direction
                     }
                   ) %>
@@ -161,14 +162,19 @@
                   <span>Item</span>
                   <span>Live</span>
                   <span
-                    class="col-label active historical-sort"
+                    :for={horizon_key <- [:day_1, :day_3, :week_1, :week_2]}
+                    class={[
+                      "col-label historical-sort",
+                      @historical_sort_column == horizon_key && "active"
+                    ]}
                     phx-click="toggle_historical_sort"
+                    phx-value-column={horizon_key}
                   >
-                    Next day <.sort_arrow_icon direction={@historical_sort_direction} />
+                    {PoeFlipFinder.HistoricalInvestmentPresenter.horizon_label(horizon_key)}
+                    <.sort_arrow_icon direction={
+                      @historical_sort_column == horizon_key && @historical_sort_direction
+                    } />
                   </span>
-                  <span>Next 3 days</span>
-                  <span>Next week</span>
-                  <span>Next 2 weeks</span>
                   <span>Trajectory</span>
                 </div>
                 <div class="historical-candidates">
