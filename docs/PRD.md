@@ -1,7 +1,7 @@
 # PRD: PoE Currency Exchange Flip Finder
 
 **Owner:** tapoox
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-09
 
 **Related docs:** [ARCHITECTURE.md](ARCHITECTURE.md) (resilience & system design) · [DATA_SOURCES.md](DATA_SOURCES.md) (verified external API contracts) · [TECH_STACK.md](TECH_STACK.md) (technology decisions) · [SCHEMA.md](SCHEMA.md) (database schema) · [CODE_STYLE.md](CODE_STYLE.md) (Elixir code style/design) · [DEPLOYMENT.md](DEPLOYMENT.md) (packaging & pipeline)
 
@@ -27,7 +27,7 @@ Finding a profitable flip today means manually comparing Currency Exchange rates
 - No alerting/notifications (watchlists, thresholds).
 - No Path of Exile 2 support.
 - No general item flipping (uniques, gear, etc.) — currency, vendor recipes, and divination cards only.
-- No historical trend charts.
+- No historical trend charts **for live Currency Exchange data** — that ingestion model deliberately retains no history (see [ARCHITECTURE.md](ARCHITECTURE.md), [SCHEMA.md § Ingestion state and market data](SCHEMA.md#ingestion-state-and-market-data)), and this Non-Goal still fully applies to Features A/B/C/E. [§ 7.14 Feature N — Historical Investment](#714-feature-n--historical-investment) is a deliberate, narrow exception: it sources historical data from a separate, static past-league archive (poe-antiquary.xyz), captured manually the same way Vendor Recipes/Divination Cards are — it does not reintroduce history into the live ingestion pipeline this bullet protects.
 
 ## 5. Target User
 
@@ -159,7 +159,7 @@ Settings-area controls to force a re-fetch of individual data sources, independe
 Three tabs above the results table group the flip-finding techniques by data source; checkboxes within the active tab let the user show or hide that tab's own techniques independently.
 
 **Requirements:**
-- **Tabs: "Grand Exchange Flip", "Vendor Flip", "Historical Investment".** Grand Exchange Flip groups every technique computed purely from Currency Exchange data — Exchange Spread (7.2), Divination Card (7.3), Triangular Arbitrage/Bulk Buy (7.5) — and is the default active tab. Vendor Flip is Vendor Recipe (7.1) alone. **Historical Investment has no requirements yet and is rendered as a disabled, inert tab** ("Coming soon") — it exists as a placeholder in the tab bar, not a built feature; do not treat its presence here as scope for a historical-data feature, which remains excluded per [§ 4 Non-Goals](#4-non-goals)'s "No historical trend charts" until a future PRD update explicitly defines and scopes it.
+- **Tabs: "Grand Exchange Flip", "Vendor Flip", "Historical Investment".** Grand Exchange Flip groups every technique computed purely from Currency Exchange data — Exchange Spread (7.2), Divination Card (7.3), Triangular Arbitrage/Bulk Buy (7.5) — and is the default active tab. Vendor Flip is Vendor Recipe (7.1) alone. **Historical Investment is defined and scoped by [§ 7.14 Feature N](#714-feature-n--historical-investment)** — it is no longer a disabled placeholder; it's a normal, clickable tab like the other two, just not grouped by the technique-filter checkboxes above the table (it has its own content, not a filtered table row set).
 - **One checkbox per technique, scoped to the active tab — but only shown when a tab actually groups more than one technique.** Grand Exchange Flip shows three checkboxes (Exchange Spread, Divination Card, Bulk Buy) to toggle independently. Vendor Flip has exactly one technique (Vendor Recipe) and nothing else in the tab to filter it against, so it shows no checkbox at all — Vendor Recipe is simply always on whenever that tab is active, per direct user feedback that a lone always-checked checkbox is pointless UI. Switching tabs doesn't change a technique's remembered checked/unchecked state for tabs that do show checkboxes, only which techniques are visible to toggle and which rows the table shows at all.
 - All checked by default — the default view shows everything in the active tab; filtering is opt-out, not opt-in.
 - A purely client-side display filter over the already-fetched result set. It does not change what the backend computes — data volumes here are small enough (per [DATA_SOURCES.md](DATA_SOURCES.md)) that computing every technique on every refresh and filtering the display is simpler than a backend filter parameter, and keeps this feature entirely in the frontend layer. This includes which tab is active: switching tabs never triggers a new backend fetch, only a different filter over data already in hand.
@@ -231,6 +231,30 @@ A left-side drawer, hidden by default, letting the user narrow the table to spec
 - A purely client-side display filter over the already-fetched result set, combining with Features H and I over the same rows — same rationale as Feature H (small data volumes, keeps this entirely in the frontend layer).
 - **Persisted client-side (browser storage), surviving a full page reload** — same mechanism, per-browser scope, and first-visit/corrupted-storage fallback (all categories enabled) as Features H/I (§ 7.8/7.9).
 
+### 7.14 Feature N — Historical Investment
+
+Answers a different question than Features A/B/C/E: not "what's profitable right now," but "which items have historically compounded fastest in the first days of a fresh league, and what would my starting currency be worth if that pattern repeats." Activates the previously-placeholder "Historical Investment" tab from [§ 7.8 Feature H](#78-feature-h--technique-filters).
+
+**Data source:** a small, manually-curated sample of past-league price observations from [poe-antiquary.xyz](https://poe-antiquary.xyz), captured once and vendored as bundled reference data — see [DATA_SOURCES.md § Historical League Price Archive](DATA_SOURCES.md#historical-league-price-archive-poe-antiquaryxyz) for the verified source facts and [§ 4 Non-Goals](#4-non-goals) for why this doesn't reopen the "no historical trend charts" line for live Currency Exchange data. Same update model as Vendor Recipes/Divination Cards: a developer captures fresh data and ships it as a new reference-data entry when the sample is worth extending (e.g. after a new league concludes) — never fetched live in production.
+
+**Requirements:**
+- Shows a list of "candidate patterns": items whose chaos value, in the sampled past leagues, rose from a low day-0 price over the league's first two days. **Not scoped to the currently-selected league** ([§ 7.4 Feature D](#74-feature-d--league-selector)) — these patterns are forward-looking evidence for whichever league is about to start or has just started, since that league's own history doesn't exist yet at day 0. The League Selector has no effect on this tab.
+- Each candidate shows, per sampled league it has data for: the league name, its day-0 chaos price, and the highest gain % observed over that league's day-0→day-2 window. A candidate with data from more sampled leagues reads as more consistent evidence than one with a single league's worth — shown as a plain count ("2 of 3 sampled leagues"), not a fabricated confidence score.
+- **Investment amount input**: a single numeric field (Chaos Orb-denominated), matching the existing `.col-filter`-style numeric input pattern already used by Feature I's threshold filters ([§ 7.9](#79-feature-i--column-sorting--threshold-filters)). Every candidate's projected value recomputes live against this amount for each league it has data for: `floor(amount ÷ day0_chaos) × price_at_horizon`, shown at four horizons — 6h, 12h, 24h, 48h.
+  - 24h and 48h use the archive's actual observed day-1/day-2 prices.
+  - **6h and 12h are linearly interpolated** between the day-0 and day-1 observations — the archive has no genuine sub-day resolution this early — and are visibly labeled as modeled, not observed, everywhere they appear.
+- **No fixed included/excluded list.** If the entered amount can't afford even one unit of a candidate's day-0 price (`floor(amount ÷ day0_chaos) == 0`), that league's row shows "not enough for 1" instead of a `0c` projection — evaluated live against whatever amount is currently entered, not a static cutoff baked into the reference data.
+- An amount that's zero, blank, negative, or non-numeric is rejected: the last valid amount stays in effect (same defensive-parse behavior as Feature I's threshold/max-start inputs), never a crash and never a silently-wrong `0c` projection.
+- **The amount is persisted client-side (browser storage), surviving a full page reload** — same mechanism, per-browser scope, and defensive-parse-with-fallback rule as Features H/I/J/M (§ 7.8/7.9/7.10/7.13). First-ever visit defaults to `40`.
+- If the reference data is empty (a broken/missing bundled file), the tab shows an explicit "no historical data available" message, never a blank or broken layout — same principle as [ARCHITECTURE.md § Validate at the Boundary, Fail Loudly](ARCHITECTURE.md#2-validate-at-the-boundary-fail-loudly).
+- **A visible caveat is always shown, not just a footnote**: historical patterns are not predictions — an item that rose sharply in one sampled league can be flat in another (visible directly in the per-league breakdown), and GGG's own periodic rebalancing means the next league can behave differently from every sampled league.
+
+**Explicitly deferred (not excluded forever — just not this increment):**
+- No live tracking of the current/just-started league against these patterns (comparing what a watched item is actually doing right now against its historical pattern). This depends on the existing Currency Exchange ingestion and ties into the still-standing "no alerting/notifications" Non-Goal — a separate future feature, not part of this one. **Known prerequisite gap, not yet solved:** knowing "how many hours into the current league are we" requires the league's real start timestamp. GGG's Leagues API already returns this (`startAt`, see [DATA_SOURCES.md § League List](DATA_SOURCES.md#league-list)) and this app already calls that endpoint for [§ 7.4 Feature D](#74-feature-d--league-selector) — but the `league` table ([SCHEMA.md](SCHEMA.md#league-cache)) doesn't persist `startAt` yet. No new external dependency needed, just a column + a sync-time capture, whenever this deferred half gets built.
+- No automatic import/refresh from poe-antiquary at runtime. New leagues are added to the sample by hand, the same way Vendor Recipe/Divination Card reference data already is.
+
+**Visual reference:** [docs/mockups/historical-investment-reference.html](mockups/historical-investment-reference.html) — the candidate-card layout, per-league evidence rows, and the amount input's placement are authoritative there. (An earlier, broader mockup also sketched a live-tracking "Scanner" view; that half is the deferred future feature above and is not what this section or the current mockup builds.)
+
 ## 8. Success Criteria
 
 - The three views each return correct, sortable results that match manual in-game verification for a sample of flips.
@@ -240,7 +264,6 @@ A left-side drawer, hidden by default, letting the user narrow the table to spec
 ## 9. Future Considerations
 
 - Gold cost: no reliable data source exists today (no API field, no official formula — see [DATA_SOURCES.md](DATA_SOURCES.md)). Revisit if GGG ever exposes this, or if a trustworthy formula/source emerges.
-- Alerts/watchlists: notify when a specific flip crosses a profitability threshold.
-- Historical margin tracking / trend charts.
-- League-start-specific views (early-league inefficiencies tend to be larger).
+- Alerts/watchlists: notify when a specific flip crosses a profitability threshold. Still open — includes live-tracking a Historical Investment candidate against the current league in real time (see [§ 7.14 Feature N](#714-feature-n--historical-investment)'s deferred scope).
+- ~~Historical margin tracking / trend charts.~~ ~~League-start-specific views (early-league inefficiencies tend to be larger).~~ Addressed by [§ 7.14 Feature N — Historical Investment](#714-feature-n--historical-investment), scoped to a manually-curated past-league archive rather than live Currency Exchange history.
 - PoE2 support, if/when its economy stabilizes and exposes similar mechanics.

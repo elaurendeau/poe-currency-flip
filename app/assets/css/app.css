@@ -102,6 +102,10 @@ body {
   margin: 0 auto;
 }
 
+.panel--wide {
+  max-width: 980px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 80px 1fr 80px 70px 80px 70px;
@@ -302,7 +306,8 @@ body {
 }
 
 .cur img,
-.cur .divination-card-icon {
+.cur .divination-card-icon,
+.cur .unknown-item-icon {
   width: 22px;
   height: 22px;
   object-fit: contain;
@@ -318,7 +323,8 @@ body {
 }
 
 .via-icons img,
-.via-icons .divination-card-icon {
+.via-icons .divination-card-icon,
+.via-icons .unknown-item-icon {
   width: 20px;
   height: 20px;
   object-fit: contain;
@@ -352,7 +358,8 @@ body {
 }
 
 .profit img,
-.profit .divination-card-icon {
+.profit .divination-card-icon,
+.profit .unknown-item-icon {
   width: 16px;
   height: 16px;
   object-fit: contain;
@@ -831,4 +838,148 @@ body {
 
 .ratio-calculator-suggestion-pair {
   color: var(--text);
+}
+
+/* docs/PRD.md § 7.14 Feature N -- docs/mockups/historical-investment-reference.html is authoritative. */
+
+.down {
+  color: #e2585a;
+}
+
+.historical-investment {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.league-elapsed-badge {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+
+.historical-grid {
+  grid-template-columns: 32px minmax(180px, 1fr) 72px 80px 80px 80px 80px 100px;
+}
+
+.historical-grid > * {
+  min-width: 0;
+}
+
+.historical-grid.header-row span {
+  text-align: right;
+}
+
+.historical-grid.header-row span:nth-child(-n + 2) {
+  text-align: left;
+}
+
+.historical-sort {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.historical-candidates {
+  display: flex;
+  flex-direction: column;
+}
+
+.historical-row {
+  padding: 8px 4px;
+  border-bottom: 1px solid #1e2329;
+}
+
+.historical-row > img,
+.historical-row > .divination-card-icon,
+.historical-row > .unknown-item-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  justify-self: center;
+}
+
+.unknown-item-icon {
+  color: #525a63;
+}
+
+.historical-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.has-description {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--text-dim);
+  text-underline-offset: 2px;
+}
+
+.candidate-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.candidate-league {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historical-live {
+  text-align: right;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+
+.historical-horizon {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.historical-horizon-chaos {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.historical-horizon-gain {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.sparkline {
+  width: 100px;
+  height: 26px;
+  color: #5fa8d0;
+  justify-self: center;
+}
+
+.sparkline-marker {
+  fill: #e8a33d;
+  stroke: none;
+}
+
+.caveat {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  border-left: 2px solid var(--text-dim);
+  padding-left: 10px;
 }

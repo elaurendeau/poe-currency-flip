@@ -11,7 +11,7 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGateway do
   import Ecto.Query
 
   alias PoeFlipFinder.{Currency, ExchangeMarketSnapshot, League}
-  alias PoeFlipFinder.Gateways.Schema
+  alias PoeFlipFinder.Gateways.{ItemDescriptionResolver, Schema}
   alias PoeFlipFinder.Repo
 
   # V1's Ecto equivalent seeds active_generation_id=0 for "nothing has ever
@@ -87,7 +87,8 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       is_current: schema.is_current,
-      has_exchange_activity: schema.has_exchange_activity
+      has_exchange_activity: schema.has_exchange_activity,
+      start_at: schema.start_at
     }
   end
 
@@ -97,7 +98,8 @@ defmodule PoeFlipFinder.Gateways.EctoSnapshotQueryGateway do
       external_id: schema.external_id,
       display_name: schema.display_name,
       icon_url: schema.icon_url,
-      category: schema.category
+      category: schema.category,
+      description: ItemDescriptionResolver.resolve(schema.display_name)
     }
   end
 end

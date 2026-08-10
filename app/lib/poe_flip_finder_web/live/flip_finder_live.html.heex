@@ -113,7 +113,7 @@
 
   <main class="app-main">
     <%= if @selected_league do %>
-      <div class="panel">
+      <div class={"panel#{if @active_tab == :historical, do: " panel--wide"}"}>
         <div class="tab-bar">
           <button
             :for={{tab, label} <- tab_options()}
@@ -129,7 +129,129 @@
         </div>
 
         <%= if @active_tab == :historical do %>
-          <p class="flip-table-message">Historical Investment — coming soon.</p>
+          <div class="historical-investment">
+            <div :if={@selected_league} class="league-elapsed-badge">
+              {@selected_league.display_name} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_elapsed_badge(
+                @league_elapsed
+              )}
+            </div>
+
+            <%= case @historical_candidates do %>
+              <% :unknown_league_start -> %>
+                <p class="flip-table-message">
+                  Refresh leagues to try capturing a start time for {@selected_league.display_name}.
+                </p>
+              <% :no_league_selected -> %>
+                <p class="flip-table-message">Select a league to get started.</p>
+              <% {:ok, []} -> %>
+                <p class="flip-table-message">
+                  No sampled league has real evidence this many days into a league — the current sample only tracks the first {@max_sampled_day} days, so Historical Investment can't say anything useful this far in yet. This isn't a signal that nothing is worth buying, just a gap in the sample.
+                </p>
+              <% {:ok, raw_candidates} -> %>
+                <% candidates =
+                  PoeFlipFinder.HistoricalInvestmentPresenter.build_display_list(
+                    raw_candidates,
+                    %{
+                      enabled_categories: @enabled_categories,
+                      sort_column: @historical_sort_column,
+                      sort_direction: @historical_sort_direction
+                    }
+                  ) %>
+                <div class="grid historical-grid header-row">
+                  <span></span>
+                  <span>Item</span>
+                  <span>Live</span>
+                  <span
+                    :for={horizon_key <- [:day_1, :day_3, :week_1, :week_2]}
+                    class={[
+                      "col-label historical-sort",
+                      @historical_sort_column == horizon_key && "active"
+                    ]}
+                    phx-click="toggle_historical_sort"
+                    phx-value-column={horizon_key}
+                  >
+                    {PoeFlipFinder.HistoricalInvestmentPresenter.horizon_label(horizon_key)}
+                    <.sort_arrow_icon direction={
+                      @historical_sort_column == horizon_key && @historical_sort_direction
+                    } />
+                  </span>
+                  <span>Trajectory</span>
+                </div>
+                <div class="historical-candidates">
+                  <div :for={candidate <- candidates} class="grid historical-grid historical-row">
+                    <.currency_icon amount={%{currency: candidate.pattern.currency}} />
+                    <div
+                      class="historical-name"
+                      title={
+                        PoeFlipFinder.FlipOpportunityPresenter.format_description(
+                          candidate.pattern.currency.description
+                        )
+                      }
+                    >
+                      <span class="candidate-name has-description">
+                        {candidate.pattern.currency.display_name}
+                      </span>
+                      <span class="candidate-league">
+                        {candidate.league}, day {candidate.today_day} · {PoeFlipFinder.HistoricalInvestmentPresenter.format_chaos(
+                          candidate.today_chaos
+                        )} today
+                      </span>
+                    </div>
+                    <div class="historical-live">
+                      {PoeFlipFinder.HistoricalInvestmentPresenter.format_live_price(
+                        candidate.live_price
+                      )}
+                    </div>
+                    <div
+                      :for={horizon_key <- [:day_1, :day_3, :week_1, :week_2]}
+                      class="historical-horizon"
+                    >
+                      <span class="historical-horizon-chaos">
+                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_horizon_chaos(
+                          candidate.horizons[horizon_key]
+                        )}
+                      </span>
+                      <span class={[
+                        "historical-horizon-gain",
+                        horizon_gain_class(candidate.horizons[horizon_key])
+                      ]}>
+                        {PoeFlipFinder.HistoricalInvestmentPresenter.format_horizon_gain(
+                          candidate.horizons[horizon_key]
+                        )}
+                      </span>
+                    </div>
+                    <% spark =
+                      PoeFlipFinder.HistoricalInvestmentPresenter.sparkline(
+                        candidate.trajectory,
+                        candidate.today_day
+                      ) %>
+                    <svg
+                      :if={spark}
+                      viewBox={"0 0 #{spark.width} #{spark.height}"}
+                      class="sparkline"
+                      preserveAspectRatio="none"
+                    >
+                      <polyline
+                        points={spark.points_attr}
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+                      <circle
+                        :if={spark.marker}
+                        cx={spark.marker.x}
+                        cy={spark.marker.y}
+                        r="2"
+                        class="sparkline-marker"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <p class="caveat">
+                  Each row is real evidence from one named past league (shown under the item's name), not a prediction — GGG's own rebalancing means the current league can behave differently from every league sampled here.
+                </p>
+            <% end %>
+          </div>
         <% else %>
           <div :if={show_technique_filters?(@active_tab)} class="filter-bar">
             <label

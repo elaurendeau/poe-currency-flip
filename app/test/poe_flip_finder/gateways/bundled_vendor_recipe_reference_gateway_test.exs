@@ -24,6 +24,10 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGatewayTest do
     assert recipe.output_quantity == 1
     assert recipe.input_currency.external_id == nil
     assert recipe.input_currency.category == :currency
+    # A real hover description, resolved via the shared
+    # ItemDescriptionResolver -- same catalog every other
+    # Currency-hydrating gateway reads from.
+    assert recipe.input_currency.description == "Creates a portal to town"
   end
 
   test "captures both directions of the Armourer's Scrap / Blacksmith's Whetstone loop" do

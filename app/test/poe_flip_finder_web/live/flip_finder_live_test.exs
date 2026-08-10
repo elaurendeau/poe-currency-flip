@@ -278,6 +278,31 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert html =~ "Leagues refreshed"
   end
 
+  test "refresh_leagues also recomputes the Historical Investment tab, not just opportunities", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # Regression test: refresh_leagues's handle_async originally only
+    # called load_opportunities/1, not load_historical_candidates/1.
+    # selected_league itself was still updated correctly (a plain assign),
+    # but @historical_candidates/@league_day silently kept whatever they
+    # were computed against *before* the refresh (here: :no_league_selected,
+    # from mount with an empty DB) -- so the tab kept showing "Select a
+    # league to get started" even though a real league (with a real
+    # startAt from the GGG fixture) was now genuinely selected.
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 200, leagues_fixture())
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh leagues']") |> render_click()
+    render_async(view, 2000)
+
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    refute html =~ "Select a league to get started"
+  end
+
   test "refresh_leagues surfaces a fetch failure instead of silently doing nothing", %{
     conn: conn,
     bypass: bypass
@@ -434,7 +459,10 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     league = insert_league!(league_external_id, is_current: true)
     chaos = insert_currency!(BaseCurrencyIds.chaos_external_id(), "Chaos Orb")
     divine = insert_currency!(BaseCurrencyIds.divine_external_id(), "Divine Orb")
-    wisdom = insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Scroll of Wisdom")
+
+    wisdom =
+      insert_currency!("Metadata/Items/Currency/CurrencyIdentification", "Scroll of Wisdom")
+
     portal = insert_currency!("Metadata/Items/Currency/CurrencyPortal", "Portal Scroll")
 
     insert_snapshot!(%{
@@ -527,17 +555,228 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert render(view) =~ ~s(data-route-key="vendor_recipe|)
   end
 
-  test "the Historical Investment tab is disabled and shows a placeholder instead of a table", %{
+  test "the Grand Exchange Flip tab shows a real hover description on currency cells", %{
     conn: conn
   } do
-    # A selected league is required for the panel (and its tab bar) to
-    # render at all -- see the "Select a league to get started" fallback.
-    insert_league!("Standard", is_current: true)
+    # Reuses the Divination Card seed for real display names ("Chaos Orb",
+    # "Divine Orb") backed by the real Ecto currency hydration path
+    # (EctoSnapshotQueryGateway), not a stub -- proves description now
+    # flows through that gateway the same way icon_url already does.
+    seed_one_divination_card_opportunity!("Standard")
 
     {:ok, view, _html} = live(conn, "/")
+    html = render(view)
 
-    assert has_element?(view, "button.tab-button--disabled", "Historical Investment")
-    assert has_element?(view, "button[disabled]", "Historical Investment")
+    doc = Floki.parse_document!(html)
+
+    chaos_orb_name =
+      doc
+      |> Floki.find(".has-description")
+      |> Enum.find(fn el -> Floki.text(el) =~ "Chaos Orb" end)
+
+    assert chaos_orb_name
+
+    assert Floki.attribute(chaos_orb_name, "title") == [
+             "Reforges a rare item with new random modifiers"
+           ]
+  end
+
+  test "the Vendor Flip tab shows real hover descriptions on the start currency and the via chain",
+       %{conn: conn} do
+    seed_one_vendor_recipe_opportunity!("Standard")
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Vendor Flip") |> render_click()
+    html = render(view)
+
+    doc = Floki.parse_document!(html)
+    named = doc |> Floki.find(".has-description")
+
+    for {name, description} <- [
+          {"Chaos Orb", "Reforges a rare item with new random modifiers"},
+          {"Scroll of Wisdom", "Identifies an item"},
+          {"Portal Scroll", "Creates a portal to town"}
+        ] do
+      el = Enum.find(named, fn el -> Floki.text(el) =~ name end)
+      assert el, "expected a .has-description element for #{name}"
+      assert Floki.attribute(el, "title") == [description]
+    end
+  end
+
+  test "the Historical Investment tab shows day-relative candidates with icons, live price, and 4 horizons",
+       %{conn: conn} do
+    # The selected/current league's own name/start_at is independent of
+    # which real HISTORICAL league (Ancestors/Mirage) backs each
+    # candidate's numbers -- "Necropolis" here is just this test's chosen
+    # name for the league the user is currently viewing, with start_at=now
+    # (day 0). This deliberately exercises the real bundled gateway end to
+    # end, not a stub, per docs/ELIXIR_TEST_MANIFESTO.md's outside-in default.
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, "button.tab-button--disabled", "Historical Investment")
+
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "Day 0"
+    assert html =~ "Ancient Orb"
+    assert html =~ "Ancestors, day 0"
+    # Real Ancestors day-0 (2.45c), day-1 (3.51c), day-3 (3.7c), day-7 (4.28c), day-14 (3.56c).
+    assert html =~ "+43%"
+    assert html =~ "+51%"
+    assert html =~ "+75%"
+    assert html =~ "+45%"
+    # An icon resolved from the real bundled Item Icons catalog by name.
+    assert html =~ "AncientOrb.png"
+    # A trajectory sparkline (SVG), per docs/PRD.md § 7.14.
+    assert html =~ "<svg" and html =~ "sparkline"
+    # A real hover description captured from the PoE Wiki, per
+    # docs/DATA_SOURCES.md -- not just the bare item name repeated.
+    assert html =~ "Reforges a unique equipment as another of the same item class"
+  end
+
+  test "an item with no captured description still renders, with an Unknown hover tooltip",
+       %{conn: conn} do
+    # "Acid Slitherer" (Beast) has no description captured -- Beasts'
+    # real usage lives on a PoE Wiki table this project hasn't found a
+    # query path into yet (see docs/DATA_SOURCES.md). The missing
+    # description must never hide the item itself, only fall back to an
+    # honest "Unknown" tooltip.
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "Acid Slitherer"
+
+    doc = Floki.parse_document!(html)
+
+    acid_slitherer_wrapper =
+      doc
+      |> Floki.find(".historical-name")
+      |> Enum.find(fn el -> Floki.text(el) =~ "Acid Slitherer" end)
+
+    assert acid_slitherer_wrapper
+    assert Floki.attribute(acid_slitherer_wrapper, "title") == ["Unknown"]
+  end
+
+  test "the Historical Investment tab respects the shared category drawer filter", %{conn: conn} do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert render(view) =~ "Ancient Orb"
+
+    html =
+      render_click(view, "toggle_category", %{"category" => "currency"})
+
+    refute html =~ "Ancient Orb"
+    # A non-currency category (e.g. a Cluster Jewel) stays visible.
+    assert html =~ "Cluster Jewel"
+  end
+
+  test "toggle_historical_sort flips the Next day sort direction", %{conn: conn} do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    # Descending by default -- the best Next-day riser should render before a worse one.
+    # At day 0 in the bundled reference data, Ancient Orb's real day0->day1
+    # move (2.45c -> 3.51c, +43%) beats this Fire Damage cluster jewel's
+    # (4.15c -> 3.9c, -6%).
+    #
+    # Matched by exact candidate-name text (via Floki), not a raw HTML
+    # substring search -- the dataset also contains "Eldritch Exalted Orb",
+    # "Hunter's Exalted Orb", etc., which a bare `String.contains?`/
+    # `:binary.match` on "Ancient Orb"/"Orb" would collide with once the
+    # reference data grew past a handful of curated items.
+    fire_damage_name = "Large Cluster Jewel (8 passives, Lv68): 12% increased Fire Damage"
+
+    html = render(view)
+    assert String.contains?(html, "Cluster Jewel") and String.contains?(html, "Ancient Orb")
+
+    assert candidate_name_index(html, "Ancient Orb") <
+             candidate_name_index(html, fire_damage_name)
+
+    # All 4 horizon columns carry the "historical-sort" class now that
+    # each is independently clickable -- target the active one (Next day)
+    # specifically rather than the ambiguous ".historical-sort" selector.
+    flipped_html =
+      view |> element("span.historical-sort", "Next day") |> render_click()
+
+    assert candidate_name_index(flipped_html, fire_damage_name) <
+             candidate_name_index(flipped_html, "Ancient Orb")
+  end
+
+  test "clicking a different horizon column switches to it and defaults to descending",
+       %{conn: conn} do
+    insert_league!("Necropolis",
+      is_current: true,
+      start_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    )
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert has_element?(view, "span.col-label.active", "Next day")
+
+    view |> element("span.historical-sort", "Next 3 days") |> render_click()
+
+    assert has_element?(view, "span.col-label.active", "Next 3 days")
+    refute has_element?(view, "span.col-label.active", "Next day")
+
+    assert_push_event(view, "persist_display_preferences", %{
+      historical_sort_column: :day_3,
+      historical_sort_direction: :desc
+    })
+
+    # Clicking the now-active "Next 3 days" header again flips its
+    # direction rather than resetting to "Next day" -- same
+    # already-active-column branch toggle_sort's own tests cover for the
+    # other tabs' sort columns.
+    view |> element("span.historical-sort", "Next 3 days") |> render_click()
+    assert has_element?(view, "span.col-label.active", "Next 3 days")
+
+    assert_push_event(view, "persist_display_preferences", %{
+      historical_sort_column: :day_3,
+      historical_sort_direction: :asc
+    })
+  end
+
+  # Exact candidate-name match (via Floki), not a raw HTML substring search --
+  # the dataset also contains "Eldritch Exalted Orb", "Hunter's Exalted Orb",
+  # etc., which a bare `String.contains?`/`:binary.match` on "Exalted Orb"
+  # would collide with once the reference data grew past a handful of items.
+  defp candidate_name_index(html, exact_name) do
+    html
+    |> Floki.parse_document!()
+    |> Floki.find(".candidate-name")
+    |> Enum.map(&(Floki.text(&1) |> String.trim()))
+    |> Enum.find_index(&(&1 == exact_name))
+  end
+
+  test "a league with no captured start time shows the explicit unknown state, never a guessed day",
+       %{conn: conn} do
+    insert_league!("Standard", is_current: true, start_at: nil)
+
+    {:ok, view, _html} = live(conn, "/")
+    html = view |> element("button.tab-button", "Historical Investment") |> render_click()
+
+    assert html =~ "league start time unknown"
   end
 
   test "toggle_technique hides and reshows matching rows without affecting other techniques", %{
@@ -574,7 +813,8 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     assert has_element?(view, ".category-drawer")
     # 23 categories, all selected by default (docs/PRD.md § 7.13).
-    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+    # 24 categories (23 GGG-tradeable + Cluster Jewels, docs/PRD.md § 7.14), all selected by default.
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 24
     assert has_element?(view, "[phx-value-category='currency'].category-item--selected")
   end
 
@@ -593,7 +833,9 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     html = view |> element(".category-drawer-action", "Select all") |> render_click()
     assert count_rows(html) == 1
-    assert length(Regex.scan(~r/category-item--selected/, html)) == 23
+
+    # 24 categories (23 GGG-tradeable + Cluster Jewels, docs/PRD.md § 7.14), all selected by default.
+    assert length(Regex.scan(~r/category-item--selected/, html)) == 24
   end
 
   test "toggle_category hides and reshows matching rows without affecting other categories", %{

@@ -45,7 +45,6 @@ defmodule PoeFlipFinder.VendorRecipeOpportunityFinder do
 
   alias PoeFlipFinder.{
     BaseCurrencyIds,
-    Currency,
     CurrencyAmount,
     DivineChaosRate,
     ExchangeMarketSnapshot,
@@ -152,7 +151,7 @@ defmodule PoeFlipFinder.VendorRecipeOpportunityFinder do
         next_quantity = quantity / recipe.input_quantity * recipe.output_quantity
 
         next_currency =
-          resolve_display_currency(recipe.output_currency.display_name, snapshots)
+          resolve_display_currency(recipe.output_currency.display_name, snapshots, recipe.output_currency)
 
         {acc ++ [%CurrencyAmount{currency: next_currency, quantity: next_quantity}], next_quantity}
       end)
@@ -286,12 +285,13 @@ defmodule PoeFlipFinder.VendorRecipeOpportunityFinder do
   # Best-effort icon/external_id resolution for a chain's intermediate
   # currencies (never bought/sold directly, so they don't need to trade
   # against Chaos or Divine specifically) -- any snapshot mentioning the
-  # name will do. Falls back to the bundled placeholder Currency (no
-  # icon_url) when the currency has no active market at all this
-  # generation; the UI already renders that case with no icon.
-  defp resolve_display_currency(name, snapshots) do
-    Enum.find_value(snapshots, fn snapshot -> other_currency_by_name(snapshot, name) end) ||
-      %Currency{id: nil, external_id: nil, display_name: name, icon_url: nil, category: :currency}
+  # name will do. Falls back to the recipe's own bundled placeholder
+  # Currency (no icon_url, but a real `description` already resolved by
+  # `BundledVendorRecipeReferenceGateway`) when the currency has no active
+  # market at all this generation; the UI already renders the no-icon case
+  # with no icon.
+  defp resolve_display_currency(name, snapshots, fallback) do
+    Enum.find_value(snapshots, fn snapshot -> other_currency_by_name(snapshot, name) end) || fallback
   end
 
   # Tries quoting with `base_external_id` as the base first (direct

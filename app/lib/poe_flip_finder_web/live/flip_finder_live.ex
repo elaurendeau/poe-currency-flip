@@ -12,12 +12,20 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   use PoeFlipFinderWeb, :live_view
 
-  alias PoeFlipFinder.{FlipOpportunities, Ingestion, Leagues, RatioCalculator}
+  alias PoeFlipFinder.{
+    FlipOpportunities,
+    HistoricalInvestment,
+    Ingestion,
+    Leagues,
+    RatioCalculator
+  }
+
   alias PoeFlipFinderWeb.BuildInfo
 
   @techniques [:vendor_recipe, :exchange_spread, :divination_card, :bulk_buy]
   @sort_columns [:margin, :profit, :volume]
   @sort_directions [:asc, :desc]
+  @historical_sort_columns [:day_1, :day_3, :week_1, :week_2]
   @tabs [:grand_exchange, :vendor, :historical]
 
   # docs/PRD.md § 7.6/7.7: the in-flight duration is a safety net, not the
@@ -46,6 +54,18 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       |> assign(:opportunities, [])
       |> assign(:opportunities_loading, false)
       |> assign(:opportunities_error, false)
+      # docs/PRD.md § 7.14 Feature N -- not scoped by enabled_techniques
+      # (Historical Investment has its own content, not a filtered
+      # table row set), recomputed whenever selected_league changes via
+      # load_historical_candidates/1. It IS scoped by enabled_categories,
+      # same shared drawer state as the other two tabs -- applied at
+      # render time by HistoricalInvestmentPresenter.build_display_list/2,
+      # mirroring FlipOpportunityTablePresenter's own filter+sort split.
+      |> assign(:historical_candidates, :no_league_selected)
+      |> assign(:historical_sort_column, :day_1)
+      |> assign(:historical_sort_direction, :desc)
+      |> assign(:league_elapsed, :unknown)
+      |> assign(:max_sampled_day, HistoricalInvestment.max_sampled_day())
       |> assign(:enabled_techniques, %{
         vendor_recipe: true,
         exchange_spread: true,
@@ -91,6 +111,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       socket
       |> assign(leagues: leagues, selected_league: selected, leagues_loading: false)
       |> load_opportunities()
+      |> load_historical_candidates()
 
     {:noreply, socket}
   end
@@ -114,7 +135,31 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @impl true
   def handle_event("select_league", %{"value" => external_id}, socket) do
     league = Enum.find(socket.assigns.leagues, &(&1.external_id == external_id))
-    {:noreply, socket |> assign(:selected_league, league) |> load_opportunities()}
+
+    {:noreply,
+     socket
+     |> assign(:selected_league, league)
+     |> load_opportunities()
+     |> load_historical_candidates()}
+  end
+
+  def handle_event("toggle_historical_sort", %{"column" => column}, socket) do
+    column_atom = String.to_existing_atom(column)
+
+    {sort_column, sort_direction} =
+      if socket.assigns.historical_sort_column == column_atom do
+        {column_atom, flip_direction(socket.assigns.historical_sort_direction)}
+      else
+        {column_atom, :desc}
+      end
+
+    socket =
+      assign(socket,
+        historical_sort_column: sort_column,
+        historical_sort_direction: sort_direction
+      )
+
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("refresh_leagues", _params, socket) do
@@ -251,8 +296,21 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
        sort_direction:
          parse_atom_in(params["sort_direction"], @sort_directions, socket.assigns.sort_direction),
        thresholds: parse_thresholds(params["thresholds"]),
-       max_start_chaos: parse_max_start_chaos(params["max_start_chaos"])
-     )}
+       max_start_chaos: parse_max_start_chaos(params["max_start_chaos"]),
+       historical_sort_column:
+         parse_atom_in(
+           params["historical_sort_column"],
+           @historical_sort_columns,
+           socket.assigns.historical_sort_column
+         ),
+       historical_sort_direction:
+         parse_atom_in(
+           params["historical_sort_direction"],
+           @sort_directions,
+           socket.assigns.historical_sort_direction
+         )
+     )
+     |> load_historical_candidates()}
   end
 
   def handle_event("local_timezone_offset", %{"utc_offset_minutes" => offset}, socket) do
@@ -363,6 +421,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
             leagues_error: false
           )
           |> load_opportunities()
+          |> load_historical_candidates()
           |> set_status_banner("Leagues refreshed", @completion_banner_ms)
 
         {:error, _reason} ->
@@ -453,6 +512,24 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # Picks the current challenge league (is_current) if present, else the
   # first league in the list, else nil -- matches resolveDefaultLeagueId
   # from the React version's useLeagueSelection hook.
+  # docs/PRD.md § 7.14 -- distinct from load_opportunities/1's [] empty
+  # state: :no_league_selected and :unknown_league_start are rendered as
+  # different, explicit messages (no league picked yet, vs. a league that
+  # has never had a real GGG Leagues API sync capture its start time),
+  # never collapsed into a generic empty table.
+  defp load_historical_candidates(socket) do
+    case socket.assigns.selected_league do
+      nil ->
+        assign(socket, historical_candidates: :no_league_selected, league_elapsed: :unknown)
+
+      league ->
+        assign(socket,
+          historical_candidates: HistoricalInvestment.compute_candidates(league),
+          league_elapsed: HistoricalInvestment.current_league_elapsed(league)
+        )
+    end
+  end
+
   defp resolve_default_league(leagues) do
     Enum.find(leagues, & &1.is_current) || List.first(leagues)
   end
@@ -471,6 +548,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   defp flip_direction(:desc), do: :asc
   defp flip_direction(:asc), do: :desc
+
+  defp horizon_gain_class(%{gain_pct: pct}) when pct > 0, do: "up"
+  defp horizon_gain_class(%{gain_pct: pct}) when pct < 0, do: "down"
+  defp horizon_gain_class(_no_data_or_flat), do: nil
 
   defp toggle_set_membership(set, value) do
     if MapSet.member?(set, value), do: MapSet.delete(set, value), else: MapSet.put(set, value)
@@ -497,7 +578,9 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       sort_column: socket.assigns.sort_column,
       sort_direction: socket.assigns.sort_direction,
       thresholds: socket.assigns.thresholds,
-      max_start_chaos: socket.assigns.max_start_chaos
+      max_start_chaos: socket.assigns.max_start_chaos,
+      historical_sort_column: socket.assigns.historical_sort_column,
+      historical_sort_direction: socket.assigns.historical_sort_direction
     })
   end
 
@@ -633,9 +716,9 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   # The tab bar above the results table (docs/PRD.md § 7.8): each tab
   # groups a subset of techniques, with per-technique checkboxes still
-  # filtering within the active tab. "Historical Investment" has no
-  # backing computation yet -- it renders as an inert, disabled tab (see
-  # tab_disabled?/1) rather than a clickable one with nothing behind it.
+  # filtering within the active tab. "Historical Investment" (§ 7.14
+  # Feature N) has its own content, not a filtered table row set --
+  # rendered via a separate branch in the template, not tab_disabled?/1.
   defp tab_options do
     [
       {:grand_exchange, "Grand Exchange Flip"},
@@ -644,7 +727,6 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     ]
   end
 
-  defp tab_disabled?(:historical), do: true
   defp tab_disabled?(_tab), do: false
 
   defp techniques_for_tab(:grand_exchange), do: [:exchange_spread, :divination_card, :bulk_buy]
@@ -653,7 +735,10 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   defp technique_options_for_tab(tab) do
     allowed = techniques_for_tab(tab)
-    Enum.filter(technique_options(), fn {technique, _label, _icon_class} -> technique in allowed end)
+
+    Enum.filter(technique_options(), fn {technique, _label, _icon_class} ->
+      technique in allowed
+    end)
   end
 
   # A tab with only one technique has nothing to filter against itself --
@@ -696,6 +781,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       {:essences, "Essences"},
       {:currency, "Currency"},
       {:beasts, "Beasts"},
+      {:cluster_jewels, "Cluster Jewels"},
       {:map_key, "Maps"},
       {:heist, "Heist Contracts & Blueprints"},
       {:runegrafts, "Runegrafts"},
@@ -859,6 +945,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     <.stroke_icon>
       <circle cx="7" cy="8" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="17" cy="8" r="2" />
       <path d="M8 15c0-3 2-4 4-4s4 1 4 4-2 5-4 5-4-2-4-5z" />
+    </.stroke_icon>
+    """
+  end
+
+  defp category_icon(%{category: :cluster_jewels} = assigns) do
+    ~H"""
+    <.stroke_icon>
+      <polygon points="12 3 19 8 16.5 20 7.5 20 5 8" />
     </.stroke_icon>
     """
   end
@@ -1170,7 +1264,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
               {PoeFlipFinder.FlipOpportunityPresenter.format_quantity(amount.quantity)}
             </span>
             <.currency_icon amount={amount} />
-            {amount.currency.display_name}
+            <span
+              class="has-description"
+              title={
+                PoeFlipFinder.FlipOpportunityPresenter.format_description(amount.currency.description)
+              }
+            >
+              {amount.currency.display_name}
+            </span>
           <% end %>
         </div>
         <div class="sub">{@opportunity.detail}</div>
@@ -1199,7 +1300,14 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
         </span>
         <.currency_icon amount={@amount} />
       </div>
-      {@amount.currency.display_name}
+      <span
+        class="has-description"
+        title={
+          PoeFlipFinder.FlipOpportunityPresenter.format_description(@amount.currency.description)
+        }
+      >
+        {@amount.currency.display_name}
+      </span>
     </div>
     """
   end
@@ -1216,7 +1324,9 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   end
 
   defp currency_icon(%{amount: %{currency: %{icon_url: nil}}} = assigns) do
-    ~H""
+    ~H"""
+    <.unknown_item_icon />
+    """
   end
 
   defp currency_icon(assigns) do
@@ -1239,6 +1349,29 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     >
       <rect x="4" y="6" width="12" height="16" rx="2" transform="rotate(-8 10 14)" />
       <rect x="9" y="4" width="12" height="16" rx="2" transform="rotate(8 15 12)" />
+    </svg>
+    """
+  end
+
+  # Fallback for any currency this app has no real icon_url for and that
+  # isn't a divination card (which always gets the card-suit glyph above)
+  # -- a blank grid cell there reads as broken, not "no icon", so every
+  # icon slot always renders something.
+  defp unknown_item_icon(assigns) do
+    ~H"""
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+      class="unknown-item-icon"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.9.4-1.5 1-1.5 2.2" />
+      <line x1="12" y1="17" x2="12" y2="17.01" />
     </svg>
     """
   end

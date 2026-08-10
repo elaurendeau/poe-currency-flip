@@ -9,5 +9,6 @@ defmodule PoeFlipFinder.Gateways.Schema.League do
     field :is_current, :boolean, default: false
     field :has_exchange_activity, :boolean, default: false
     field :known_to_ggg, :boolean, default: false
+    field :start_at, :utc_datetime
   end
 end
