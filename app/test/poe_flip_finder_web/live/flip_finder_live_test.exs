@@ -36,6 +36,13 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
       Application.delete_env(:poe_flip_finder, GggExchangeSourceGateway)
     end)
 
+    # A successful market-data refresh also syncs the league list in the
+    # background, so any test that clicks it needs /leagues to answer. Tests
+    # asserting on that request itself override this with their own expect.
+    Bypass.stub(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 200, leagues_fixture())
+    end)
+
     {:ok, bypass: bypass}
   end
 
@@ -182,6 +189,14 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
   # no longer be the id the walk actually requests first.
   defp recent_hour_change_id, do: div(System.system_time(:second), 3600) * 3600 - 3600
 
+  # A successful market-data refresh starts a background league sync once its
+  # own async work resolves, so a test must await both before finishing --
+  # otherwise the LiveView's task outlives the test's Bypass and crashes it.
+  defp await_refresh_and_league_sync(view) do
+    render_async(view, 2000)
+    render_async(view, 2000)
+  end
+
   # === Feature C: Divination Card Flip Finder ========================
 
   test "renders a divination card row's full via chain (card, then reward), not just the card",
@@ -250,6 +265,76 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     # Standard must clear the previous league's rows, not keep showing them.
     assert count_rows(html) == 0
     assert html =~ "No flip opportunities yet."
+  end
+
+  test "select_league pushes the choice down to be persisted per-browser", %{conn: conn} do
+    insert_league!("Standard", is_current: true)
+    insert_league!("Hardcore Covens", is_current: false)
+
+    {:ok, view, _html} = live(conn, "/")
+
+    view
+    |> element("select.league-selector")
+    |> render_change(%{"value" => "Hardcore Covens"})
+
+    assert_push_event(view, "persist_display_preferences", %{selected_league: "Hardcore Covens"})
+  end
+
+  test "display_preferences_loaded restores the saved league instead of the default", %{
+    conn: conn
+  } do
+    # Regression test: the selection used to live only in the socket, so every
+    # page reload fell back to the default (current) league -- someone on
+    # Hardcore Covens was bounced back to Covens each time.
+    insert_league!("Covens", is_current: true)
+    insert_league!("Hardcore Covens", is_current: false)
+
+    {:ok, view, _html} = live(conn, "/")
+    assert has_element?(view, "option[selected]", "Covens")
+
+    render_click(view, "display_preferences_loaded", %{"selected_league" => "Hardcore Covens"})
+
+    assert has_element?(view, "option[selected]", "Hardcore Covens")
+  end
+
+  test "a saved league survives the league list loading after the preferences arrive", %{
+    conn: conn
+  } do
+    # The two mount-time messages (leagues loaded server-side, preferences
+    # reported by the JS hook) can land in either order -- this is the
+    # order where preferences are already known when the list loads.
+    insert_league!("Covens", is_current: true)
+    insert_league!("Hardcore Covens", is_current: false)
+
+    {:ok, view, _html} = live(conn, "/")
+    render_click(view, "display_preferences_loaded", %{"selected_league" => "Hardcore Covens"})
+
+    send(view.pid, :load_leagues)
+
+    assert render(view) =~ "Hardcore Covens"
+    assert has_element?(view, "option[selected]", "Hardcore Covens")
+  end
+
+  test "a saved league that no longer exists falls back to the default, not a crash", %{
+    conn: conn
+  } do
+    insert_league!("Covens", is_current: true)
+
+    {:ok, view, _html} = live(conn, "/")
+
+    render_click(view, "display_preferences_loaded", %{"selected_league" => "Allflame"})
+
+    assert has_element?(view, "option[selected]", "Covens")
+  end
+
+  test "a garbage saved league is ignored", %{conn: conn} do
+    insert_league!("Covens", is_current: true)
+
+    {:ok, view, _html} = live(conn, "/")
+
+    render_click(view, "display_preferences_loaded", %{"selected_league" => 42})
+
+    assert has_element?(view, "option[selected]", "Covens")
   end
 
   # === Feature G: Manual Data Source Refresh (leagues) ================
@@ -364,7 +449,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     assert click_html =~ "league-refresh-button__icon--spinning"
     assert click_html =~ "Refreshing market data…"
 
-    html = render_async(view, 2000)
+    html = await_refresh_and_league_sync(view)
     refute html =~ "league-refresh-button__icon--spinning"
     refute html =~ "Never refreshed"
     refute html =~ "Failed to load market data freshness"
@@ -400,13 +485,109 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     {:ok, view, _html} = live(conn, "/")
     view |> element("button[aria-label='Refresh market data']") |> render_click()
-    html = render_async(view, 2000)
+    html = await_refresh_and_league_sync(view)
 
     # docs/PRD.md § 7.6: "already caught up" gets an explicit statement plus
     # a computed ETA until new data will actually be available (derived from
     # the real checkpoint's next-hour boundary), not a guess.
     assert [_, minutes] = Regex.run(~r/Already caught up · next data in ~(\d+)m/, html)
     assert String.to_integer(minutes) in 45..50
+  end
+
+  test "refresh_ingestion also syncs the league list in the background", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # Regression test: the league list only ever refreshed on an explicit
+    # "Refresh leagues" click, so when a new league launched the dropdown
+    # (and every league's start time) stayed stale until someone happened to
+    # click it -- Covens' launch left prod defaulting to the ended Allflame.
+    tip_change_id = System.system_time(:second) - 600
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: tip_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      Plug.Conn.resp(conn, 404, Jason.encode!(%{next_change_id: tip_change_id, markets: []}))
+    end)
+
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 200, leagues_fixture())
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    refute has_element?(view, "option", "Allflame")
+
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = await_refresh_and_league_sync(view)
+
+    assert has_element?(view, "option", "Allflame")
+    # Silent: no "Leagues refreshed" banner replacing the ingestion outcome,
+    # and the selection the user already had is kept.
+    refute html =~ "Leagues refreshed"
+    assert html =~ "Already caught up"
+    assert has_element?(view, "option[selected]", "Standard")
+  end
+
+  test "a saved league that only appears after the background sync gets selected then", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    # The page loaded with a stale list that lacks the user's saved league
+    # (a brand-new league): it falls back to the default for now, then the
+    # post-refresh sync brings the league in and the saved choice wins.
+    tip_change_id = System.system_time(:second) - 600
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: tip_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      Plug.Conn.resp(conn, 404, Jason.encode!(%{next_change_id: tip_change_id, markets: []}))
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    render_click(view, "display_preferences_loaded", %{"selected_league" => "Hardcore Allflame"})
+    assert has_element?(view, "option[selected]", "Standard")
+
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    await_refresh_and_league_sync(view)
+
+    assert has_element?(view, "option[selected]", "Hardcore Allflame")
+  end
+
+  test "a failing background league sync is silent: no error state, ingestion outcome intact", %{
+    conn: conn,
+    bypass: bypass
+  } do
+    tip_change_id = System.system_time(:second) - 600
+    insert_league!("Standard", is_current: true)
+
+    PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
+    |> Ecto.Changeset.change(last_processed_change_id: tip_change_id)
+    |> PoeFlipFinder.Repo.update!()
+
+    Bypass.expect_once(bypass, "GET", "/api/currency-exchange/#{tip_change_id}", fn conn ->
+      Plug.Conn.resp(conn, 404, Jason.encode!(%{next_change_id: tip_change_id, markets: []}))
+    end)
+
+    Bypass.expect_once(bypass, "GET", "/leagues", fn conn ->
+      Plug.Conn.resp(conn, 500, "internal error")
+    end)
+
+    {:ok, view, _html} = live(conn, "/")
+    view |> element("button[aria-label='Refresh market data']") |> render_click()
+    html = await_refresh_and_league_sync(view)
+
+    # An explicit "Refresh leagues" failure shows the error state; a
+    # best-effort background sync must not, or a flaky GGG response would
+    # blank the dropdown right after a perfectly good market refresh.
+    refute html =~ "Failed to load leagues"
+    assert html =~ "Already caught up"
+    assert has_element?(view, "option[selected]", "Standard")
   end
 
   test "refresh_ingestion hitting the per-call hour cap shows the partial-progress banner", %{
@@ -436,7 +617,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
     {:ok, view, _html} = live(conn, "/")
     view |> element("button[aria-label='Refresh market data']") |> render_click()
-    html = render_async(view, 2000)
+    html = await_refresh_and_league_sync(view)
 
     assert html =~ "Partial progress (2h) — refresh again to continue"
   end

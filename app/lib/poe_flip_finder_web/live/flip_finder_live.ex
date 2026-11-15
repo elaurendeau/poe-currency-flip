@@ -12,6 +12,8 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   use PoeFlipFinderWeb, :live_view
 
+  require Logger
+
   alias PoeFlipFinder.{
     FlipOpportunities,
     HistoricalInvestment,
@@ -41,6 +43,11 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
       socket
       |> assign(:leagues, [])
       |> assign(:selected_league, nil)
+      # The league the user explicitly picked, reported back from (and persisted
+      # to) the browser via the DisplayPreferencesStorage hook -- kept apart from
+      # selected_league so the default league pick (and a hook event landing
+      # before the league list does) never overwrites the saved choice.
+      |> assign(:preferred_league_id, nil)
       |> assign(:leagues_loading, true)
       |> assign(:leagues_refreshing, false)
       |> assign(:leagues_error, false)
@@ -105,7 +112,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   @impl true
   def handle_info(:load_leagues, socket) do
     leagues = Leagues.resolve_league_list()
-    selected = resolve_default_league(leagues)
+    selected = resolve_preferred_or_default_league(leagues, socket.assigns.preferred_league_id)
 
     socket =
       socket
@@ -134,13 +141,16 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
   @impl true
   def handle_event("select_league", %{"value" => external_id}, socket) do
-    league = Enum.find(socket.assigns.leagues, &(&1.external_id == external_id))
+    league = find_league(socket.assigns.leagues, external_id)
 
-    {:noreply,
-     socket
-     |> assign(:selected_league, league)
-     |> load_opportunities()
-     |> load_historical_candidates()}
+    socket =
+      socket
+      |> assign(:selected_league, league)
+      |> assign(:preferred_league_id, league && league.external_id)
+      |> load_opportunities()
+      |> load_historical_candidates()
+
+    {:noreply, persist_display_preferences(socket)}
   end
 
   def handle_event("toggle_historical_sort", %{"column" => column}, socket) do
@@ -284,8 +294,12 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # from a future/incompatible version, or hand-edited garbage must never
   # crash the mount, only fall back silently.
   def handle_event("display_preferences_loaded", params, socket) do
+    socket = assign(socket, :preferred_league_id, parse_league_id(params["selected_league"]))
+
     {:noreply,
-     assign(socket,
+     socket
+     |> apply_preferred_league()
+     |> assign(
        active_tab: parse_atom_in(params["active_tab"], @tabs, socket.assigns.active_tab),
        enabled_techniques:
          parse_enabled_techniques(params["enabled_techniques"], socket.assigns.enabled_techniques),
@@ -411,7 +425,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     socket =
       case result do
         {:ok, leagues} ->
-          selected = resolve_selected_league(leagues, socket.assigns.selected_league)
+          selected = resolve_synced_league(leagues, socket)
 
           socket
           |> assign(
@@ -467,6 +481,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
           # generation after the timestamp has already moved forward.
           |> load_opportunities()
           |> set_status_banner(ingestion_completion_message(result), @completion_banner_ms)
+          |> start_background_league_sync()
 
         {:error, _reason} ->
           # docs/PRD.md § 7.6: a failure keeps freshness_error as the sole
@@ -488,6 +503,41 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
 
     {:noreply, socket}
   end
+
+  # Best-effort, unlike the explicit "Refresh leagues" click: a failure here
+  # is logged and otherwise ignored, so a flaky GGG response can't blank the
+  # dropdown (or flip the leagues error state) right after a market refresh
+  # that itself went fine. No banner either -- it must not replace the
+  # ingestion outcome that's already showing.
+  def handle_async(:sync_leagues, {:ok, {:ok, leagues}}, socket) do
+    selected = resolve_synced_league(leagues, socket)
+
+    {:noreply,
+     socket
+     |> assign(leagues: leagues, selected_league: selected)
+     |> load_opportunities()
+     |> load_historical_candidates()}
+  end
+
+  def handle_async(:sync_leagues, {:ok, {:error, reason}}, socket) do
+    Logger.warning("Background league sync failed: #{inspect(reason)}")
+    {:noreply, socket}
+  end
+
+  def handle_async(:sync_leagues, {:exit, reason}, socket) do
+    Logger.warning("Background league sync crashed: #{inspect(reason)}")
+    {:noreply, socket}
+  end
+
+  # The league list only otherwise refreshed on an explicit "Refresh leagues"
+  # click, so a newly launched league (and every league's start time) stayed
+  # stale until someone happened to press it. Piggybacks on the user's own
+  # market-data refresh -- still never on page load (docs/PRD.md § 7.7) -- and
+  # skips when an explicit league refresh is already in flight.
+  defp start_background_league_sync(%{assigns: %{leagues_refreshing: true}} = socket), do: socket
+
+  defp start_background_league_sync(socket),
+    do: start_async(socket, :sync_leagues, &Leagues.refresh_league_list/0)
 
   defp load_opportunities(socket) do
     case socket.assigns.selected_league do
@@ -534,9 +584,40 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
     Enum.find(leagues, & &1.is_current) || List.first(leagues)
   end
 
+  defp find_league(leagues, external_id),
+    do: Enum.find(leagues, &(&1.external_id == external_id))
+
+  # The user's saved choice wins whenever that league still exists; otherwise
+  # (nothing saved, or it ended and dropped out of the list) the default.
+  defp resolve_preferred_or_default_league(leagues, preferred_league_id),
+    do: find_league(leagues, preferred_league_id) || resolve_default_league(leagues)
+
+  # The hook's preferences event and the server-side league load can land in
+  # either order -- this covers the order where the list is already loaded.
+  # (The other order is handled by :load_leagues reading preferred_league_id.)
+  defp apply_preferred_league(socket) do
+    case find_league(socket.assigns.leagues, socket.assigns.preferred_league_id) do
+      nil -> socket
+      league -> socket |> assign(:selected_league, league) |> load_opportunities()
+    end
+  end
+
+  # localStorage is arbitrary client-controlled data: anything that isn't a
+  # non-empty string is treated as "nothing saved".
+  defp parse_league_id(value) when is_binary(value) and value != "", do: value
+  defp parse_league_id(_invalid), do: nil
+
   # Keeps the current selection if it still exists post-refresh (e.g. the
   # user picked Hardcore); only falls back to the default for a brand-new
   # list or one where the previously selected league disappeared.
+  # After a sync the user's saved league wins if it now exists (e.g. a brand
+  # new league that wasn't in the stale list this page loaded with);
+  # otherwise the current selection is kept, else the default.
+  defp resolve_synced_league(leagues, socket) do
+    find_league(leagues, socket.assigns.preferred_league_id) ||
+      resolve_selected_league(leagues, socket.assigns.selected_league)
+  end
+
   defp resolve_selected_league(leagues, current) do
     still_present? =
       current != nil and Enum.any?(leagues, &(&1.external_id == current.external_id))
@@ -572,6 +653,7 @@ defmodule PoeFlipFinderWeb.FlipFinderLive do
   # on every toggle rather than only on unmount.
   defp persist_display_preferences(socket) do
     push_event(socket, "persist_display_preferences", %{
+      selected_league: socket.assigns.preferred_league_id,
       active_tab: socket.assigns.active_tab,
       enabled_techniques: socket.assigns.enabled_techniques,
       enabled_categories: socket.assigns.enabled_categories,
