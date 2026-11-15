@@ -420,21 +420,25 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     |> Ecto.Changeset.change(last_processed_change_id: requested_change_id)
     |> PoeFlipFinder.Repo.update!()
 
-    Application.put_env(:poe_flip_finder, :ingestion, max_hours_per_call: 1)
+    Application.put_env(:poe_flip_finder, :ingestion, max_hours_per_call: 2)
     on_exit(fn -> Application.delete_env(:poe_flip_finder, :ingestion) end)
 
-    Bypass.expect_once(
-      bypass,
-      "GET",
-      "/api/currency-exchange/#{requested_change_id}",
-      fn conn -> Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json")) end
-    )
+    # Every hour requested returns a real page and never the tip, so the
+    # walk (starting at the 1-hour skip-ahead window edge for a 2-hour cap)
+    # runs out its cap first.
+    Bypass.expect(bypass, "GET", "/api/currency-exchange/#{requested_change_id}", fn conn ->
+      Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json"))
+    end)
+
+    Bypass.expect(bypass, fn conn ->
+      Plug.Conn.resp(conn, 200, exchange_fixture("single_hour_page.json"))
+    end)
 
     {:ok, view, _html} = live(conn, "/")
     view |> element("button[aria-label='Refresh market data']") |> render_click()
     html = render_async(view, 2000)
 
-    assert html =~ "Partial progress (1h) — refresh again to continue"
+    assert html =~ "Partial progress (2h) — refresh again to continue"
   end
 
   test "refresh_ingestion surfaces a fetch failure as the freshness error state", %{

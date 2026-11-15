@@ -197,11 +197,14 @@ defmodule PoeFlipFinder.Ingestion do
   # A walk only ever keeps the latest hour per currency pair (no history is
   # retained), so hours older than one cap's worth are redundant work: if the
   # checkpoint has fallen further behind than that (e.g. nobody refreshed
-  # for months, then a league launched), skip ahead to the cap window's edge
-  # so a single refresh reaches the tip, instead of ~N back-to-back
-  # "Partial progress" clicks that each discard nearly everything they fetch.
+  # for months, then a league launched), skip ahead so a single refresh
+  # reaches the tip, instead of ~N back-to-back "Partial progress" clicks
+  # that each discard nearly everything they fetch. The window is cap - 1
+  # hours, not cap: a walk that uses its whole cap stops before it can
+  # observe the tip, so it would still report "partial" even though nothing
+  # remains -- one fewer hour lets the walk finish by actually hitting it.
   defp oldest_useful_change_id(cap_policy),
-    do: current_hour_epoch_second() - cap_policy.max_hours_per_call * 3600
+    do: current_hour_epoch_second() - (cap_policy.max_hours_per_call - 1) * 3600
 
   # No stored checkpoint yet -- seed near "now" rather than Currency
   # Exchange's actual launch; old data has no product value (see

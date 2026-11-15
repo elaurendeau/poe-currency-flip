@@ -133,9 +133,9 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
   end
 
   test "hits the hour cap: reports partial progress but still commits and advances the checkpoint" do
-    # At the cap window's edge (3 hours back for a 3-hour cap) so the walk
-    # resumes from it rather than skipping ahead.
-    checkpoint = @current_hour - 3 * 3600
+    # At the skip-ahead window's edge (cap - 1 = 2 hours back for a 3-hour
+    # cap) so the walk resumes from it rather than skipping ahead.
+    checkpoint = @current_hour - 2 * 3600
 
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
       last_processed_change_id: checkpoint,
@@ -351,7 +351,6 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     # redundant work, so the walk starts at the window's edge and one click
     # reaches the tip.
     ancient_checkpoint = @current_hour - 2_000 * 3600
-    window_start = @current_hour - 48 * 3600
 
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
       last_processed_change_id: ancient_checkpoint,
@@ -359,8 +358,14 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
-    StubExchangeSourceGateway.stub(window_start, {:ok, page([one_entry()], @current_hour, false)})
-    StubExchangeSourceGateway.stub(@current_hour, {:ok, page([], @current_hour, true)})
+    # Every hour from the window start up to (not including) the current one
+    # has data; the current, still-open hour is the tip.
+    StubExchangeSourceGateway.stub_computed(fn requested ->
+      if requested >= @current_hour,
+        do: {:ok, page([], requested, true)},
+        else: {:ok, page([one_entry()], requested + 3600, false)}
+    end)
+
     StubCurrencyReferenceGateway.stub("A", @currency_a)
     StubCurrencyReferenceGateway.stub("B", @currency_b)
     StubLeagueReferenceGateway.stub("Standard", @league)
@@ -371,13 +376,17 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
         first_run_lookback_hours: 24
       })
 
+    # 47 hours walked, then the tip observed -- NOT "partial": a window of
+    # exactly the cap would burn the whole cap before seeing the tip and
+    # still tell the user to refresh again (found on prod).
+    assert result.hours_processed == 47
     assert result.fully_caught_up == true
     assert result.last_processed_change_id == @current_hour
     assert {:commit_generation, 999, @current_hour} in StubSnapshotRepositoryGateway.calls()
   end
 
-  test "a checkpoint exactly at the cap window's edge resumes from itself" do
-    window_start = @current_hour - 48 * 3600
+  test "a checkpoint exactly at the skip-ahead window's edge resumes from itself" do
+    window_start = @current_hour - 47 * 3600
 
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
       last_processed_change_id: window_start,
