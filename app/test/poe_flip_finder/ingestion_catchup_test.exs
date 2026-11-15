@@ -29,6 +29,10 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
   @now ~U[2026-08-06 12:00:00Z]
   @current_hour div(DateTime.to_unix(@now), 3600) * 3600
 
+  # A checkpoint comfortably inside the 48h cap window -- recent enough that
+  # the walk resumes from it exactly, rather than skipping ahead.
+  @checkpoint @current_hour - 10 * 3600
+
   @currency_a %Currency{id: 1, external_id: "A", display_name: "Currency A", category: :currency}
   @currency_b %Currency{id: 2, external_id: "B", display_name: "Currency B", category: :currency}
   @league %League{
@@ -103,12 +107,12 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
 
   test "reaches tip before the cap: reports fully caught up and commits" do
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
-    StubExchangeSourceGateway.stub(1000, {:ok, page([one_entry()], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([one_entry()], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:ok, page([], 2000, true)})
     StubCurrencyReferenceGateway.stub("A", @currency_a)
     StubCurrencyReferenceGateway.stub("B", @currency_b)
@@ -129,8 +133,12 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
   end
 
   test "hits the hour cap: reports partial progress but still commits and advances the checkpoint" do
+    # At the cap window's edge (3 hours back for a 3-hour cap) so the walk
+    # resumes from it rather than skipping ahead.
+    checkpoint = @current_hour - 3 * 3600
+
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: checkpoint,
       active_generation_refreshed_at: nil
     })
 
@@ -150,7 +158,7 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
         first_run_lookback_hours: 24
       })
 
-    expected_last_processed = 1000 + 3 * 3600
+    expected_last_processed = checkpoint + 3 * 3600
     assert result.hours_processed == 3
     assert result.fully_caught_up == false
     assert result.last_processed_change_id == expected_last_processed
@@ -160,12 +168,12 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
 
   test "unresolvable currency skips that pair, continues the run, reports the skipped count" do
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
-    StubExchangeSourceGateway.stub(1000, {:ok, page([one_entry()], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([one_entry()], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:ok, page([], 2000, true)})
     # Currency A is unresolvable -- currency B and league are never even
     # looked up, since resolution short-circuits on the first failure.
@@ -191,12 +199,12 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     # under a naive per-occurrence tally. See docs/ARCHITECTURE.md's
     # ingestion section (added while drilling this port).
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
-    StubExchangeSourceGateway.stub(1000, {:ok, page([one_entry()], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([one_entry()], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:ok, page([one_entry()], 3000, false)})
     StubExchangeSourceGateway.stub(3000, {:ok, page([], 3000, true)})
     StubCurrencyReferenceGateway.stub("A", nil)
@@ -214,14 +222,14 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
 
   test "a hard failure mid-walk discards the generation and propagates the error, checkpoint unchanged" do
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
     # First hour succeeds (so a generation actually gets minted) -- the
     # failure must happen on a later hour to be "mid walk".
-    StubExchangeSourceGateway.stub(1000, {:ok, page([one_entry()], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([one_entry()], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:error, :network_exploded})
     StubCurrencyReferenceGateway.stub("A", @currency_a)
     StubCurrencyReferenceGateway.stub("B", @currency_b)
@@ -248,11 +256,11 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     # (docs/ARCHITECTURE.md § Failure Handling: never replace
     # last-known-good data with worse data).
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 5000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: ~U[2026-08-06 00:00:00Z]
     })
 
-    StubExchangeSourceGateway.stub(5000, {:ok, page([], 5000, true)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([], @checkpoint, true)})
 
     {:ok, result} =
       Ingestion.run_ingestion_catchup(%CatchupCapPolicy{
@@ -263,7 +271,7 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     assert result == %PoeFlipFinder.CatchupResult{
              hours_processed: 0,
              fully_caught_up: true,
-             last_processed_change_id: 5000,
+             last_processed_change_id: @checkpoint,
              skipped_unresolvable_market_entry_count: 0
            }
 
@@ -283,7 +291,7 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     # without deduplication hit a real duplicate-key failure against live
     # GGG data.
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
@@ -292,7 +300,7 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     earlier_hour_entry = %{one_entry() | volume_traded_a: 1}
     later_hour_entry = %{one_entry() | volume_traded_a: 99}
 
-    StubExchangeSourceGateway.stub(1000, {:ok, page([earlier_hour_entry], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([earlier_hour_entry], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:ok, page([later_hour_entry], 3000, false)})
     StubExchangeSourceGateway.stub(3000, {:ok, page([], 3000, true)})
     StubCurrencyReferenceGateway.stub("A", @currency_a)
@@ -334,6 +342,59 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     refute Enum.any?(StubSnapshotRepositoryGateway.calls(), &match?({:save_snapshots, _}, &1))
   end
 
+  test "a checkpoint older than the cap window skips ahead instead of walking the whole gap" do
+    # Regression test: prod's checkpoint sat ~3 months behind (no refresh
+    # since the last league), so every click walked the next 48h, discarded
+    # all but the latest hour per pair anyway (no history is retained), and
+    # reported "Partial progress (48h)" ~50 times in a row -- ~90s per click
+    # -- when a new league launched. Anything older than the cap window is
+    # redundant work, so the walk starts at the window's edge and one click
+    # reaches the tip.
+    ancient_checkpoint = @current_hour - 2_000 * 3600
+    window_start = @current_hour - 48 * 3600
+
+    StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
+      last_processed_change_id: ancient_checkpoint,
+      active_generation_refreshed_at: nil
+    })
+
+    StubSnapshotRepositoryGateway.stub_new_generation(999)
+    StubExchangeSourceGateway.stub(window_start, {:ok, page([one_entry()], @current_hour, false)})
+    StubExchangeSourceGateway.stub(@current_hour, {:ok, page([], @current_hour, true)})
+    StubCurrencyReferenceGateway.stub("A", @currency_a)
+    StubCurrencyReferenceGateway.stub("B", @currency_b)
+    StubLeagueReferenceGateway.stub("Standard", @league)
+
+    {:ok, result} =
+      Ingestion.run_ingestion_catchup(%CatchupCapPolicy{
+        max_hours_per_call: 48,
+        first_run_lookback_hours: 24
+      })
+
+    assert result.fully_caught_up == true
+    assert result.last_processed_change_id == @current_hour
+    assert {:commit_generation, 999, @current_hour} in StubSnapshotRepositoryGateway.calls()
+  end
+
+  test "a checkpoint exactly at the cap window's edge resumes from itself" do
+    window_start = @current_hour - 48 * 3600
+
+    StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
+      last_processed_change_id: window_start,
+      active_generation_refreshed_at: nil
+    })
+
+    StubExchangeSourceGateway.stub(window_start, {:ok, page([], window_start, true)})
+
+    {:ok, result} =
+      Ingestion.run_ingestion_catchup(%CatchupCapPolicy{
+        max_hours_per_call: 48,
+        first_run_lookback_hours: 24
+      })
+
+    assert result.last_processed_change_id == window_start
+  end
+
   test "discard_generation itself also failing surfaces loudly rather than swallowing the original failure" do
     # Adapted from the Java version's exception-suppression regression test
     # (production once surfaced only the cleanup failure, silently losing
@@ -346,12 +407,12 @@ defmodule PoeFlipFinder.IngestionCatchupTest do
     # trying to discard), and if cleanup itself crashes, that crash
     # propagates loudly rather than being caught and hidden.
     StubSnapshotRepositoryGateway.stub_ingestion_state(%IngestionFreshness{
-      last_processed_change_id: 1000,
+      last_processed_change_id: @checkpoint,
       active_generation_refreshed_at: nil
     })
 
     StubSnapshotRepositoryGateway.stub_new_generation(999)
-    StubExchangeSourceGateway.stub(1000, {:ok, page([one_entry()], 2000, false)})
+    StubExchangeSourceGateway.stub(@checkpoint, {:ok, page([one_entry()], 2000, false)})
     StubExchangeSourceGateway.stub(2000, {:error, :network_exploded})
     StubCurrencyReferenceGateway.stub("A", @currency_a)
     StubCurrencyReferenceGateway.stub("B", @currency_b)

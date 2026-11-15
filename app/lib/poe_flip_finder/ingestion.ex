@@ -190,17 +190,28 @@ defmodule PoeFlipFinder.Ingestion do
         first_run_starting_change_id(cap_policy)
 
       %IngestionFreshness{last_processed_change_id: change_id} ->
-        change_id
+        max(change_id, oldest_useful_change_id(cap_policy))
     end
   end
+
+  # A walk only ever keeps the latest hour per currency pair (no history is
+  # retained), so hours older than one cap's worth are redundant work: if the
+  # checkpoint has fallen further behind than that (e.g. nobody refreshed
+  # for months, then a league launched), skip ahead to the cap window's edge
+  # so a single refresh reaches the tip, instead of ~N back-to-back
+  # "Partial progress" clicks that each discard nearly everything they fetch.
+  defp oldest_useful_change_id(cap_policy),
+    do: current_hour_epoch_second() - cap_policy.max_hours_per_call * 3600
 
   # No stored checkpoint yet -- seed near "now" rather than Currency
   # Exchange's actual launch; old data has no product value (see
   # docs/PRD.md § 4 Non-Goals: no historical trend charts).
-  defp first_run_starting_change_id(cap_policy) do
+  defp first_run_starting_change_id(cap_policy),
+    do: current_hour_epoch_second() - cap_policy.first_run_lookback_hours * 3600
+
+  defp current_hour_epoch_second do
     now_epoch_second = clock().now() |> DateTime.to_unix()
-    current_hour_epoch_second = div(now_epoch_second, 3600) * 3600
-    current_hour_epoch_second - cap_policy.first_run_lookback_hours * 3600
+    div(now_epoch_second, 3600) * 3600
   end
 
   defp exchange_source_gateway do

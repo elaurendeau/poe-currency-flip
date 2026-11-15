@@ -176,6 +176,12 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     Path.join([__DIR__, "..", "..", "fixtures", "ggg_exchange", filename]) |> File.read!()
   end
 
+  # A checkpoint inside the ingestion cap window: anything older than one
+  # cap's worth of hours is skipped ahead rather than resumed from (see
+  # Ingestion.run_ingestion_catchup/1), so a hard-coded historical id would
+  # no longer be the id the walk actually requests first.
+  defp recent_hour_change_id, do: div(System.system_time(:second), 3600) * 3600 - 3600
+
   # === Feature C: Divination Card Flip Finder ========================
 
   test "renders a divination card row's full via chain (card, then reward), not just the card",
@@ -331,7 +337,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
 
   test "refresh_ingestion walks the real GGG shape to tip, commits, and refreshes the timestamp",
        %{conn: conn, bypass: bypass} do
-    requested_change_id = 1_785_985_200
+    requested_change_id = recent_hour_change_id()
     tip_change_id = 1_785_988_800
 
     insert_league!("Standard", is_current: true)
@@ -407,7 +413,7 @@ defmodule PoeFlipFinderWeb.Live.FlipFinderLiveTest do
     conn: conn,
     bypass: bypass
   } do
-    requested_change_id = 1_785_985_200
+    requested_change_id = recent_hour_change_id()
     insert_league!("Standard", is_current: true)
 
     PoeFlipFinder.Repo.get!(Schema.ExchangeIngestionState, 1)
