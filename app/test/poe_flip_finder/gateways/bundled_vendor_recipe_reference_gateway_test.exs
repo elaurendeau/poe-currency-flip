@@ -17,10 +17,10 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGatewayTest do
     recipe =
       Enum.find(recipes, fn r ->
         r.input_currency.display_name == "Portal Scroll" and
-          r.output_currency.display_name == "Orb of Transmutation"
+          r.output_currency.display_name == "Scroll of Wisdom"
       end)
 
-    assert recipe.input_quantity == 7
+    assert recipe.input_quantity == 1
     assert recipe.output_quantity == 1
     assert recipe.input_currency.external_id == nil
     assert recipe.input_currency.category == :currency
@@ -40,6 +40,38 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGatewayTest do
              r.input_currency.display_name == "Orb of Fusing" and
                r.output_currency.display_name == "Orb of Chance"
            end)
+  end
+
+  test "Orb of Scouring costs 4 Orbs of Fusing, not 4 Orbs of Chance (changed in 3.30)" do
+    # Regression test: patch 3.30 changed the Scouring recipe to "4 Orbs of
+    # Fusing (previously 4 Orbs of Chance)" and removed Orb of Chance from
+    # vendors entirely, but the bundled catalog kept the old input -- Vendor
+    # Flip kept pricing a recipe the game no longer has.
+    recipes = BundledVendorRecipeReferenceGateway.find_all()
+
+    scouring =
+      Enum.filter(recipes, fn r -> r.output_currency.display_name == "Orb of Scouring" end)
+
+    assert [recipe] = scouring
+    assert recipe.input_currency.display_name == "Orb of Fusing"
+    assert recipe.input_quantity == 4
+    assert recipe.output_quantity == 1
+
+    refute Enum.any?(recipes, fn r -> r.input_currency.display_name == "Orb of Chance" end)
+  end
+
+  test "Orb of Transmutation costs 1 Orb of Augmentation, not 7 Portal Scrolls (changed in 3.30)" do
+    # Regression test: patch 3.30: "Orbs of Transmutation are now purchasable
+    # for an Orb of Augmentation (previously Portal Scrolls)".
+    recipes = BundledVendorRecipeReferenceGateway.find_all()
+
+    transmutation =
+      Enum.filter(recipes, fn r -> r.output_currency.display_name == "Orb of Transmutation" end)
+
+    assert [recipe] = transmutation
+    assert recipe.input_currency.display_name == "Orb of Augmentation"
+    assert recipe.input_quantity == 1
+    assert recipe.output_quantity == 1
   end
 
   test "captures both directions of the Armourer's Scrap / Blacksmith's Whetstone loop" do
