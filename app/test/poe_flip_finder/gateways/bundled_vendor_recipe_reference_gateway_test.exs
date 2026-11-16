@@ -12,7 +12,7 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGatewayTest do
     # priv/reference-data/vendor-recipes.json is present and parses.
     recipes = BundledVendorRecipeReferenceGateway.find_all()
 
-    assert length(recipes) == 18
+    assert length(recipes) == 17
 
     recipe =
       Enum.find(recipes, fn r ->
@@ -28,6 +28,18 @@ defmodule PoeFlipFinder.Gateways.BundledVendorRecipeReferenceGatewayTest do
     # ItemDescriptionResolver -- same catalog every other
     # Currency-hydrating gateway reads from.
     assert recipe.input_currency.description == "Creates a portal to town"
+  end
+
+  test "does not include the Orb of Fusing -> Orb of Chance recipe, removed in patch 3.30" do
+    # Regression test: GGG removed this vendor recipe in 3.30, but it stayed in
+    # the bundled catalog, so Vendor Flip kept offering a flip that no longer
+    # exists in-game.
+    recipes = BundledVendorRecipeReferenceGateway.find_all()
+
+    refute Enum.any?(recipes, fn r ->
+             r.input_currency.display_name == "Orb of Fusing" and
+               r.output_currency.display_name == "Orb of Chance"
+           end)
   end
 
   test "captures both directions of the Armourer's Scrap / Blacksmith's Whetstone loop" do
